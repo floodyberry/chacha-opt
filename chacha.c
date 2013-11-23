@@ -111,6 +111,7 @@ chacha_update(chacha_state *S, const uint8_t *in, uint8_t *out, size_t inlen) {
 	/* handle leftover data */
 	if (inlen) {
 		if (in) memcpy(state->buffer + state->leftover, in, inlen);
+		else memset(state->buffer + state->leftover, 0, inlen);
 		state->leftover += inlen;
 	}
 
@@ -248,7 +249,7 @@ chacha_test_oneblock(chacha_key *key, chacha_iv *iv, const uint8_t *in, uint8_t 
 		memset(out, 0, i);
 		p = out;
 		chacha_test_init_state(&st, key, iv);
-		p += chacha_update(&st, in, p, CHACHA_TEST_LEN);
+		p += chacha_update(&st, in, p, i);
 		chacha_final(&st, p);
 		res &= (memcmp(expected_chacha_first, out, i) == 0) ? 1 : 0;
 	}
