@@ -128,10 +128,8 @@ movdqa %xmm2,656(%esp)
 chacha_blocks_sse2_mainloop1:
 paddd %xmm3,%xmm0
 pxor %xmm0,%xmm2
-movdqa %xmm2,%xmm4
-pslld $16,%xmm2
-psrld $16,%xmm4
-pxor %xmm4,%xmm2
+pshuflw $0xb1,%xmm2,%xmm2
+pshufhw $0xb1,%xmm2,%xmm2
 paddd %xmm2,%xmm1
 pxor %xmm1,%xmm3
 movdqa %xmm3,%xmm4
@@ -147,10 +145,8 @@ movdqa 592(%esp),%xmm5
 movdqa 624(%esp),%xmm6
 paddd %xmm4,%xmm0
 pxor %xmm0,%xmm5
-movdqa %xmm5,%xmm7
-pslld $16,%xmm5
-psrld $16,%xmm7
-pxor %xmm7,%xmm5
+pshuflw $0xb1,%xmm5,%xmm5
+pshufhw $0xb1,%xmm5,%xmm5
 paddd %xmm5,%xmm6
 pxor %xmm6,%xmm4
 movdqa %xmm4,%xmm7
@@ -192,10 +188,8 @@ movdqa 464(%esp),%xmm1
 movdqa 496(%esp),%xmm2
 paddd %xmm3,%xmm0
 pxor %xmm0,%xmm2
-movdqa %xmm2,%xmm4
-pslld $16,%xmm2
-psrld $16,%xmm4
-pxor %xmm4,%xmm2
+pshuflw $0xb1,%xmm2,%xmm2
+pshufhw $0xb1,%xmm2,%xmm2
 paddd %xmm2,%xmm1
 pxor %xmm1,%xmm3
 movdqa %xmm3,%xmm4
@@ -211,10 +205,8 @@ movdqa 480(%esp),%xmm5
 movdqa 544(%esp),%xmm6
 paddd %xmm4,%xmm0
 pxor %xmm0,%xmm5
-movdqa %xmm5,%xmm7
-pslld $16,%xmm5
-psrld $16,%xmm7
-pxor %xmm7,%xmm5
+pshuflw $0xb1,%xmm5,%xmm5
+pshufhw $0xb1,%xmm5,%xmm5
 paddd %xmm5,%xmm6
 pxor %xmm6,%xmm4
 movdqa %xmm4,%xmm7
@@ -253,10 +245,8 @@ movdqa 688(%esp),%xmm3
 movdqa %xmm5,%xmm2
 paddd %xmm3,%xmm0
 pxor %xmm0,%xmm2
-movdqa %xmm2,%xmm4
-pslld $16,%xmm2
-psrld $16,%xmm4
-pxor %xmm4,%xmm2
+pshuflw $0xb1,%xmm2,%xmm2
+pshufhw $0xb1,%xmm2,%xmm2
 paddd %xmm2,%xmm1
 pxor %xmm1,%xmm3
 movdqa %xmm3,%xmm4
@@ -272,10 +262,8 @@ movdqa 560(%esp),%xmm5
 movdqa 480(%esp),%xmm6
 paddd %xmm4,%xmm0
 pxor %xmm0,%xmm5
-movdqa %xmm5,%xmm7
-pslld $16,%xmm5
-psrld $16,%xmm7
-pxor %xmm7,%xmm5
+pshuflw $0xb1,%xmm5,%xmm5
+pshufhw $0xb1,%xmm5,%xmm5
 paddd %xmm5,%xmm6
 pxor %xmm6,%xmm4
 movdqa %xmm4,%xmm7
@@ -317,10 +305,8 @@ movdqa 592(%esp),%xmm1
 movdqa 656(%esp),%xmm2
 paddd %xmm3,%xmm0
 pxor %xmm0,%xmm2
-movdqa %xmm2,%xmm4
-pslld $16,%xmm2
-psrld $16,%xmm4
-pxor %xmm4,%xmm2
+pshuflw $0xb1,%xmm2,%xmm2
+pshufhw $0xb1,%xmm2,%xmm2
 paddd %xmm2,%xmm1
 pxor %xmm1,%xmm3
 movdqa %xmm3,%xmm4
@@ -336,10 +322,8 @@ movdqa 576(%esp),%xmm5
 movdqa 672(%esp),%xmm6
 paddd %xmm4,%xmm0
 pxor %xmm0,%xmm5
-movdqa %xmm5,%xmm7
-pslld $16,%xmm5
-psrld $16,%xmm7
-pxor %xmm7,%xmm5
+pshuflw $0xb1,%xmm5,%xmm5
+pshufhw $0xb1,%xmm5,%xmm5
 paddd %xmm5,%xmm6
 pxor %xmm6,%xmm4
 movdqa %xmm4,%xmm7
@@ -895,10 +879,8 @@ movl 88(%esp),%eax
 chacha_blocks_sse2_mainloop2:
 paddd %xmm1,%xmm0
 pxor %xmm0,%xmm3
-movdqa %xmm3,%xmm4
-pslld $16,%xmm3
-psrld $16,%xmm4
-pxor %xmm4,%xmm3
+pshuflw $0xb1,%xmm3,%xmm3
+pshufhw $0xb1,%xmm3,%xmm3
 paddd %xmm3,%xmm2
 pxor %xmm2,%xmm1
 movdqa %xmm1,%xmm4
@@ -923,10 +905,8 @@ pxor %xmm4,%xmm1
 subl $2,%eax
 paddd %xmm1,%xmm0
 pxor %xmm0,%xmm3
-movdqa %xmm3,%xmm4
-pslld $16,%xmm3
-psrld $16,%xmm4
-pxor %xmm4,%xmm3
+pshuflw $0xb1,%xmm3,%xmm3
+pshufhw $0xb1,%xmm3,%xmm3
 paddd %xmm3,%xmm2
 pxor %xmm2,%xmm1
 movdqa %xmm1,%xmm4
@@ -1028,10 +1008,8 @@ movl 16(%esp), %ecx
 hchacha_sse2_mainloop: 
 paddd %xmm1, %xmm0
 pxor %xmm0, %xmm3
-movdqa %xmm3,%xmm4
-pslld $16, %xmm3
-psrld $16, %xmm4
-pxor %xmm4, %xmm3
+pshuflw $0xb1,%xmm3,%xmm3
+pshufhw $0xb1,%xmm3,%xmm3
 paddd %xmm3, %xmm2
 pxor %xmm2, %xmm1
 movdqa %xmm1,%xmm4
@@ -1056,10 +1034,8 @@ pxor %xmm4, %xmm1
 subl $2, %ecx
 paddd %xmm1, %xmm0
 pxor %xmm0, %xmm3
-movdqa %xmm3,%xmm4
-pslld $16, %xmm3
-psrld $16, %xmm4
-pxor %xmm4, %xmm3
+pshuflw $0xb1,%xmm3,%xmm3
+pshufhw $0xb1,%xmm3,%xmm3
 paddd %xmm3, %xmm2
 pxor %xmm2, %xmm1
 movdqa %xmm1,%xmm4
