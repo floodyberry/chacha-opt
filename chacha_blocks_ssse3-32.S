@@ -1,9 +1,34 @@
+#define GLOBAL2(n) .globl n##_ssse3; .globl _##n##_ssse3
+#define GLOBAL(n) GLOBAL2(n)
+#define FN2(n) .p2align 4,,15; n##_ssse3:; _##n##_ssse3:
+#define FN(n) FN2(n)
+
+/* linux/elf annotations and NX indicator */
+#if defined(__linux__) && defined(__ELF__)
+#define ENDFN(n) .size n##_ssse3, .-n##_ssse3; .type n##_ssse3, @function;
+#define ENDFILE() .section .note.GNU-stack,"",%progbits
+#else
+#define ENDFN(n)
+#define ENDFILE()
+#endif
+
+/* global offset table support */
+#if defined(_WIN32) || (!defined(__pic__) && !defined(__PIC__))
+#define LOAD_GOTREG(reg)
+#define REF_GOTVAR(var, reg) var
+#define CALL_PLT(function) call function
+#else
+#define LOAD_GOTREG(reg) call 1f; 1:; popl reg; leal _GLOBAL_OFFSET_TABLE_ + 1(reg), reg;
+#define REF_GOTVAR(var, reg) var##@GOTOFF(reg)
+#define CALL_PLT(function) call function@PLT
+#endif
+
 .text
-.p2align 4,,15
-.globl _chacha_blocks_ssse3
-.globl chacha_blocks_ssse3
-_chacha_blocks_ssse3:
-chacha_blocks_ssse3:
+
+GLOBAL(hchacha)
+GLOBAL(chacha_blocks)
+
+FN(chacha_blocks)
 movl %esp,%eax
 andl $31,%eax
 addl $736,%eax
@@ -18,33 +43,12 @@ movl %ecx,84(%esp)
 movl 8(%esp,%eax),%esi
 movl 12(%esp,%eax),%edx
 movl 16(%esp,%eax),%eax
-movl $0x01000302,%ebx
-movl %ebx,128(%esp)
-movl $0x05040706,%ebx
-movl %ebx,4+128(%esp)
-movl $0x09080b0a,%ebx
-movl %ebx,8+128(%esp)
-movl $0x0d0c0f0e,%ebx
-movl %ebx,12+128(%esp)
-movl $0x02010003,%ebx
-movl %ebx,144(%esp)
-movl $0x06050407,%ebx
-movl %ebx,4+144(%esp)
-movl $0x0a09080b,%ebx
-movl %ebx,8+144(%esp)
-movl $0x0e0d0c0f,%ebx
-movl %ebx,12+144(%esp)
-movl $0x61707865, %ebx
-movd %ebx, %xmm0
-movl $0x3320646e, %ebx
-movd %ebx, %xmm4
-movl $0x79622d32, %ebx
-movd %ebx, %xmm5
-movl $0x6b206574, %ebx
-movd %ebx, %xmm6
-punpckldq %xmm4, %xmm0
-punpckldq %xmm6, %xmm5
-punpcklqdq %xmm5, %xmm0
+LOAD_GOTREG(%ebx)
+movdqa REF_GOTVAR(C+0, %ebx), %xmm0
+movdqa REF_GOTVAR(C+16, %ebx), %xmm5
+movdqa REF_GOTVAR(C+32, %ebx), %xmm6
+movdqa %xmm5, 128(%esp)
+movdqa %xmm6, 144(%esp)
 movdqu 0(%ecx),%xmm1
 movdqu 16(%ecx),%xmm2
 movdqu 32(%ecx),%xmm3
@@ -957,48 +961,15 @@ chacha_blocks_ssse3_bytesatleast65:
 subl $64,%eax
 addl $64,%edx
 jmp chacha_blocks_ssse3_bytesbetween1and255
+ENDFN(chacha_blocks)
 
 
 
-
-.p2align 4,,15
-.globl hchacha_ssse3
-.globl _hchacha_ssse3
-hchacha_ssse3:
-_hchacha_ssse3:
-movl $0x01000302,%eax
-movl $0x05040706,%ecx
-movd %eax, %xmm5
-movd %ecx, %xmm0
-movl $0x09080b0a,%eax
-movl $0x0d0c0f0e,%ecx
-movd %eax, %xmm1
-movd %ecx, %xmm2
-movl $0x02010003,%eax
-movl $0x06050407,%ecx
-movd %eax, %xmm6
-movd %ecx, %xmm3
-movl $0x0a09080b,%eax
-movl $0x0e0d0c0f,%ecx
-movd %eax, %xmm4
-movd %ecx, %xmm7
-punpckldq %xmm0, %xmm5
-punpckldq %xmm3, %xmm6
-punpckldq %xmm2, %xmm1
-punpckldq %xmm7, %xmm4
-punpcklqdq %xmm1, %xmm5
-punpcklqdq %xmm4, %xmm6
-movl $0x61707865, %eax
-movl $0x3320646e, %ecx
-movd %eax, %xmm0
-movd %ecx, %xmm1
-movl $0x79622d32, %eax
-movl $0x6b206574, %ecx
-movd %eax, %xmm2
-movd %ecx, %xmm3
-punpckldq %xmm1, %xmm0
-punpckldq %xmm3, %xmm2
-punpcklqdq %xmm2, %xmm0
+FN(hchacha)
+LOAD_GOTREG(%eax)
+movdqa REF_GOTVAR(C+0, %eax), %xmm0
+movdqa REF_GOTVAR(C+16, %eax), %xmm5
+movdqa REF_GOTVAR(C+32, %eax), %xmm6
 movl 4(%esp), %eax
 movl 8(%esp), %edx
 movdqu 0(%eax), %xmm1
@@ -1054,3 +1025,13 @@ ja hchacha_ssse3_mainloop
 movdqu %xmm0, 0(%edx)
 movdqu %xmm3, 16(%edx)
 ret
+ENDFN(hchacha)
+
+.section .rodata, "a"
+.p2align 6,,63;
+C:
+.long 0x61707865,0x3320646e,0x79622d32,0x6b206574 /* "expand 32-byte k" */
+.byte 2,3,0,1,6,7,4,5,10,11,8,9,14,15,12,13       /* pshufb rotate by 16 */
+.byte 3,0,1,2,7,4,5,6,11,8,9,10,15,12,13,14       /* pshufb rotate by 8 */
+
+ENDFILE()

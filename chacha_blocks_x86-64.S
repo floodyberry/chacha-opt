@@ -1,9 +1,55 @@
+#define GLOBAL2(n) .globl n##_x86; .globl _##n##_x86
+#define GLOBAL(n) GLOBAL2(n)
+#define FN2(n) .p2align 4,,15; n##_x86:; _##n##_x86:
+#define FN(n) FN2(n)
+
+/* linux/elf annotations and NX indicator */
+#if defined(__linux__) && defined(__ELF__)
+#define ENDFN(n) .size n##_x86, .-n##_x86; .type n##_x86, @function;
+#define ENDFILE() .section .note.GNU-stack,"",%progbits
+#else
+#define ENDFN(n)
+#define ENDFILE()
+#endif
+
 .text
-.p2align 4,,15
-.globl chacha_blocks_x86
-.globl _chacha_blocks_x86
-_chacha_blocks_x86:
-chacha_blocks_x86:
+
+GLOBAL(hchacha)
+GLOBAL(chacha_blocks)
+
+/* Windows 64 calling convention fixups */
+#if defined(_WIN64)
+FN(chacha_blocks)
+pushq %rsi
+pushq %rdi
+movq %rcx, %rdi
+movq %rdx, %rsi
+movq %r8, %rdx
+movq %r9, %rcx
+call chacha_blocks_thunk_x86
+popq %rdi
+popq %rsi
+ret
+ENDFN(chacha_blocks)
+
+FN(hchacha)
+pushq %rsi
+pushq %rdi
+movq %rcx, %rdi
+movq %rdx, %rsi
+movq %r8, %rdx
+movq %r9, %rcx
+call hchacha_thunk_x86
+popq %rdi
+popq %rsi
+ret
+ENDFN(hchacha)
+
+#define chacha_blocks chacha_blocks_thunk
+#define hchacha hchacha_thunk
+#endif
+
+FN(chacha_blocks)
 movq %rsp,%r11
 andq $31,%r11
 addq $256,%r11
@@ -395,12 +441,9 @@ chacha_blocks_x86_bytesatleast65:
 subq $64,%r8
 addq $64,%rdx
 jmp chacha_blocks_x86_bytesatleast1
+ENDFN(chacha_blocks)
 
-.p2align 4,,15
-.globl _hchacha_x86
-.globl hchacha_x86
-_hchacha_x86:
-hchacha_x86:
+FN(hchacha)
 pushq %r12
 pushq %r13
 pushq %r14
@@ -559,3 +602,6 @@ popq %r14
 popq %r13
 popq %r12
 ret
+ENDFN(hchacha)
+
+ENDFILE()

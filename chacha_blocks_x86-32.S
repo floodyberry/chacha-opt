@@ -1,9 +1,23 @@
+#define GLOBAL2(n) .globl n##_x86; .globl _##n##_x86
+#define GLOBAL(n) GLOBAL2(n)
+#define FN2(n) .p2align 4,,15; n##_x86:; _##n##_x86:
+#define FN(n) FN2(n)
+
+/* linux/elf annotations and NX indicator */
+#if defined(__linux__) && defined(__ELF__)
+#define ENDFN(n) .size n##_x86, .-n##_x86; .type n##_x86, @function;
+#define ENDFILE() .section .note.GNU-stack,"",%progbits
+#else
+#define ENDFN(n)
+#define ENDFILE()
+#endif
+
 .text
-.p2align 4,,15
-.globl chacha_blocks_x86
-.globl _chacha_blocks_x86
-chacha_blocks_x86:
-_chacha_blocks_x86:
+
+GLOBAL(hchacha)
+GLOBAL(chacha_blocks)
+
+FN(chacha_blocks)
 pushl %esi
 pushl %edi
 pushl %ebx
@@ -421,12 +435,9 @@ movl %eax, 48(%ebp)
 movl %ecx, 52(%ebp)
 movl %edx, 60(%ebp)
 jmp chacha_blocks_x86_21
+ENDFN(chacha_blocks)
 
-.p2align 4,,15
-.globl hchacha_x86
-.globl _hchacha_x86
-hchacha_x86:
-_hchacha_x86:
+FN(hchacha)
 pushl %esi
 pushl %edi
 pushl %ebx
@@ -635,5 +646,6 @@ popl %ebx
 popl %edi
 popl %esi
 ret
+ENDFN(hchacha)
 
-
+ENDFILE()

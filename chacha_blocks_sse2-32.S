@@ -1,9 +1,23 @@
+#define GLOBAL2(n) .globl n##_sse2; .globl _##n##_sse2
+#define GLOBAL(n) GLOBAL2(n)
+#define FN2(n) .p2align 4,,15; n##_sse2:; _##n##_sse2:
+#define FN(n) FN2(n)
+
+/* linux/elf annotations and NX indicator */
+#if defined(__linux__) && defined(__ELF__)
+#define ENDFN(n) .size n##_sse2, .-n##_sse2; .type n##_sse2, @function;
+#define ENDFILE() .section .note.GNU-stack,"",%progbits
+#else
+#define ENDFN(n)
+#define ENDFILE()
+#endif
+
 .text
-.p2align 5
-.globl _chacha_blocks_sse2
-.globl chacha_blocks_sse2
-_chacha_blocks_sse2:
-chacha_blocks_sse2:
+
+GLOBAL(hchacha)
+GLOBAL(chacha_blocks)
+
+FN(chacha_blocks)
 movl %esp,%eax
 andl $31,%eax
 addl $704,%eax
@@ -979,14 +993,10 @@ chacha_blocks_sse2_bytesatleast65:
 subl $64,%eax
 addl $64,%edx
 jmp chacha_blocks_sse2_bytesbetween1and255
+ENDFN(chacha_blocks)
 
 
-
-.p2align 4,,15
-.globl hchacha_sse2
-.globl _hchacha_sse2
-hchacha_sse2:
-_hchacha_sse2:
+FN(hchacha)
 movl $0x61707865, %eax
 movl $0x3320646e, %ecx
 movd %eax, %xmm0
@@ -1061,3 +1071,6 @@ ja hchacha_sse2_mainloop
 movdqu %xmm0, 0(%edx)
 movdqu %xmm3, 16(%edx)
 ret
+ENDFN(hchacha)
+
+ENDFILE()

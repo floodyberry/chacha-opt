@@ -1,32 +1,90 @@
+#define GLOBAL2(n) .globl n##_ssse3; .globl _##n##_ssse3
+#define GLOBAL(n) GLOBAL2(n)
+#define FN2(n) .p2align 4,,15; n##_ssse3:; _##n##_ssse3:
+#define FN(n) FN2(n)
+
+/* linux/elf annotations and NX indicator */
+#if defined(__linux__) && defined(__ELF__)
+#define ENDFN(n) .size n##_ssse3, .-n##_ssse3; .type n##_ssse3, @function;
+#define ENDFILE() .section .note.GNU-stack,"",%progbits
+#else
+#define ENDFN(n)
+#define ENDFILE()
+#endif
+
 .text
 
-.p2align 4,,15
-.global _chacha_blocks_ssse3
-.global chacha_blocks_ssse3
-_chacha_blocks_ssse3:
-chacha_blocks_ssse3:
+GLOBAL(hchacha)
+GLOBAL(chacha_blocks)
+
+/* Windows 64 calling convention fixups */
+#if defined(_WIN64)
+FN(chacha_blocks)
+subq $184, %rsp
+movdqa %xmm6, 0(%rsp)
+movdqa %xmm7, 16(%rsp)
+movdqa %xmm8, 32(%rsp)
+movdqa %xmm9, 48(%rsp)
+movdqa %xmm10, 64(%rsp)
+movdqa %xmm11, 80(%rsp)
+movdqa %xmm12, 96(%rsp)
+movdqa %xmm13, 112(%rsp)
+movdqa %xmm14, 128(%rsp)
+movdqa %xmm15, 144(%rsp)
+movq %rdi, 160(%rsp)
+movq %rsi, 168(%rsp)
+movq %rcx, %rdi
+movq %rdx, %rsi
+movq %r8, %rdx
+movq %r9, %rcx
+call chacha_blocks_thunk_ssse3
+movdqa 0(%rsp), %xmm6
+movdqa 16(%rsp), %xmm7
+movdqa 32(%rsp), %xmm8
+movdqa 48(%rsp), %xmm9
+movdqa 64(%rsp), %xmm10
+movdqa 80(%rsp), %xmm11
+movdqa 96(%rsp), %xmm12
+movdqa 112(%rsp), %xmm13
+movdqa 128(%rsp), %xmm14
+movdqa 144(%rsp), %xmm15
+movq 160(%rsp), %rdi
+movq 168(%rsp), %rsi
+addq $184, %rsp
+ret
+ENDFN(chacha_blocks)
+
+FN(hchacha)
+subq $40, %rsp
+movdqa %xmm6, 0(%rsp)
+movq %rdi, 16(%rsp)
+movq %rsi, 24(%rsp)
+movq %rcx, %rdi
+movq %rdx, %rsi
+movq %r8, %rdx
+movq %r9, %rcx
+call hchacha_thunk_ssse3
+movdqa 0(%rsp), %xmm6
+movq 16(%rsp), %rdi
+movq 24(%rsp), %rsi
+addq $40, %rsp
+ret
+ENDFN(hchacha)
+
+#define chacha_blocks chacha_blocks_thunk
+#define hchacha hchacha_thunk
+#endif
+
+FN(chacha_blocks)
 pushq %rbx
 pushq %rbp
 movq %rsp, %rbp
 andq $~63, %rsp
 subq $512, %rsp
-movq $0x0504070601000302, %rax
-movq $0x0d0c0f0e09080b0a, %r8
-movq $0x0605040702010003, %r9
-movq $0x0e0d0c0f0a09080b, %r10
-movq %rax, %xmm6
-movq %r8, %xmm13
-movq %r9, %xmm7
-movq %r10, %xmm15
-movq $0x3320646e61707865, %rax
-movq $0x6b20657479622d32, %r8
-movq %rax, %xmm8
-movq %r8, %xmm14
-punpcklqdq %xmm13, %xmm6
-punpcklqdq %xmm15, %xmm7
-punpcklqdq %xmm14, %xmm8
-movdqa %xmm6, 80(%rsp)
-movdqa %xmm7, 96(%rsp)
+lea C(%rip), %rax
+movdqa 0(%rax), %xmm8
+movdqa 16(%rax), %xmm6
+movdqa 32(%rax), %xmm7
 movdqu 0(%rdi), %xmm9
 movdqu 16(%rdi), %xmm10
 movdqu 32(%rdi), %xmm11
@@ -36,6 +94,8 @@ movdqa %xmm8, 0(%rsp)
 movdqa %xmm9, 16(%rsp)
 movdqa %xmm10, 32(%rsp)
 movdqa %xmm11, 48(%rsp)
+movdqa %xmm6, 80(%rsp)
+movdqa %xmm7, 96(%rsp)
 movq %rax, 64(%rsp)
 cmpq $256, %rcx
 jb chacha_blocks_ssse3_below256
@@ -571,30 +631,16 @@ movq %rbp, %rsp
 popq %rbp
 popq %rbx
 ret
+ENDFN(chacha_blocks)
 
-.p2align 4,,15
-.globl hchacha_ssse3
-.globl _hchacha_ssse3
-hchacha_ssse3:
-_hchacha_ssse3:
-movq $0x3320646e61707865, %rax
-movq $0x6b20657479622d32, %r8
-movq %rax, %xmm0
-movq %r8, %xmm4
-punpcklqdq %xmm4, %xmm0
+FN(hchacha)
+lea C(%rip), %rax
+movdqa 0(%rax), %xmm0
+movdqa 16(%rax), %xmm5
+movdqa 32(%rax), %xmm6
 movdqu 0(%rdi), %xmm1
 movdqu 16(%rdi), %xmm2
 movdqu 0(%rsi), %xmm3
-movq $0x0504070601000302, %rsi
-movq $0x0d0c0f0e09080b0a, %rdi
-movq $0x0605040702010003, %rax
-movq $0x0e0d0c0f0a09080b, %r8
-movq %rsi, %xmm5
-movq %rdi, %xmm7
-movq %rax, %xmm6
-movq %r8, %xmm8
-punpcklqdq %xmm7, %xmm5
-punpcklqdq %xmm8, %xmm6
 hchacha_ssse3_mainloop:
 paddd %xmm1, %xmm0
 pxor %xmm0, %xmm3
@@ -643,3 +689,13 @@ ja hchacha_ssse3_mainloop
 movdqu %xmm0, 0(%rdx)
 movdqu %xmm3, 16(%rdx)
 ret
+ENDFN(hchacha)
+
+.section .rodata, "a"
+.p2align 6,,63;
+C:
+.long 0x61707865,0x3320646e,0x79622d32,0x6b206574 /* "expand 32-byte k" */
+.byte 2,3,0,1,6,7,4,5,10,11,8,9,14,15,12,13       /* pshufb rotate by 16 */
+.byte 3,0,1,2,7,4,5,6,11,8,9,10,15,12,13,14       /* pshufb rotate by 8 */
+
+ENDFILE()
