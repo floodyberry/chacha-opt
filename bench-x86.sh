@@ -9,7 +9,7 @@ function bench {
 	local FN
 	case $1 in
 		ref) FN=chacha_blocks_$1.c;;
-		*) FN=chacha_blocks_$1-$2.s;;
+		*) FN=chacha_blocks_$1-$2.S;;
 	esac
 
 	if [ ! -f $FN ] ; then
