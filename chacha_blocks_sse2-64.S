@@ -105,12 +105,12 @@ pshuflw $0xb1,%xmm12,%xmm12
 pshufhw $0xb1,%xmm12,%xmm12
 pshuflw $0xb1,%xmm13,%xmm13
 pshufhw $0xb1,%xmm13,%xmm13
-paddd %xmm12, %xmm8
-paddd %xmm13, %xmm9
 pshuflw $0xb1,%xmm14,%xmm14
 pshufhw $0xb1,%xmm14,%xmm14
 pshuflw $0xb1,%xmm15,%xmm15
 pshufhw $0xb1,%xmm15,%xmm15
+paddd %xmm12, %xmm8
+paddd %xmm13, %xmm9
 paddd %xmm14, %xmm10
 paddd %xmm15, %xmm11
 movdqa %xmm12, 112(%rsp)
@@ -201,12 +201,12 @@ pshuflw $0xb1,%xmm15,%xmm15
 pshufhw $0xb1,%xmm15,%xmm15
 pshuflw $0xb1,%xmm12,%xmm12
 pshufhw $0xb1,%xmm12,%xmm12
-paddd %xmm15, %xmm10
-paddd %xmm12, %xmm11
 pshuflw $0xb1,%xmm13,%xmm13
 pshufhw $0xb1,%xmm13,%xmm13
 pshuflw $0xb1,%xmm14,%xmm14
 pshufhw $0xb1,%xmm14,%xmm14
+paddd %xmm15, %xmm10
+paddd %xmm12, %xmm11
 paddd %xmm13, %xmm8
 paddd %xmm14, %xmm9
 movdqa %xmm15, 112(%rsp)
