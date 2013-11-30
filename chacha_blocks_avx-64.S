@@ -82,7 +82,7 @@ pushq %rbp
 movq %rsp, %rbp
 andq $~63, %rsp
 subq $512, %rsp
-lea C(%rip), %rax
+leaq C(%rip), %rax
 vmovdqa 0(%rax), %xmm8
 vmovdqa 16(%rax), %xmm6
 vmovdqa 32(%rax), %xmm7
@@ -568,7 +568,7 @@ ret
 ENDFN(chacha_blocks)
 
 FN(hchacha)
-lea C(%rip), %rax
+leaq C(%rip), %rax
 vmovdqu 0(%rdi), %xmm1
 vmovdqu 16(%rdi), %xmm2
 vmovdqu 0(%rsi), %xmm3
