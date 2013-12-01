@@ -190,8 +190,6 @@ XChaCha/r has the same performance as ChaCha/r plus the cost of one HChaCha/r ca
 <tr> <td>SSE2-64   </td> <td></td><td> 262</td><td> 337</td><td> 500</td> <td></td><td>  1.98</td><td>  2.65</td><td>  3.97</td> <td></td><td>  1.68</td><td>  2.29</td><td>  3.42</td> </tr>
 <tr> <td>SSSE3-32  </td> <td></td><td> 287</td><td> 350</td><td> 487</td> <td></td><td>  2.04</td><td>  2.69</td><td>  3.99</td> <td></td><td>  1.72</td><td>  2.37</td><td>  3.59</td> </tr>
 <tr> <td>SSE2-32   </td> <td></td><td> 312</td><td> 400</td><td> 562</td> <td></td><td>  2.43</td><td>  3.26</td><td>  4.95</td> <td></td><td>  2.12</td><td>  2.90</td><td>  4.52</td> </tr>
-<tr> <td>x86-64    </td> <td></td><td> 312</td><td> 400</td><td> 575</td> <td></td><td>  3.45</td><td>  4.84</td><td>  7.60</td> <td></td><td>  3.31</td><td>  4.71</td><td>  7.47</td> </tr>
-<tr> <td>x86-32    </td> <td></td><td> 400</td><td> 500</td><td> 725</td> <td></td><td>  4.51</td><td>  6.23</td><td>  9.61</td> <td></td><td>  4.30</td><td>  5.97</td><td>  9.32</td> </tr>
 </tbody>
 </table>
 
@@ -204,8 +202,6 @@ XChaCha/r has the same performance as ChaCha/r plus the cost of one HChaCha/r ca
 <tr> <td>SSSE3-32  </td> <td> 175</td><td> 250</td><td> 375</td> </tr>
 <tr> <td>SSE2-64   </td> <td> 200</td><td> 275</td><td> 450</td> </tr>
 <tr> <td>SSE2-32   </td> <td> 200</td><td> 275</td><td> 450</td> </tr>
-<tr> <td>x86-64    </td> <td> 212</td><td> 300</td><td> 475</td> </tr>
-<tr> <td>x86-32    </td> <td> 287</td><td> 400</td><td> 600</td> </tr>
 </tbody>
 </table>
 
@@ -219,11 +215,7 @@ XChaCha/r has the same performance as ChaCha/r plus the cost of one HChaCha/r ca
 <tr> <td>AVX-64    </td> <td></td><td> 176</td><td> 240</td><td> 364</td> <td></td><td>  1.22</td><td>  1.68</td><td>  2.64</td> <td></td><td>  1.04</td><td>  1.46</td><td>  2.29</td> </tr>
 <tr> <td>SSSE3-64  </td> <td></td><td> 180</td><td> 248</td><td> 384</td> <td></td><td>  1.35</td><td>  1.88</td><td>  2.94</td> <td></td><td>  1.18</td><td>  1.65</td><td>  2.59</td> </tr>
 <tr> <td>AVX-32    </td> <td></td><td> 184</td><td> 248</td><td> 380</td> <td></td><td>  1.50</td><td>  2.03</td><td>  3.10</td> <td></td><td>  1.24</td><td>  1.72</td><td>  2.68</td> </tr>
-<tr> <td>SSE2-64   </td> <td></td><td> 212</td><td> 296</td><td> 456</td> <td></td><td>  1.58</td><td>  2.22</td><td>  3.51</td> <td></td><td>  1.39</td><td>  1.96</td><td>  3.09</td> </tr>
 <tr> <td>SSSE3-32  </td> <td></td><td> 228</td><td> 292</td><td> 428</td> <td></td><td>  1.84</td><td>  2.47</td><td>  3.74</td> <td></td><td>  1.65</td><td>  2.23</td><td>  3.41</td> </tr>
-<tr> <td>SSE2-32   </td> <td></td><td> 248</td><td> 336</td><td> 496</td> <td></td><td>  2.16</td><td>  2.97</td><td>  4.58</td> <td></td><td>  1.98</td><td>  2.73</td><td>  4.24</td> </tr>
-<tr> <td>x86-64    </td> <td></td><td> 296</td><td> 396</td><td> 600</td> <td></td><td>  3.73</td><td>  5.31</td><td>  8.49</td> <td></td><td>  3.71</td><td>  5.31</td><td>  8.51</td> </tr>
-<tr> <td>x86-32    </td> <td></td><td> 352</td><td> 476</td><td> 716</td> <td></td><td>  4.66</td><td>  6.56</td><td> 10.45</td> <td></td><td>  4.61</td><td>  6.53</td><td> 10.39</td> </tr>
 </tbody>
 </table>
 
@@ -236,13 +228,8 @@ XChaCha/r has the same performance as ChaCha/r plus the cost of one HChaCha/r ca
 <tr> <td>AVX-32    </td> <td> 128</td><td> 192</td><td> 320</td> </tr>
 <tr> <td>SSSE3-64  </td> <td> 128</td><td> 192</td><td> 328</td> </tr>
 <tr> <td>SSSE3-32  </td> <td> 136</td><td> 204</td><td> 336</td> </tr>
-<tr> <td>SSE2-64   </td> <td> 152</td><td> 236</td><td> 400</td> </tr>
-<tr> <td>SSE2-32   </td> <td> 156</td><td> 240</td><td> 404</td> </tr>
-<tr> <td>x86-64    </td> <td> 216</td><td> 312</td><td> 512</td> </tr>
-<tr> <td>x86-32    </td> <td> 284</td><td> 408</td><td> 652</td> </tr>
 </tbody>
 </table>
-
 
 # LICENSE #
 
