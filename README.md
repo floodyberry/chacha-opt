@@ -231,6 +231,33 @@ XChaCha/r has the same performance as ChaCha/r plus the cost of one HChaCha/r ca
 </tbody>
 </table>
 
+## [i7-4770K](http://ark.intel.com/products/75123) ##
+
+### ChaCha ###
+
+<table>
+<thead><tr><th>Implementation</th><th>1 byte</th><th>8</th><th>12</th><th>20</th><th>576 bytes</th><th>8</th><th>12</th><th>20</th><th>8192 bytes</th><th>8</th><th>12</th><th>20</th></tr></thead>
+<tbody>
+<tr> <td>AVX2-64   </td> <td></td><td> 146</td><td> 194</td><td> 313</td> <td></td><td>  0.68</td><td>  0.97</td><td>  1.48</td> <td></td><td>  0.52</td><td>  0.71</td><td>  1.08</td> </tr>
+<tr> <td>AVX2-32   </td> <td></td><td> 170</td><td> 218</td><td> 337</td> <td></td><td>  0.83</td><td>  1.11</td><td>  1.66</td> <td></td><td>  0.62</td><td>  0.83</td><td>  1.24</td> </tr>
+<tr> <td>AVX-64    </td> <td></td><td> 146</td><td> 194</td><td> 316</td> <td></td><td>  1.06</td><td>  1.50</td><td>  2.33</td> <td></td><td>  0.94</td><td>  1.32</td><td>  2.05</td> </tr>
+<tr> <td>AVX-32    </td> <td></td><td> 158</td><td> 206</td><td> 328</td> <td></td><td>  1.32</td><td>  1.82</td><td>  2.81</td> <td></td><td>  1.12</td><td>  1.57</td><td>  2.47</td> </tr>
+</tbody>
+</table>
+
+### HChaCha ###
+
+<table>
+<thead><tr><th>Implementation</th><th>8</th><th>12</th><th>20</th></tr></thead>
+<tbody>
+<tr> <td>AVX2-64   </td> <td>  81</td><td> 155</td><td> 251</td> </tr>
+<tr> <td>AVX2-32   </td> <td>  87</td><td> 155</td><td> 254</td> </tr>
+<tr> <td>AVX-64    </td> <td>  87</td><td> 155</td><td> 274</td> </tr>
+<tr> <td>AVX-32    </td> <td>  87</td><td> 152</td><td> 251</td> </tr>
+</tbody>
+</table>
+
+
 # LICENSE #
 
 Public Domain, or MIT

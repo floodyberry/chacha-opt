@@ -1,7 +1,7 @@
 #!/bin/bash
 
 function usage {
-	echo "usage:   ./bench-x86.sh [ref,x86,sse2,ssse3,avx] [32,64]"
+	echo "usage:   ./bench-x86.sh [ref,x86,sse2,ssse3,avx,avx2] [32,64]"
 	echo ""
 }
 
