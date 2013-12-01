@@ -186,7 +186,7 @@ XChaCha/r has the same performance as ChaCha/r plus the cost of one HChaCha/r ca
 ### ChaCha ###
 
 <table>
-<thead><tr><th>Implementation</th><th>1 byte</th><th>8</th><th>12</th><th>20</th><th>576 bytes</th><th>8</th><th>12</th><th>20</th><th>8192 bytes</th><th>8</th><th>12</th><th>20</th></tr></thead>
+<thead><tr><th>Impl.</th><th>1 byte</th><th>8</th><th>12</th><th>20</th><th>576 bytes</th><th>8</th><th>12</th><th>20</th><th>8192 bytes</th><th>8</th><th>12</th><th>20</th></tr></thead>
 <tbody>
 <tr> <td>SSSE3-64  </td> <td></td><td> 237</td><td> 300</td><td> 437</td> <td></td><td>  1.71</td><td>  2.23</td><td>  3.30</td> <td></td><td>  1.46</td><td>  1.90</td><td>  2.82</td> </tr>
 <tr> <td>SSE2-64   </td> <td></td><td> 262</td><td> 337</td><td> 500</td> <td></td><td>  1.98</td><td>  2.65</td><td>  3.97</td> <td></td><td>  1.68</td><td>  2.29</td><td>  3.42</td> </tr>
@@ -198,7 +198,7 @@ XChaCha/r has the same performance as ChaCha/r plus the cost of one HChaCha/r ca
 ### HChaCha ###
 
 <table>
-<thead><tr><th>Implementation</th><th>8</th><th>12</th><th>20</th></tr></thead>
+<thead><tr><th>Impl.</th><th>8</th><th>12</th><th>20</th></tr></thead>
 <tbody>
 <tr> <td>SSSE3-64  </td> <td> 162</td><td> 237</td><td> 362</td> </tr>
 <tr> <td>SSSE3-32  </td> <td> 175</td><td> 250</td><td> 375</td> </tr>
