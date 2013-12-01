@@ -569,12 +569,12 @@ ENDFN(chacha_blocks)
 
 FN(hchacha)
 leaq C(%rip), %rax
-vmovdqu 0(%rdi), %xmm1
-vmovdqu 16(%rdi), %xmm2
-vmovdqu 0(%rsi), %xmm3
 vmovdqa 0(%rax), %xmm0
 vmovdqa 16(%rax), %xmm6
 vmovdqa 32(%rax), %xmm5
+vmovdqu 0(%rdi), %xmm1
+vmovdqu 16(%rdi), %xmm2
+vmovdqu 0(%rsi), %xmm3
 hhacha_mainloop_avx:
 vpaddd %xmm0, %xmm1, %xmm0
 vpxor %xmm3, %xmm0, %xmm3
@@ -622,7 +622,7 @@ ret
 ENDFN(hchacha)
 
 .section .rodata, "a"
-.p2align 6,,63;
+.p2align 4,,15
 C:
 .long 0x61707865,0x3320646e,0x79622d32,0x6b206574 /* "expand 32-byte k" */
 .byte 2,3,0,1,6,7,4,5,10,11,8,9,14,15,12,13       /* pshufb rotate by 16 */

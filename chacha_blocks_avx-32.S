@@ -797,7 +797,7 @@ ret
 ENDFN(hchacha)
 
 .section .rodata, "a"
-.p2align 6,,63;
+.p2align 4,,15;
 C:
 .long 0x61707865,0x3320646e,0x79622d32,0x6b206574 /* "expand 32-byte k" */
 .byte 2,3,0,1,6,7,4,5,10,11,8,9,14,15,12,13       /* pshufb rotate by 16 */
