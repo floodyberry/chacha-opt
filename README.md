@@ -137,23 +137,25 @@ x86-64, SSE2-32, and SSE3-32 versions are minorly modified from DJB's public dom
 
 ## x86 (32 bit) ##
 
-* 386 compatible: [chacha\_blocks\_x86](chacha_blocks_x86-32.s)
-* SSE2: [chacha\_blocks\_sse2](chacha_blocks_sse2-32.s)
-* SSSE3: [chacha\_blocks\_ssse3](chacha_blocks_ssse3-32.s)
-* AVX: [chacha\_blocks\_avx](chacha_blocks_avx-32.s)
+* 386 compatible: [chacha\_blocks\_x86](chacha_blocks_x86-32.S)
+* SSE2: [chacha\_blocks\_sse2](chacha_blocks_sse2-32.S)
+* SSSE3: [chacha\_blocks\_ssse3](chacha_blocks_ssse3-32.S)
+* AVX: [chacha\_blocks\_avx](chacha_blocks_avx-32.S)
+* AVX2: [chacha\_blocks\_avx](chacha_blocks_avx2-32.S)
 
 ## x86-64 ##
 
-* x86-64 compatible: [chacha\_blocks\_x86](chacha_blocks_x86-64.s)
-* SSE2: [chacha\_blocks\_sse2](chacha_blocks_sse2-64.s)
-* SSSE3: [chacha\_blocks\_ssse3](chacha_blocks_ssse3-64.s)
-* AVX: [chacha\_blocks\_avx](chacha_blocks_avx-64.s)
+* x86-64 compatible: [chacha\_blocks\_x86](chacha_blocks_x86-64.S)
+* SSE2: [chacha\_blocks\_sse2](chacha_blocks_sse2-64.S)
+* SSSE3: [chacha\_blocks\_ssse3](chacha_blocks_ssse3-64.S)
+* AVX: [chacha\_blocks\_avx](chacha_blocks_avx-64.S)
+* AVX2: [chacha\_blocks\_avx](chacha_blocks_avx-64.S)
 
 x86-64 will almost always be slower than SSE2, but on some older AMDs it may be faster
 
 # TESTING #
 
-Run `./test.sh [ref,x86,sse2,ssse3,avx] [32,64]` to test that the specified version
+Run `./test.sh [ref,x86,sse2,ssse3,avx,avx2] [32,64]` to test that the specified version
 is producing the correct results. Features tested:
 
 ## Implementation specific
@@ -171,11 +173,11 @@ is producing the correct results. Features tested:
 
 # BENCHMARKS #
 
-Run `./bench-x86.sh [ref,x86,sse2,ssse3,avx] [32,64]` to bench the specified version. 
+Run `./bench-x86.sh [ref,x86,sse2,ssse3,avx,avx2] [32,64]` to bench the specified version. 
 The benchmark will not run if the version does not pass the validity tests.
 
 When storing the ChaCha stream directly in to the output buffer instead of XOR'ing it with the input 
-(i.e. setting **in** to NULL), performance will be 0.03-0.05 cycles/byte faster.
+(i.e. setting **in** to NULL), performance will be 0.01-0.05 cycles/byte faster.
 
 XChaCha/r has the same performance as ChaCha/r plus the cost of one HChaCha/r call.
 
@@ -246,6 +248,8 @@ XChaCha/r has the same performance as ChaCha/r plus the cost of one HChaCha/r ca
 </table>
 
 ### HChaCha ###
+
+(these are all literally the same version, timing differences are noise)
 
 <table>
 <thead><tr><th>Implementation</th><th>8</th><th>12</th><th>20</th></tr></thead>
