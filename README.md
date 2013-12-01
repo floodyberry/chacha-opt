@@ -212,7 +212,7 @@ XChaCha/r has the same performance as ChaCha/r plus the cost of one HChaCha/r ca
 ### ChaCha ###
 
 <table>
-<thead><tr><th>Implementation</th><th>1 byte</th><th>8</th><th>12</th><th>20</th><th>576 bytes</th><th>8</th><th>12</th><th>20</th><th>8192 bytes</th><th>8</th><th>12</th><th>20</th></tr></thead>
+<thead><tr><th>Impl.</th><th>1 byte</th><th>8</th><th>12</th><th>20</th><th>576 bytes</th><th>8</th><th>12</th><th>20</th><th>8192 bytes</th><th>8</th><th>12</th><th>20</th></tr></thead>
 <tbody>
 <tr> <td>AVX-64    </td> <td></td><td> 176</td><td> 240</td><td> 364</td> <td></td><td>  1.22</td><td>  1.68</td><td>  2.64</td> <td></td><td>  1.04</td><td>  1.46</td><td>  2.29</td> </tr>
 <tr> <td>SSSE3-64  </td> <td></td><td> 180</td><td> 248</td><td> 384</td> <td></td><td>  1.35</td><td>  1.88</td><td>  2.94</td> <td></td><td>  1.18</td><td>  1.65</td><td>  2.59</td> </tr>
@@ -224,7 +224,7 @@ XChaCha/r has the same performance as ChaCha/r plus the cost of one HChaCha/r ca
 ### HChaCha ###
 
 <table>
-<thead><tr><th>Implementation</th><th>8</th><th>12</th><th>20</th></tr></thead>
+<thead><tr><th>Impl.</th><th>8</th><th>12</th><th>20</th></tr></thead>
 <tbody>
 <tr> <td>AVX-64    </td> <td> 116</td><td> 180</td><td> 308</td> </tr>
 <tr> <td>AVX-32    </td> <td> 128</td><td> 192</td><td> 320</td> </tr>
@@ -238,7 +238,7 @@ XChaCha/r has the same performance as ChaCha/r plus the cost of one HChaCha/r ca
 ### ChaCha ###
 
 <table>
-<thead><tr><th>Implementation</th><th>1 byte</th><th>8</th><th>12</th><th>20</th><th>576 bytes</th><th>8</th><th>12</th><th>20</th><th>8192 bytes</th><th>8</th><th>12</th><th>20</th></tr></thead>
+<thead><tr><th>Impl.</th><th>1 byte</th><th>8</th><th>12</th><th>20</th><th>576 bytes</th><th>8</th><th>12</th><th>20</th><th>8192 bytes</th><th>8</th><th>12</th><th>20</th></tr></thead>
 <tbody>
 <tr> <td>AVX2-64   </td> <td></td><td> 146</td><td> 194</td><td> 313</td> <td></td><td>  0.68</td><td>  0.97</td><td>  1.48</td> <td></td><td>  0.52</td><td>  0.71</td><td>  1.08</td> </tr>
 <tr> <td>AVX2-32   </td> <td></td><td> 170</td><td> 218</td><td> 337</td> <td></td><td>  0.83</td><td>  1.11</td><td>  1.66</td> <td></td><td>  0.62</td><td>  0.83</td><td>  1.24</td> </tr>
@@ -252,7 +252,7 @@ XChaCha/r has the same performance as ChaCha/r plus the cost of one HChaCha/r ca
 (these are all literally the same version, timing differences are noise)
 
 <table>
-<thead><tr><th>Implementation</th><th>8</th><th>12</th><th>20</th></tr></thead>
+<thead><tr><th>Impl.</th><th>8</th><th>12</th><th>20</th></tr></thead>
 <tbody>
 <tr> <td>AVX2-64   </td> <td>  81</td><td> 155</td><td> 251</td> </tr>
 <tr> <td>AVX2-32   </td> <td>  87</td><td> 155</td><td> 254</td> </tr>
