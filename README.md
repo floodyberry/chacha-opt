@@ -235,6 +235,10 @@ XChaCha/r has the same performance as ChaCha/r plus the cost of one HChaCha/r ca
 
 ## [i7-4770K](http://ark.intel.com/products/75123) ##
 
+Timings are with Turbo Boost and Hyperthreading, so their accuracy is not concrete. 
+For reference, OpenSSL and Crypto++ give ~0.8cpb for AES-128-CTR and ~1.1cpb for AES-256-CTR, 
+and ~7.4cpb for SHA-512.
+
 ### ChaCha ###
 
 <table>
