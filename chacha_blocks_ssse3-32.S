@@ -13,7 +13,7 @@
 #endif
 
 /* global offset table support */
-#if defined(_WIN32) || (!defined(__pic__) && !defined(__PIC__))
+#if (defined(_WIN32) || defined(__CYGWIN__) || (!defined(__pic__) && !defined(__PIC__))
 #define LOAD_GOTREG(reg)
 #define REF_GOTVAR(var, reg) var
 #define CALL_PLT(function) call function

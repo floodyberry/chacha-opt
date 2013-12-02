@@ -18,7 +18,7 @@ GLOBAL(hchacha)
 GLOBAL(chacha_blocks)
 
 /* Windows 64 calling convention fixups */
-#if defined(_WIN64)
+#if defined(_WIN64) || defined(__CYGWIN__)
 FN(chacha_blocks)
 subq $184, %rsp
 movdqa %xmm6, 0(%rsp)
