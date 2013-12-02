@@ -141,7 +141,7 @@ x86-64, SSE2-32, and SSE3-32 versions are minorly modified from DJB's public dom
 * SSE2: [chacha\_blocks\_sse2](chacha_blocks_sse2-32.S)
 * SSSE3: [chacha\_blocks\_ssse3](chacha_blocks_ssse3-32.S)
 * AVX: [chacha\_blocks\_avx](chacha_blocks_avx-32.S)
-* AVX2: [chacha\_blocks\_avx](chacha_blocks_avx2-32.S)
+* AVX2: [chacha\_blocks\_avx2](chacha_blocks_avx2-32.S)
 
 ## x86-64 ##
 
@@ -149,7 +149,7 @@ x86-64, SSE2-32, and SSE3-32 versions are minorly modified from DJB's public dom
 * SSE2: [chacha\_blocks\_sse2](chacha_blocks_sse2-64.S)
 * SSSE3: [chacha\_blocks\_ssse3](chacha_blocks_ssse3-64.S)
 * AVX: [chacha\_blocks\_avx](chacha_blocks_avx-64.S)
-* AVX2: [chacha\_blocks\_avx](chacha_blocks_avx-64.S)
+* AVX2: [chacha\_blocks\_avx2](chacha_blocks_avx2-64.S)
 
 x86-64 will almost always be slower than SSE2, but on some older AMDs it may be faster
 
