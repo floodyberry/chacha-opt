@@ -12,6 +12,17 @@
 #define ENDFILE()
 #endif
 
+/* global offset table support */
+#if (defined(_WIN32) || defined(__CYGWIN__)) || (!defined(__pic__) && !defined(__PIC__))
+#define LOAD_GOTREG(reg)
+#define REF_GOTVAR(var, reg) var
+#define CALL_PLT(function) call function
+#else
+#define LOAD_GOTREG(reg) call 1f; 1:; popl reg; leal _GLOBAL_OFFSET_TABLE_ + 1(reg), reg;
+#define REF_GOTVAR(var, reg) var##@GOTOFF(reg)
+#define CALL_PLT(function) call function@PLT
+#endif
+
 .text
 
 GLOBAL(hchacha)
@@ -32,17 +43,8 @@ movl %ecx,84(%esp)
 movl 8(%esp,%eax),%esi
 movl 12(%esp,%eax),%edx
 movl 16(%esp,%eax),%eax
-movl $0x61707865, %ebx
-movd %ebx, %xmm0
-movl $0x3320646e, %ebx
-movd %ebx, %xmm4
-movl $0x79622d32, %ebx
-movd %ebx, %xmm5
-movl $0x6b206574, %ebx
-movd %ebx, %xmm6
-punpckldq %xmm4, %xmm0
-punpckldq %xmm6, %xmm5
-punpcklqdq %xmm5, %xmm0
+LOAD_GOTREG(%ebx)
+movdqa REF_GOTVAR(C+0, %ebx), %xmm0
 movdqu 0(%ecx),%xmm1
 movdqu 16(%ecx),%xmm2
 movdqu 32(%ecx),%xmm3
@@ -997,17 +999,8 @@ ENDFN(chacha_blocks)
 
 
 FN(hchacha)
-movl $0x61707865, %eax
-movl $0x3320646e, %ecx
-movd %eax, %xmm0
-movd %ecx, %xmm1
-movl $0x79622d32, %eax
-movl $0x6b206574, %ecx
-movd %eax, %xmm2
-movd %ecx, %xmm3
-punpckldq %xmm1, %xmm0
-punpckldq %xmm3, %xmm2
-punpcklqdq %xmm2, %xmm0
+LOAD_GOTREG(%eax)
+movdqa REF_GOTVAR(C+0, %eax), %xmm0
 movl 4(%esp), %eax
 movl 8(%esp), %edx
 movdqu 0(%eax), %xmm1
@@ -1072,5 +1065,10 @@ movdqu %xmm0, 0(%edx)
 movdqu %xmm3, 16(%edx)
 ret
 ENDFN(hchacha)
+
+.section .rodata, "a"
+.p2align 4,,15;
+C:
+.long 0x61707865,0x3320646e,0x79622d32,0x6b206574 /* "expand 32-byte k" */
 
 ENDFILE()
