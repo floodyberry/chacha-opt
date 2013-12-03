@@ -269,7 +269,9 @@ and ~7.4cpb for SHA-512.
 
 ## AMD FX-8120 ##
 
-OpenSSL gives ~0.73cpb for AES-128-CTR, ~1.03cpb for AES-256-CTR, and ~10.96cpb for SHA-512.
+Timings are with Turbo on, so accuracy is not concrete. I'm not sure how to adjust for it either, 
+and depending on clock speed (3.1ghz vs 4.0ghz), OpenSSL gives between 0.73cpb - 0.94cpb for AES-128-CTR, 
+1.03cpb - 1.33cpb for AES-256-CTR, and 10.96cpb - 14.1cpb for SHA-512.
 
 ### ChaCha ###
 
