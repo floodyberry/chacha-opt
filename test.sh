@@ -1,7 +1,7 @@
 #!/bin/bash
 
 function usage {
-	echo "usage:   ./test.sh [ref,x86,sse2,ssse3,avx,avx2] [32,64]"
+	echo "usage:   ./test.sh [ref,x86,sse2,ssse3,avx,xop,avx2] [32,64]"
 	echo ""
 }
 

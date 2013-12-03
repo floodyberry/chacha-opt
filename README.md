@@ -126,7 +126,7 @@ and the iv is `chacha_iv24` (192 bits) instead of `chacha_iv` (64 bits).
 
 # VERSIONS #
 
-XOP, and any other architecture, is not included yet because I do not have access to any of those machines 
+~~XOP~~, and any other architecture, is not included yet because I do not have access to any of those machines 
 to test with.
 
 x86-64, SSE2-32, and SSE3-32 versions are minorly modified from DJB's public domain implementations.
@@ -141,6 +141,7 @@ x86-64, SSE2-32, and SSE3-32 versions are minorly modified from DJB's public dom
 * SSE2: [chacha\_blocks\_sse2](chacha_blocks_sse2-32.S)
 * SSSE3: [chacha\_blocks\_ssse3](chacha_blocks_ssse3-32.S)
 * AVX: [chacha\_blocks\_avx](chacha_blocks_avx-32.S)
+* XOP: [chacha\_blocks\_xop](chacha_blocks_xop-32.S)
 * AVX2: [chacha\_blocks\_avx2](chacha_blocks_avx2-32.S)
 
 ## x86-64 ##
@@ -149,13 +150,14 @@ x86-64, SSE2-32, and SSE3-32 versions are minorly modified from DJB's public dom
 * SSE2: [chacha\_blocks\_sse2](chacha_blocks_sse2-64.S)
 * SSSE3: [chacha\_blocks\_ssse3](chacha_blocks_ssse3-64.S)
 * AVX: [chacha\_blocks\_avx](chacha_blocks_avx-64.S)
+* XOP: [chacha\_blocks\_xop](chacha_blocks_xop-64.S)
 * AVX2: [chacha\_blocks\_avx2](chacha_blocks_avx2-64.S)
 
 x86-64 will almost always be slower than SSE2, but on some older AMDs it may be faster
 
 # TESTING #
 
-Run `./test.sh [ref,x86,sse2,ssse3,avx,avx2] [32,64]` to test that the specified version
+Run `./test.sh [ref,x86,sse2,ssse3,avx,xop,avx2] [32,64]` to test that the specified version
 is producing the correct results. Features tested:
 
 ## Implementation specific
@@ -173,7 +175,7 @@ is producing the correct results. Features tested:
 
 # BENCHMARKS #
 
-Run `./bench-x86.sh [ref,x86,sse2,ssse3,avx,avx2] [32,64]` to bench the specified version. 
+Run `./bench-x86.sh [ref,x86,sse2,ssse3,avx,xop,avx2] [32,64]` to bench the specified version. 
 The benchmark will not run if the version does not pass the validity tests.
 
 When storing the ChaCha stream directly in to the output buffer instead of XOR'ing it with the input 
@@ -262,6 +264,34 @@ and ~7.4cpb for SHA-512.
 <tr> <td>AVX2-32   </td> <td>  87</td><td> 155</td><td> 254</td> </tr>
 <tr> <td>AVX-64    </td> <td>  87</td><td> 155</td><td> 274</td> </tr>
 <tr> <td>AVX-32    </td> <td>  87</td><td> 152</td><td> 251</td> </tr>
+</tbody>
+</table>
+
+## AMD FX-8120 ##
+
+OpenSSL gives ~0.73cpb for AES-128-CTR, ~1.03cpb for AES-256-CTR, and ~10.96cpb for SHA-512.
+
+### ChaCha ###
+
+<table>
+<thead><tr><th>Impl.</th><th>1 byte</th><th>8</th><th>12</th><th>20</th><th>576 bytes</th><th>8</th><th>12</th><th>20</th><th>8192 bytes</th><th>8</th><th>12</th><th>20</th></tr></thead>
+<tbody>
+<tr> <td>XOP-64    </td> <td></td><td> 194</td><td> 269</td><td> 418</td> <td></td><td>  1.09</td><td>  1.47</td><td>  2.25</td> <td></td><td>  0.93</td><td>  1.22</td><td>  1.80</td> </tr>
+<tr> <td>AVX-64    </td> <td></td><td> 245</td><td> 344</td><td> 544</td> <td></td><td>  1.41</td><td>  1.97</td><td>  3.14</td> <td></td><td>  1.20</td><td>  1.63</td><td>  2.51</td> </tr>
+<tr> <td>XOP-32    </td> <td></td><td> 247</td><td> 322</td><td> 471</td> <td></td><td>  1.44</td><td>  1.96</td><td>  3.01</td> <td></td><td>  1.26</td><td>  1.70</td><td>  2.59</td> </tr>
+<tr> <td>AVX-32    </td> <td></td><td> 276</td><td> 375</td><td> 573</td> <td></td><td>  1.88</td><td>  2.53</td><td>  3.78</td> <td></td><td>  1.62</td><td>  2.16</td><td>  3.23</td> </tr>
+</tbody>
+</table>
+
+### HChaCha ###
+
+<table>
+<thead><tr><th>Impl.</th><th>8</th><th>12</th><th>20</th></tr></thead>
+<tbody>
+<tr> <td>XOP-64    </td> <td>  84</td><td> 160</td><td> 309</td> </tr>
+<tr> <td>XOP-32    </td> <td>  91</td><td> 165</td><td> 318</td> </tr>
+<tr> <td>AVX-64    </td> <td> 144</td><td> 243</td><td> 441</td> </tr>
+<tr> <td>AVX-32    </td> <td> 144</td><td> 237</td><td> 441</td> </tr>
 </tbody>
 </table>
 
