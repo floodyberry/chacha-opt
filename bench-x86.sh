@@ -1,11 +1,11 @@
 #!/bin/bash
 
-function usage {
+usage() {
 	echo "usage:   ./bench-x86.sh [ref,x86,sse2,ssse3,avx,xop,avx2] [32,64]"
 	echo ""
 }
 
-function bench {
+bench() {
 	local FN
 	case $1 in
 		ref) FN=chacha_blocks_$1.c;;
@@ -18,7 +18,7 @@ function bench {
 	fi
 
 	echo "benching "$1", "$2" bits, single implementation"
-	gcc chacha.c bench-x86.c -Dchacha_blocks_impl=chacha_blocks_$1 -Dhchacha_impl=hchacha_$1 $FN -O3 -o chacha_bench_$1 -m$2 2>/dev/null
+	gcc chacha.c bench-x86.c -DCHACHA_IMPL=$1 $FN -O3 -o chacha_bench_$1 -m$2 #2>/dev/null
 	local RC=$?
 	if [ $RC -ne 0 ]; then
 		echo $FN " failed to compile"

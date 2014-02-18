@@ -12,6 +12,18 @@ typedef struct chacha_state_internal_t {
 	uint8_t buffer[CHACHA_BLOCKBYTES];
 } chacha_state_internal;
 
+#if defined(CHACHA_IMPL)
+#define CHACHA_DECLARE2(name, suffix) name##suffix
+#define CHACHA_DECLARE(name, suffix) CHACHA_DECLARE2(name, suffix)
+
+#define chacha_impl CHACHA_DECLARE(chacha_, CHACHA_IMPL)
+#define xchacha_impl CHACHA_DECLARE(xchacha_, CHACHA_IMPL)
+#define chacha_blocks_impl CHACHA_DECLARE(chacha_blocks_, CHACHA_IMPL)
+#define hchacha_impl CHACHA_DECLARE(hchacha_, CHACHA_IMPL)
+#endif
+
+extern void chacha_impl(const chacha_key *key, const chacha_iv *iv, const uint8_t *in, uint8_t *out, size_t inlen, size_t rounds);
+extern void xchacha_impl(const chacha_key *key, const chacha_iv24 *iv, const uint8_t *in, uint8_t *out, size_t inlen, size_t rounds);
 extern void chacha_blocks_impl(chacha_state_internal *state, const uint8_t *in, uint8_t *out, size_t bytes);
 extern void hchacha_impl(const uint8_t key[32], const uint8_t iv[16], uint8_t out[32], size_t rounds);
 
@@ -163,12 +175,10 @@ chacha_final(chacha_state *S, uint8_t *out) {
 	return state->leftover;
 }
 
-/* one-shot */
+/* one-shot, input/output assumed to be word aligned */
 void
 chacha(const chacha_key *key, const chacha_iv *iv, const uint8_t *in, uint8_t *out, size_t inlen, size_t rounds) {
-	chacha_state S;
-	chacha_init(&S, key, iv, rounds);
-	chacha_consume((chacha_state_internal *)&S, in, out, inlen);
+	chacha_impl(key, iv, in, out, inlen, rounds);
 }
 
 /*
@@ -182,12 +192,10 @@ xchacha_init(chacha_state *S, const chacha_key *key, const chacha_iv24 *iv, size
 	chacha_init(S, &subkey, (chacha_iv *)(iv->b + 16), rounds);
 }
 
-/* one-shot */
+/* one-shot, input/output assumed to be word aligned */
 void
 xchacha(const chacha_key *key, const chacha_iv24 *iv, const uint8_t *in, uint8_t *out, size_t inlen, size_t rounds) {
-	chacha_state S;
-	xchacha_init(&S, key, iv, rounds);
-	chacha_consume((chacha_state_internal *)&S, in, out, inlen);
+	xchacha_impl(key, iv, in, out, inlen, rounds);
 }
 
 
@@ -229,6 +237,29 @@ static const uint8_t expected_hchacha[32] = {
 	0xe6,0x19,0x0f,0x48,0xf1,0xc0,0x2a,0x68,0xb8,0xf2,0x2e,0xf8,0xbc,0xfd,0x41,0x06,
 	0x7b,0xa9,0x36,0xf3,0x63,0x2f,0x5c,0x6d,0x40,0x39,0x24,0xb3,0x74,0x68,0xcb,0xdd,
 };
+
+/*
+	oneshot chacha+xchacha/8 test
+	key [192,193,194,..223]
+	iv [16,17,18,..31]
+*/
+
+/* xor of all the blocks from the one-shot test sequence */
+static const uint8_t expected_chacha_oneshot[CHACHA_BLOCKBYTES] = {
+	0x21,0x5b,0x81,0x79,0x74,0xef,0x98,0x89,0xc6,0x40,0x47,0x53,0x42,0x01,0x24,0x88,
+	0x21,0xa3,0xb6,0xc8,0x43,0x62,0x0b,0x00,0x19,0xd0,0xd5,0xee,0x6c,0x21,0xf8,0x51,
+	0xa8,0xb3,0x45,0x56,0x72,0xc1,0x85,0x0e,0xe1,0x43,0xbe,0xd6,0xa6,0x8b,0x3d,0xdc,
+	0x3d,0xf7,0x64,0xfd,0x80,0x0c,0xd9,0x58,0xf8,0x06,0x40,0xf4,0xc2,0x14,0xba,0x84,
+};
+
+/* xor of all the blocks from the one-shot test sequence */
+static const uint8_t expected_xchacha_oneshot[CHACHA_BLOCKBYTES] = {
+	0x01,0xd1,0x84,0x26,0x1b,0x7d,0x44,0x4d,0x3a,0x8f,0xef,0x3f,0x1e,0x11,0xb5,0xa0,
+	0x07,0x04,0x46,0x4c,0xfb,0x6b,0xd0,0x30,0x42,0x3d,0xfa,0x56,0x71,0x33,0x96,0xdb,
+	0xef,0x0f,0x09,0xc1,0xde,0x41,0xc5,0xa8,0xba,0x37,0x59,0x3f,0x43,0xc3,0xf8,0xc4,
+	0xce,0xd5,0xf0,0x51,0x5f,0x2c,0x5e,0xcf,0xe2,0x5e,0x68,0x95,0x7a,0x5c,0x02,0xea,
+};
+
 
 /* initialize state, set the counter right below the 32 bit boundary */
 static void
@@ -313,9 +344,11 @@ static int
 chacha_test(const uint8_t *input_buffer) {
 	chacha_key key;
 	chacha_iv iv;
+	chacha_iv24 x_iv;
 	uint8_t h_key[32];
 	uint8_t h_iv[16];
 	uint8_t out[CHACHA_TEST_LEN+sizeof(size_t)], final_hchacha[32];
+	uint8_t final[CHACHA_BLOCKBYTES];
 	const uint8_t *in_aligned, *in_unaligned;
 	uint8_t *out_aligned, *out_unaligned;
 	size_t i;
@@ -366,6 +399,24 @@ chacha_test(const uint8_t *input_buffer) {
 	memset(final_hchacha, 0, sizeof(final_hchacha));
 	hchacha(h_key, h_iv, final_hchacha, chacha_test_rounds);
 	res &= (memcmp(expected_hchacha, final_hchacha, sizeof(expected_hchacha)) == 0) ? 1 : 0;
+
+	/*
+		one-shot
+		key [192,193,194,..223], iv [16,17,18,..31]
+	*/
+	for (i = 0; i < sizeof(key); i++) key.b[i] = i + 192;
+	for (i = 0; i < sizeof(iv); i++) iv.b[i] = i + 16;
+	for (i = 0; i < sizeof(x_iv); i++) x_iv.b[i] = i + 16;
+
+	memset(out, 0, CHACHA_TEST_LEN);
+	chacha(&key, &iv, input_buffer, out, CHACHA_TEST_LEN, chacha_test_rounds);
+	chacha_test_compact_array(final, out, CHACHA_TEST_LEN);
+	res &= (memcmp(expected_chacha_oneshot, final, sizeof(expected_chacha_oneshot)) == 0) ? 1 : 0;
+
+	memset(out, 0, CHACHA_TEST_LEN);
+	xchacha(&key, &x_iv, input_buffer, out, CHACHA_TEST_LEN, chacha_test_rounds);
+	chacha_test_compact_array(final, out, CHACHA_TEST_LEN);
+	res &= (memcmp(expected_xchacha_oneshot, final, sizeof(expected_xchacha_oneshot)) == 0) ? 1 : 0;
 
 	return res;
 }

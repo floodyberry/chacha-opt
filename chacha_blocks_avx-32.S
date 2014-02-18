@@ -25,10 +25,13 @@
 
 .text
 
+GLOBAL(chacha)
+GLOBAL(xchacha)
 GLOBAL(hchacha)
 GLOBAL(chacha_blocks)
 
 FN(chacha_blocks)
+chacha_blocks_avx_local:
 pushl %ebp
 movl %esp, %ebp
 andl $-64, %esp
@@ -739,6 +742,7 @@ ENDFN(chacha_blocks)
 
 
 FN(hchacha)
+hchacha_avx_local:
 LOAD_GOTREG(%eax)
 vmovdqa REF_GOTVAR(0+C, %eax), %xmm0
 vmovdqa REF_GOTVAR(16+C, %eax), %xmm6
@@ -795,6 +799,80 @@ vmovdqu %xmm0, (%edx)
 vmovdqu %xmm3, 16(%edx)
 ret
 ENDFN(hchacha)
+
+FN(chacha)
+pushl %ebp
+pushl %ebx
+movl %esp, %ebp
+subl $64, %esp
+andl $~63, %esp
+movl %esp, %ebx
+movl 12(%ebp), %ecx
+xorl %edx, %edx
+vmovdqu 0(%ecx), %xmm0
+vmovdqu 16(%ecx), %xmm1
+vmovdqa %xmm0, 0(%ebx)
+vmovdqa %xmm1, 16(%ebx)
+movl 16(%ebp), %ecx
+movl %edx, 32(%ebx)
+movl %edx, 36(%ebx)
+movl 0(%ecx), %eax
+movl 4(%ecx), %edx
+movl %eax, 40(%ebx)
+movl %edx, 44(%ebx)
+movl 32(%ebp), %eax
+movl %eax, 48(%ebx)
+pushl 28(%ebp)
+pushl 24(%ebp)
+pushl 20(%ebp)
+pushl %ebx
+call chacha_blocks_avx_local
+vpxor %xmm0, %xmm0, %xmm0
+vmovdqa %xmm0, 0(%ebx)
+vmovdqa %xmm0, 16(%ebx)
+vmovdqa %xmm0, 32(%ebx)
+movl %ebp, %esp
+popl %ebx
+popl %ebp
+ret
+ENDFN(chacha)
+
+FN(xchacha)
+pushl %ebp
+pushl %ebx
+movl %esp, %ebp
+subl $64, %esp
+andl $~63, %esp
+movl %esp, %ebx
+pushl 32(%ebp)
+pushl %ebx
+pushl 16(%ebp)
+pushl 12(%ebp)
+call hchacha_avx_local
+xorl %edx, %edx
+movl 16(%ebp), %ecx
+movl 32(%ebx), %edx
+movl 36(%ebx), %edx
+movl 16(%ecx), %eax
+movl %eax, 40(%ebx)
+movl 20(%ecx), %eax
+movl %eax, 44(%ebx)
+movl 32(%ebp), %eax
+movl %eax, 48(%ebx)
+pushl 28(%ebp)
+pushl 24(%ebp)
+pushl 20(%ebp)
+pushl %ebx
+call chacha_blocks_avx_local
+vpxor %xmm0, %xmm0, %xmm0
+vmovdqa %xmm0, 0(%ebx)
+vmovdqa %xmm0, 16(%ebx)
+vmovdqa %xmm0, 32(%ebx)
+movl %ebp, %esp
+popl %ebx
+popl %ebp
+ret
+ENDFN(xchacha)
 
 .section .rodata, "a"
 .p2align 4,,15;

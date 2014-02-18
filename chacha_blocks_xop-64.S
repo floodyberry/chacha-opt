@@ -14,11 +14,87 @@
 
 .text
 
+GLOBAL(chacha)
+GLOBAL(xchacha)
 GLOBAL(hchacha)
 GLOBAL(chacha_blocks)
 
 /* Windows 64 calling convention fixups */
-#if defined(_WIN64) || defined(__CYGWIN__)
+#if defined(_WIN64) || defined(__CYGWIN64__)
+FN(chacha)
+subq $184, %rsp
+vmovdqa %xmm6, 0(%rsp)
+vmovdqa %xmm7, 16(%rsp)
+vmovdqa %xmm8, 32(%rsp)
+vmovdqa %xmm9, 48(%rsp)
+vmovdqa %xmm10, 64(%rsp)
+vmovdqa %xmm11, 80(%rsp)
+vmovdqa %xmm12, 96(%rsp)
+vmovdqa %xmm13, 112(%rsp)
+vmovdqa %xmm14, 128(%rsp)
+vmovdqa %xmm15, 144(%rsp)
+movq %rdi, 160(%rsp)
+movq %rsi, 168(%rsp)
+movq %rcx, %rdi
+movq %rdx, %rsi
+movq %r8, %rdx
+movq %r9, %rcx
+movq 224(%rsp), %r8
+movq 232(%rsp), %r9
+call chacha_thunk_xop
+vmovdqa 0(%rsp), %xmm6
+vmovdqa 16(%rsp), %xmm7
+vmovdqa 32(%rsp), %xmm8
+vmovdqa 48(%rsp), %xmm9
+vmovdqa 64(%rsp), %xmm10
+vmovdqa 80(%rsp), %xmm11
+vmovdqa 96(%rsp), %xmm12
+vmovdqa 112(%rsp), %xmm13
+vmovdqa 128(%rsp), %xmm14
+vmovdqa 144(%rsp), %xmm15
+movq 160(%rsp), %rdi
+movq 168(%rsp), %rsi
+addq $184, %rsp
+ret
+ENDFN(chacha)
+
+FN(xchacha)
+subq $184, %rsp
+vmovdqa %xmm6, 0(%rsp)
+vmovdqa %xmm7, 16(%rsp)
+vmovdqa %xmm8, 32(%rsp)
+vmovdqa %xmm9, 48(%rsp)
+vmovdqa %xmm10, 64(%rsp)
+vmovdqa %xmm11, 80(%rsp)
+vmovdqa %xmm12, 96(%rsp)
+vmovdqa %xmm13, 112(%rsp)
+vmovdqa %xmm14, 128(%rsp)
+vmovdqa %xmm15, 144(%rsp)
+movq %rdi, 160(%rsp)
+movq %rsi, 168(%rsp)
+movq %rcx, %rdi
+movq %rdx, %rsi
+movq %r8, %rdx
+movq %r9, %rcx
+movq 224(%rsp), %r8
+movq 232(%rsp), %r9
+call xchacha_thunk_xop
+vmovdqa 0(%rsp), %xmm6
+vmovdqa 16(%rsp), %xmm7
+vmovdqa 32(%rsp), %xmm8
+vmovdqa 48(%rsp), %xmm9
+vmovdqa 64(%rsp), %xmm10
+vmovdqa 80(%rsp), %xmm11
+vmovdqa 96(%rsp), %xmm12
+vmovdqa 112(%rsp), %xmm13
+vmovdqa 128(%rsp), %xmm14
+vmovdqa 144(%rsp), %xmm15
+movq 160(%rsp), %rdi
+movq 168(%rsp), %rsi
+addq $184, %rsp
+ret
+ENDFN(xchacha)
+
 FN(chacha_blocks)
 subq $184, %rsp
 movdqa %xmm6, 0(%rsp)
@@ -69,12 +145,15 @@ addq $16, %rsp
 ret
 ENDFN(hchacha)
 
-#define chacha_blocks chacha_blocks_thunk
+#define chacha chacha_thunk
+#define xchacha xchacha_thunk
 #define hchacha hchacha_thunk
+#define chacha_blocks chacha_blocks_thunk
 #endif
 
 
 FN(chacha_blocks)
+chacha_blocks_xop_local:
 pushq %rbx
 pushq %rbp
 movq %rsp, %rbp
@@ -513,6 +592,7 @@ ret
 ENDFN(chacha_blocks)
 
 FN(hchacha)
+hchacha_xop_local:
 leaq C(%rip), %rax
 vmovdqa 0(%rax), %xmm0
 vmovdqu 0(%rdi), %xmm1
@@ -555,6 +635,67 @@ vmovdqu %xmm0, (%rdx)
 vmovdqu %xmm3, 16(%rdx)
 ret
 ENDFN(hchacha)
+
+FN(chacha)
+pushq %rbp
+movq %rsp, %rbp
+subq $64, %rsp
+andq $~63, %rsp
+vmovdqu 0(%rdi), %xmm0
+vmovdqu 16(%rdi), %xmm1
+vmovdqa %xmm0, 0(%rsp)
+vmovdqa %xmm1, 16(%rsp)
+xorq %rdi, %rdi
+movq %rdi, 32(%rsp)
+movq 0(%rsi), %rsi
+movq %rsi, 40(%rsp)
+movq %r9, 48(%rsp)
+movq %rsp, %rdi
+movq %rdx, %rsi
+movq %rcx, %rdx
+movq %r8, %rcx
+call chacha_blocks_xop_local
+vpxor %xmm0, %xmm0, %xmm0
+vmovdqa %xmm0, 0(%rsp)
+vmovdqa %xmm0, 16(%rsp)
+vmovdqa %xmm0, 32(%rsp)
+movq %rbp, %rsp
+popq %rbp
+ret
+ENDFN(chacha)
+
+FN(xchacha)
+pushq %rbp
+pushq %rbx
+movq %rsp, %rbp
+subq $64, %rsp
+andq $~63, %rsp
+movq %rsp, %rbx
+xorq %rax, %rax
+movq %rax, 32(%rbx)
+movq 16(%rsi), %rax
+movq %rax, 40(%rbx)
+movq %r9, 48(%rbx)
+pushq %rdx
+pushq %rcx
+pushq %r8
+movq %rbx, %rdx
+movq %r9, %rcx
+call hchacha_xop_local
+movq %rbx, %rdi
+popq %rcx
+popq %rdx
+popq %rsi
+call chacha_blocks_xop_local
+vpxor %xmm0, %xmm0, %xmm0
+vmovdqa %xmm0, 0(%rbx)
+vmovdqa %xmm0, 16(%rbx)
+vmovdqa %xmm0, 32(%rbx)
+movq %rbp, %rsp
+popq %rbx
+popq %rbp
+ret
+ENDFN(xchacha)
 
 .section .rodata, "a"
 .p2align 4,,15

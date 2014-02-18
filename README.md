@@ -8,7 +8,9 @@ nonce from 64 bits to 192 bits. See [Extending the Salsa20 nonce](http://cr.yp.t
 
 All assembler is PIC safe.
 
-All pointers should _probably_ be word aligned unless explicitly stated otherwise.
+When calling the one-shot versions `chacha_impl`, `xchacha_impl`, `chacha`, and `xchacha`, input/output are 
+assumed to be word aligned. Incremental support has no alignment requirements, but will obviously slow down if
+non word-aligned pointers are passed.
 
 If you encrypt anything without using a MAC (HMAC, Poly1305, etc), you will be found, and made fun of.
 
@@ -38,6 +40,10 @@ to process data in place.
 size (64 bytes), but the internal block counter will be incremented by ((bytes + 63) / 64), so it should only 
 be a non-multiple of 64 if there is no more data to process.
 
+`void chacha_impl(const chacha_key *key, const chacha_iv *iv, const uint8_t *in, uint8_t *out, size_t inlen, size_t rounds);`
+
+Encrypts `inlen` bytes from `in` to `out, using `key`, `iv`, and `rounds`.
+
 ## HChaCha ##
 
 `void hchacha_impl(const uint8_t key[32], const uint8_t iv[16], uint8_t out[32], size_t rounds);`
@@ -50,12 +56,16 @@ be a non-multiple of 64 if there is no more data to process.
 
 **rounds** is the number of rounds to use and must be >= 2.
 
+`void xchacha_impl(const chacha_key *key, const chacha_iv24 *iv, const uint8_t *in, uint8_t *out, size_t inlen, size_t rounds);`
+
+Encrypts `inlen` bytes from `in` to `out, using `key`, `iv`, and `rounds` using XChacha/rounds.
+
 ## chacha.c ##
 
 [chacha.c](chacha.c) and [chacha.h](chacha.h) is a ChaCha implementation which handles all the high level functions 
 (incremental state, input alignment, validity testing) and calls out to `chacha_blocks_impl` and `hchacha_impl`. 
-Compiling with `-Dchacha_blocks_impl=chacha_blocks_version` and `-Dhchacha_impl=hchacha_version` 
-allows testing of specific functions.
+Compiling with `-DCHACHA_IMPL=ver` replaces `chacha_blocks_impl` with `chacha_blocks_ver`, `hchacha_impl` with `hchacha_ver`, etc.,
+which allows testing of specific functions. This will change when I get cpu-dispatching included.
 
 ### Functions ###
 
@@ -83,6 +93,10 @@ Generates/crypts any leftover data in the state to `out`, returns the number of 
 `void chacha(const chacha_key *key, const chacha_iv *iv, const uint8_t *in, uint8_t *out, size_t inlen, size_t rounds);`
 
 Encrypts `inlen` bytes from `in` to `out, using `key`, `iv`, and `rounds`.
+
+`void xchacha(const chacha_key *key, const chacha_iv24 *iv, const uint8_t *in, uint8_t *out, size_t inlen, size_t rounds);`
+
+Encrypts `inlen` bytes from `in` to `out, using `key`, `iv`, and `rounds` using XChacha/rounds.
 
 ### Examples ###
 

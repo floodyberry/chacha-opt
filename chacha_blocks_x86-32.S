@@ -14,10 +14,13 @@
 
 .text
 
+GLOBAL(chacha)
+GLOBAL(xchacha)
 GLOBAL(hchacha)
 GLOBAL(chacha_blocks)
 
 FN(chacha_blocks)
+chacha_blocks_x86_local:
 pushl %esi
 pushl %edi
 pushl %ebx
@@ -438,6 +441,7 @@ jmp chacha_blocks_x86_21
 ENDFN(chacha_blocks)
 
 FN(hchacha)
+hchacha_x86_local:
 pushl %esi
 pushl %edi
 pushl %ebx
@@ -648,4 +652,109 @@ popl %esi
 ret
 ENDFN(hchacha)
 
+FN(chacha)
+pushl %ebp
+pushl %ebx
+movl %esp, %ebp
+subl $64, %esp
+andl $~63, %esp
+movl %esp, %ebx
+movl 12(%ebp), %ecx
+xorl %edx, %edx
+movl 0(%ecx), %eax
+movl %eax, 0(%ebx)
+movl 4(%ecx), %eax
+movl %eax, 4(%ebx)
+movl 8(%ecx), %eax
+movl %eax, 8(%ebx)
+movl 12(%ecx), %eax
+movl %eax, 12(%ebx)
+movl 16(%ecx), %eax
+movl %eax, 16(%ebx)
+movl 20(%ecx), %eax
+movl %eax, 20(%ebx)
+movl 24(%ecx), %eax
+movl %eax, 24(%ebx)
+movl 28(%ecx), %eax
+movl %eax, 28(%ebx)
+movl 16(%ebp), %ecx
+movl %edx, 32(%ebx)
+movl %edx, 36(%ebx)
+movl 0(%ecx), %eax
+movl %eax, 40(%ebx)
+movl 4(%ecx), %eax
+movl %eax, 44(%ebx)
+movl 32(%ebp), %eax
+movl %eax, 48(%ebx)
+pushl 28(%ebp)
+pushl 24(%ebp)
+pushl 20(%ebp)
+pushl %ebx
+call chacha_blocks_x86_local
+xorl %eax, %eax
+movl %eax, 0(%ebx)
+movl %eax, 4(%ebx)
+movl %eax, 8(%ebx)
+movl %eax, 12(%ebx)
+movl %eax, 16(%ebx)
+movl %eax, 20(%ebx)
+movl %eax, 24(%ebx)
+movl %eax, 28(%ebx)
+movl %eax, 32(%ebx)
+movl %eax, 36(%ebx)
+movl %eax, 40(%ebx)
+movl %eax, 44(%ebx)
+movl %ebp, %esp
+popl %ebx
+popl %ebp
+ret
+ENDFN(chacha)
+
+FN(xchacha)
+pushl %ebp
+pushl %ebx
+movl %esp, %ebp
+subl $64, %esp
+andl $~63, %esp
+movl %esp, %ebx
+pushl 32(%ebp)
+pushl %ebx
+pushl 16(%ebp)
+pushl 12(%ebp)
+call hchacha_x86_local
+xorl %edx, %edx
+movl 16(%ebp), %ecx
+movl 32(%ebx), %edx
+movl 36(%ebx), %edx
+movl 16(%ecx), %eax
+movl %eax, 40(%ebx)
+movl 20(%ecx), %eax
+movl %eax, 44(%ebx)
+movl 32(%ebp), %eax
+movl %eax, 48(%ebx)
+pushl 28(%ebp)
+pushl 24(%ebp)
+pushl 20(%ebp)
+pushl %ebx
+call chacha_blocks_x86_local
+xorl %eax, %eax
+movl %eax, 0(%ebx)
+movl %eax, 4(%ebx)
+movl %eax, 8(%ebx)
+movl %eax, 12(%ebx)
+movl %eax, 16(%ebx)
+movl %eax, 20(%ebx)
+movl %eax, 24(%ebx)
+movl %eax, 28(%ebx)
+movl %eax, 32(%ebx)
+movl %eax, 36(%ebx)
+movl %eax, 40(%ebx)
+movl %eax, 44(%ebx)
+movl %ebp, %esp
+popl %ebx
+popl %ebp
+ret
+ENDFN(xchacha)
+
 ENDFILE()
+

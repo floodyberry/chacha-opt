@@ -1,6 +1,14 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#if defined(_MSC_VER)
+	#define CHACHA_REF_NOINLINE __declspec(noinline)
+#elif defined(__GNUC__)
+	#define CHACHA_REF_NOINLINE __attribute__((noinline))
+#else
+	#define CHACHA_REF_NOINLINE
+#endif
+
 /* interpret four 8 bit unsigned integers as a 32 bit unsigned integer in little endian */
 static uint32_t
 U8TO32(const uint8_t *p) {
@@ -220,4 +228,40 @@ hchacha_ref(const uint8_t key[32], const uint8_t iv[16], uint8_t out[32], size_t
 	U32TO8(out + 20, x[13]);
 	U32TO8(out + 24, x[14]);
 	U32TO8(out + 28, x[15]);
+}
+
+CHACHA_REF_NOINLINE static void
+chacha_clear_state_ref(chacha_state *state) {
+	size_t i;
+	for (i = 0; i < 48; i++)
+		state->s[i] = 0;
+}
+
+void
+chacha_ref(const unsigned char key[32], const unsigned char iv[8], const uint8_t *in, uint8_t *out, size_t inlen, size_t rounds) {
+	chacha_state state;
+	size_t i;
+	for (i = 0; i < 32; i++)
+		state.s[i + 0] = key[i];
+	for (i = 0; i < 8; i++)
+		state.s[i + 32] = 0;
+	for (i = 0; i < 8; i++)
+		state.s[i + 40] = iv[i];
+	state.rounds = rounds;
+	chacha_blocks_ref(&state, in, out, inlen);
+	chacha_clear_state_ref(&state);
+}
+
+void
+xchacha_ref(const unsigned char key[32], const unsigned char iv[24], const uint8_t *in, uint8_t *out, size_t inlen, size_t rounds) {
+	chacha_state state;
+	size_t i;
+	hchacha_ref(key, iv, &state.s[0], rounds);
+	for (i = 0; i < 8; i++)
+		state.s[i + 32] = 0;
+	for (i = 0; i < 8; i++)
+		state.s[i + 40] = iv[i + 16];
+	state.rounds = rounds;
+	chacha_blocks_ref(&state, in, out, inlen);
+	chacha_clear_state_ref(&state);
 }
