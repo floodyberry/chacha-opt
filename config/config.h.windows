@@ -1,0 +1,12 @@
+/* req yasm 1.2+ */
+#define ARCH_X86
+#define HAVE_AVX2
+#define HAVE_AVX
+#define HAVE_XOP
+#define HAVE_SSE4_2
+#define HAVE_SSE4_1
+#define HAVE_SSSE3
+#define HAVE_SSE3
+#define HAVE_SSE2
+#define HAVE_SSE
+#define HAVE_MMX

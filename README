@@ -1,0 +1,159 @@
+# ABOUT #
+
+This is a solution to the problem of easy to use write-once, run everywhere x86 assembler. I have experimented with write-once inline assembler (in the style of [Crypto++](http://www.cryptopp.com/)), but it turned out to be too clunky and limited, e.g. source code must be transformed to Intel Syntax and then C macros which expand the instructions properly, referencing C constants in assembler which are not referenced by C is sketchy because the constants can get optimized away and/or are linked under a different name, Win64 versions have to jump through a lot of hoops to merely generate code which then has to be compiled by MASM, clang's integrated assembler does not understand `.intel_syntax`, etc.
+
+I decided the only way was to switch to an external assembler. [Yasm](http://yasm.tortall.net/) appears to be the most well supported and up-to-date, and, unlike NASM, supports GAS syntax. This means, with limiting the assembler to AT&T syntax and a few careful macros, that it is possible to have x86 assembler that is compilable by either Yasm _or_ gcc/gcc compatible compilers!
+
+Note that this is _not_ for coding entire programs in assembler, general purpose assembler with macros, interacting with external C/assembler, etc. It is for self-contained, instruction set specific kernels which can be CPU-dispatched at runtime, e.g. crypto routines.
+
+# HOW IT WORKS #
+
+I really wanted to avoid this, but before anything is done, a configuration script must be run to determine compiler capabilities, instruction sets supported, and so on. This is both for the assembler to know what it can assemble, and for the C code which will use the assembler to know which versions it can use.
+
+gcc and Yasm each have their own bootstrap file ([gcc\_x86.inc](config/gcc_x86.inc) and [yasm\_x86.inc](config/yasm_x86.inc)) which handles determining platform, compiler, and setting up the macros needed. The file extension must be `.S` to allow the C preprocessor to run for gcc, but the macros that are used under gcc are gnu as macros only, not C preprocessor macros! This is because there is no conditional way for a C preprocessor macro to include a file, and when a file is included with a gnu as macro, it cannot make use of the C preprocessor.
+
+## BOOTSTRAPPING ##
+
+The standard header for each file is
+
+    #if defined(__GNUC__)
+    #include "gcc_x86.inc"
+    #else
+    ;.if 0
+    %include "yasm_x86.inc"
+    ;.endif
+    #endif
+
+gcc will include `gcc_x86.inc` and ignore the Yasm section. Yasm interprets # and ; as comments and will include `yasm_x86.inc`. Finally, a file included by a gnu as macro will interpret # as a comment, ; as a statement separator, evaluate the .if 0, and skip `yasm_x86.inc` and wind up doing nothing.
+
+## MACROS AVAILABLE ##
+
+Once bootstrapped, the following macros are available to every assembler file.
+
+### SECTIONS ###
+
+* `SECTION_TEXT`
+
+   Switch to the code section
+* `SECTION_RODATA`
+
+   Switch to the read-only data section. Right now this is `.text` to simplify position-independent variables in 32-bit code.
+
+### INCLUDING FILES ###
+
+* `INCLUDE` "file"
+
+   Include `file`
+* `INCLUDE_VAR_FILE` "file", "varname"
+
+   Include `file` if `varname` has not been defined
+* `INCLUDE_IF_32BIT` "file"
+
+   Include `file` if the assembler is generating x86 compatible code
+* `INCLUDE_IF_64BIT` "file"
+
+   Include `file` if the assembler is generating x86-64 compatible code
+
+#### INCLUDE BASED ON AVAILABLE INSTRUCTION SETS ####
+
+Extension based includes are available for all combinations of [MMX,SSE,SSE2,SSE3,SSSE3,SSE4\_1,SSE4\_2,AVX,XOP,AVX2,AVX512] and [32BIT,64BIT]
+
+
+* `INCLUDE_IF_EXT_XXBIT` "file"
+
+   Include `file` if the assembler supports EXT instructions and is in XXBIT mode. e.g. `INCLUDE_IF_AVX2_32BIT`, `INCLUDE_IF_SSE4_1_64BIT`, etc.
+
+
+### FUNCTION SUPPORT ###
+
+* `GLOBAL` name
+
+   Declares `name` as a global symbol
+* `FN` name
+ 
+   Declares a function named `name`
+* `FN_EXT` name, args, xmmused
+
+   Declares a function named `name`, which takes `args` args and uses `xmmused` xmm registers. This is only intended for 64 bit functions because arguments need to be translated for Win64 and xmm6..15 have to be preserved if they are used. args can be 0 to 6, more than 6 arguments are currently not handled.
+* `FN_END` name
+
+   Declares the end of function `name`. Currently only used when compiling to ELF object format to tag the type and size of the function.
+* `LOAD_VAR_PIC` var, reg
+
+   Loads the address of `var` in to `reg` in a position-independent manner. This is fairly free for 64 bits, but 32 bits costs a jmp and stack pop. Any address that is needed frequently should be cached locally.
+
+# X86 CPUID #
+
+A [CPUID implementation](src/cpuid_x86.S) is provided so that runtime dispatching is actually possible. It detects everything from MMX up to (theoretically, based on Intel's programming reference) AVX-512. An example program is also included which prints the supported features of the CPU it is run on.
+
+The implementation "cheats" by having the bootstrap provide `CPUID_PROLOGUE` and `CPUID_EPILOGUE` so a single implementation can be used for both x86 and x86-64.
+
+## CALLING ##
+
+`uint32_t cpuid_x86(void);`
+
+`cpuid_x86` returns an unsigned 32 bit int with the list of flags the current CPU supports.
+
+
+### FLAGS ###
+
+Major architecture flags start from the bottom, while individual features go from the top. They'll meet in the middle some day.
+
+    CPUID_MMX       = (1 <<  0)
+    CPUID_SSE       = (1 <<  1)
+    CPUID_SSE2      = (1 <<  2)
+    CPUID_SSE3      = (1 <<  3)
+    CPUID_SSSE3     = (1 <<  4)
+    CPUID_SSE4_1    = (1 <<  5)
+    CPUID_SSE4_2    = (1 <<  6)
+    CPUID_AVX       = (1 <<  7)
+    CPUID_XOP       = (1 <<  8)
+    CPUID_AVX2      = (1 <<  9)
+    CPUID_AVX512    = (1 << 10)
+    
+    CPUID_RDRAND    = (1 << 26)
+    CPUID_POPCNT    = (1 << 27)
+    CPUID_FMA4      = (1 << 28)
+    CPUID_FMA3      = (1 << 29)
+    CPUID_PCLMULQDQ = (1 << 30)
+    CPUID_AES       = (1 << 31)
+
+
+# EXAMPLE #
+
+An example program is provided which makes use of `cpuid_x86()` and prints the results. The useful part of this is the configuration script, which detects the instruction sets supported by the assembler, determines any assembler features needed, creates `config.h` for C programs to interact with, and creates `config.mak` with the needed compiler options (more important for Yasm than gcc).
+
+## *NIX/MINGW/CYGWIN ##
+
+### CONFIGURING ###
+
+    Usage: ./configure [options]
+ 
+#### Help ####
+ * `-h`, `--help`: Prints help
+    
+#### Configuration options ####
+ * `--force-32bits`: Build for 32bits regardless of underlying system
+ * `--osx-clang-assembler-with-gcc`: Under OSX, use the Clang assembler with gcc instead of gnu assembler. This can be needed because the gcc that ships with OSX is _ancient_ and doesn't know anything beyond SSE4, while the Clang assembler is fairly up to date.
+ * `--strict`: Use strict compiler flags for C
+ * `--yasm`: Use Yasm to compile external asm
+
+To use a different compiler than gcc, `export CC=[icc|clang|etc]` before running configure. I'm new at this, I think that's how it's done?
+
+### BUILDING ###
+
+    make
+    ./example
+
+## VISUAL STUDIO ##
+
+Rename `config/config.h.windows` to `config/config.h`, download at least [Yasm 1.2](http://yasm.tortall.net/) and [follow the Yasm integration steps](http://yasm.tortall.net/Download.html) for your version of Visual Studio. Manual flags for Yasm are `-r nasm -p gas -f win[32,64]`. Additionally add `config;` to the include path for Visual C++ and Yasm.
+
+
+# MORE EXAMPLES #
+
+I need to convert them first
+
+# LICENSE #
+
+Public Domain, or MIT

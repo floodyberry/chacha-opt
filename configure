@@ -1,0 +1,216 @@
+#!/bin/sh
+
+if test x"$1" = x"-h" -o x"$1" = x"--help" ; then
+cat << EOF
+Usage: ./configure [options]
+
+Help:
+  -h, --help                          print this message
+
+Standard options:
+
+
+Configuration options:
+  --force-32bits                      build for 32bits regardless of underlying system
+  --osx-clang-assembler-with-gcc      under osx, use the clang assembler with gcc instead of gnu assembler
+  --strict                            use strict compiler flags for C
+  --yasm                              use yasm to compile external asm
+
+EOF
+exit 1
+fi
+
+
+cleanup() {
+    rm -f test.o
+    rm -f test.log
+}
+
+fatal_error() {
+    cleanup
+    echo "ERROR: $@"
+    exit 1
+}
+
+try_asm() {
+    printf "%s\n%s\n" ".text" "$1" | $AS $ASTESTFLAGS -o test.o - >test.log 2>&1
+    res=$?
+    cat test.log >> $outputlog
+    return $res
+}
+
+test_for_asm_instruction_set() {
+    echo "checking for $2.." >>$outputlog
+    if try_asm "$1"; then
+        echo "#define $2" >> $outputheader
+    fi
+}
+
+test_for_asm_macro_parameter_convention() {
+    echo "checking for $2.." >>$outputlog
+    prog=$(printf "%s\n%s\n%s\n%s\n" ".macro TEST1 op" "$1 %eax, %eax" ".endm" "TEST1 xorl")
+    if try_asm "$prog"; then
+        echo "#define $2" >> $outputheader
+    fi
+}
+
+try_c() {
+    printf "%s\n" "$1" | $CC $CFLAGSTEST -o test.o - >test.log 2>&1
+    res=$?
+    cat test.log >> $outputlog
+    return $res
+}
+
+does_c_define_exist() {
+    echo "checking for $1.." >> $outputlog
+    prog=$(printf "int main() {\n#if defined(%s)\nreturn 0;\n#else\n#error error\n#endif\n}" "$1")
+    try_c "$prog"
+    res=$?
+    return $res
+}
+
+CC=${CC:-gcc}
+CFLAGS=${CFLAGS:-}
+CFLAGSTEST="-x c -c"
+AS="$CC"
+ASFLAGS=""
+ASTESTFLAGS="-x assembler -c -m32"
+DEPMM="-MM"
+DEPMT="-MT"
+ARCH=""
+EXE=""
+
+osxbypass="no"
+outputheader="config/config.h"
+outputmake="config/config.mak"
+outputlog="config/config.log"
+bits32="no"
+strict="no"
+
+# handle input paramters
+while [ "$1" != "" ]; do
+    case $1 in
+        --force-32bits ) bits32="yes"
+                         ;;
+
+        --osx-clang-assembler-with-gcc ) osxbypass="yes"
+                                         ;;
+
+        --strict ) strict="yes"
+                   ;;
+
+        --yasm ) AS="yasm"
+                 ASTESTFLAGS="-r nasm -p gas -f elf32"
+                 ;;
+
+        * ) echo "Unknown paramaters $1, skipping.."
+            ;;
+    esac
+    shift
+done
+
+# pass -q to the os x as, which instructs it to use the clang assembler instead
+if [ "$osxbypass" = "yes" ]; then
+    if [ "$AS" = "yasm" ]; then
+        fatal_error "Can't use --osx-clang-assembler-with-gcc with --yasm!"
+    fi
+    ASTESTFLAGS="$ASTESTFLAGS -Wa,-q,-x,assembler"
+fi
+
+mkdir -p build
+mkdir -p config
+rm -f $outputmake
+> $outputlog
+> $outputheader
+
+# x86 detection
+if try_asm "xorl %eax, %eax"; then
+    echo "#define ARCH_X86" >> $outputheader
+    ARCH="x86"
+
+    # make sure the C compiler is actually speaking x86
+    if does_c_define_exist "__i386__"; then
+       OBITS="32"
+    elif does_c_define_exist "__x86_64__"; then
+       OBITS="64"
+    else
+       fatal_error "[x86] Unable to determine output bits!"
+    fi
+
+    # figure out which instruction sets the assembler supports
+    test_for_asm_instruction_set "vpaddq %zmm0, %zmm0, %zmm0" HAVE_AVX512
+    test_for_asm_instruction_set "vpaddq %ymm0, %ymm0, %ymm0" HAVE_AVX2
+    test_for_asm_instruction_set "vpaddq %xmm0, %xmm0, %xmm0" HAVE_AVX
+    test_for_asm_instruction_set "vprotd \$15, %xmm0, %xmm0" HAVE_XOP
+    test_for_asm_instruction_set "crc32b %cl, %ebx" HAVE_SSE4_2
+    test_for_asm_instruction_set "pblendw \$0, %xmm0, %xmm0" HAVE_SSE4_1
+    test_for_asm_instruction_set "pshufb %xmm0, %xmm0" HAVE_SSSE3
+    test_for_asm_instruction_set "lddqu 0(%esi), %xmm0" HAVE_SSE3
+    test_for_asm_instruction_set "pmuludq %xmm0, %xmm0" HAVE_SSE2
+    test_for_asm_instruction_set "movaps 0(%esi), %xmm0" HAVE_SSE
+    test_for_asm_instruction_set "punpckhdq %mm0, %mm0" HAVE_MMX
+
+    # OSX as uses a different macro paramter convention
+    if [ "$AS" != "yasm" ]; then
+        test_for_asm_macro_parameter_convention "\op" HAVE_SLASHMACRO
+        test_for_asm_macro_parameter_convention "\$0" HAVE_DOLLARMACRO
+    fi
+
+    # outbit bits
+    if [ "$bits32" = "yes" ]; then
+      OBITS="32"
+    fi
+
+    # output format
+    if does_c_define_exist "__MACH__"; then
+       OFORMAT="mach"
+    elif does_c_define_exist "__ELF__"; then
+       OFORMAT="elf"
+    elif does_c_define_exist "_WIN32"; then
+       OFORMAT="win"
+       EXE=".exe"
+    elif does_c_define_exist "_WIN64"; then
+       OFORMAT="win"
+       EXE=".exe"
+    else
+       fatal_error "[x86] Unable to determine object format!"
+    fi
+
+    if [ "$AS" = "yasm" ]; then
+        ASFLAGS="-r nasm -p gas -f $OFORMAT$OBITS"
+    else
+       CFLAGS="$CFLAGS -m$OBITS"
+       ASFLAGS="$ASFLAGS -m$OBITS -c"
+       if [ "$osxbypass" = "yes" ]; then
+          CFLAGS="$CFLAGS -Wa,-q"
+          ASFLAGS="$ASFLAGS -Wa,-q"
+       fi
+    fi
+else
+    fatal_error "unable to find working assembler"
+fi
+
+if [ "$strict" = "yes" ]; then
+    CFLAGS="$CFLAGS -Wall -fno-strict-aliasing -W -Wall -Wextra -Werror -Wmissing-prototypes -Warray-bounds"
+fi
+
+# Intel Compiler for Windows
+if [ "$CC" = "icl" ]; then
+    DEPMM="-QMM"
+    DEPMT="-QMT"
+fi
+
+cat > $outputmake << EOF
+CC=$CC
+CFLAGS=$CFLAGS
+AS=$AS
+ASFLAGS=$ASFLAGS
+ARCH=$ARCH
+EXE=$EXE
+DEPMM=$DEPMM
+DEPMT=$DEPMT
+EOF
+
+cleanup
+
+echo "$outputheader generated, run 'make' now"
