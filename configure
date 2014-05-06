@@ -85,6 +85,7 @@ while [ "$1" != "" ]; do
     arg="${1#*=}"
     case $1 in
         --debug ) debug="yes"
+                  ;;
 
         --disable-as ) HAVEAS="no"
                        ;;

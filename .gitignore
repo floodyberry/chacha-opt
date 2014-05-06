@@ -1,0 +1,6 @@
+build/*
+config/config.log
+config/config.mak
+config/config.h
+example
+
