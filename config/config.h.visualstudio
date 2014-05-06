@@ -10,3 +10,10 @@
 #define HAVE_SSE2
 #define HAVE_SSE
 #define HAVE_MMX
+#if (defined(_M_IX86))
+	#define CPU_32BITS
+#elif (defined(_M_X64))
+	#define CPU_64BITS
+#else
+	#error This should never happen
+#endif

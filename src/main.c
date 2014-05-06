@@ -1,33 +1,11 @@
 #include <stdio.h>
-#include "config.h"
+#include "cpuid.h"
+#include "example/include.h"
 
 #if defined(ARCH_X86)
-extern unsigned long cpuid_x86();
-
-enum cpuid_flags_t {
-	CPUID_MMX       = (1 <<  0),
-	CPUID_SSE       = (1 <<  1),
-	CPUID_SSE2      = (1 <<  2),
-	CPUID_SSE3      = (1 <<  3),
-	CPUID_SSSE3     = (1 <<  4),
-	CPUID_SSE4_1    = (1 <<  5),
-	CPUID_SSE4_2    = (1 <<  6),
-	CPUID_AVX       = (1 <<  7),
-	CPUID_XOP       = (1 <<  8),
-	CPUID_AVX2      = (1 <<  9),
-	CPUID_AVX512    = (1 << 10),
-
-	CPUID_RDRAND    = (1 << 26),
-	CPUID_POPCNT    = (1 << 27),
-	CPUID_FMA4      = (1 << 28),
-	CPUID_FMA3      = (1 << 29),
-	CPUID_PCLMULQDQ = (1 << 30),
-	CPUID_AES       = (1 << 31)
-};
-
 static void
 print_cpuflags(void) {
-	unsigned long cpuflags = cpuid_x86();
+	unsigned long cpuflags = cpuid();
 
 	printf("cpu extensions:\n");
 	if (cpuflags & CPUID_MMX)
@@ -72,9 +50,32 @@ print_cpuflags(void) {
 		printf(" aes");
 	printf("\n");
 }
+#else
+static void
+print_cpuflags(void) {
+	printf("generic cpu\n");
+}
 #endif /* defined(ARCH_X86) */
 
+static void
+try_example() {
+	int arr[127];
+	size_t i;
+	for (i = 0; i < 127; i++)
+		arr[i] = (i + 93);
+	printf("sum of (93..219) = %d (check vs http://www.wolframalpha.com/input/?i=sum+of+93+to+219)\n", example(arr, 127));
+}
+
 int main(void) {
+	if (example_init() != 0) {
+		printf("example failed to initialize\n");
+		return 1;
+	}
+	if (example_test_all() != 0) {
+		printf("an example implementation failed!\n");
+		return 1;
+	}
 	print_cpuflags();
+	try_example();
 	return 0;
 }

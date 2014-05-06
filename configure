@@ -11,8 +11,9 @@ Standard options:
 
 
 Configuration options:
+  --disable-as                        do not use external assembly
   --force-32bits                      build for 32bits regardless of underlying system
-  --osx-clang-assembler-with-gcc      under osx, use the clang assembler with gcc instead of gnu assembler
+  --pic                               pass -fPIC to the compiler
   --strict                            use strict compiler flags for C
   --yasm                              use yasm to compile external asm
 
@@ -33,7 +34,7 @@ fatal_error() {
 }
 
 try_asm() {
-    printf "%s\n%s\n" ".text" "$1" | $AS $ASTESTFLAGS -o test.o - >test.log 2>&1
+    printf "%s\n%s\n" ".text" "$1" | $AS $ASFLAGSTEST -o test.o - >test.log 2>&1
     res=$?
     cat test.log >> $outputlog
     return $res
@@ -69,38 +70,35 @@ does_c_define_exist() {
     return $res
 }
 
-CC=${CC:-gcc}
-CFLAGS=${CFLAGS:-}
-CFLAGSTEST="-x c -c"
-AS="$CC"
-ASFLAGS=""
-ASTESTFLAGS="-x assembler -c -m32"
-DEPMM="-MM"
-DEPMT="-MT"
-ARCH=""
-EXE=""
-
-osxbypass="no"
+# options
 outputheader="config/config.h"
 outputmake="config/config.mak"
 outputlog="config/config.log"
+debug="no"
 bits32="no"
 strict="no"
+yasm="no"
+pic="no"
 
 # handle input paramters
 while [ "$1" != "" ]; do
+    arg="${1#*=}"
     case $1 in
+        --debug ) debug="yes"
+
+        --disable-as ) HAVEAS="no"
+                       ;;
+
         --force-32bits ) bits32="yes"
                          ;;
 
-        --osx-clang-assembler-with-gcc ) osxbypass="yes"
-                                         ;;
+        --pic ) pic="yes"
+                ;;
 
         --strict ) strict="yes"
                    ;;
 
-        --yasm ) AS="yasm"
-                 ASTESTFLAGS="-r nasm -p gas -f elf32"
+        --yasm ) yasm="yes"
                  ;;
 
         * ) echo "Unknown paramaters $1, skipping.."
@@ -109,22 +107,39 @@ while [ "$1" != "" ]; do
     shift
 done
 
-# pass -q to the os x as, which instructs it to use the clang assembler instead
-if [ "$osxbypass" = "yes" ]; then
-    if [ "$AS" = "yasm" ]; then
-        fatal_error "Can't use --osx-clang-assembler-with-gcc with --yasm!"
-    fi
-    ASTESTFLAGS="$ASTESTFLAGS -Wa,-q,-x,assembler"
+# make variables
+CC="${CC:-gcc}"
+AR="${AR:-ar}"
+RANLIB="${RANLIB:-ranlib}"
+STRIP="${STRIP:-strip}"
+INSTALL="${INSTALL:-install}"
+CFLAGS=${CFLAGS:-}
+CFLAGSTEST="-x c -c"
+AS="$CC"
+ASFLAGS=""
+ASFLAGSTEST="-x assembler -c -m32"
+HAVEAS=${HAVEAS:-yes}
+DEPMM="-MMD"
+DEPMF="-MF"
+ARCH=""
+EXE=""
+
+if [ "$yasm" = "yes" ]; then
+    AS="yasm"
+    ASFLAGSTEST="-r nasm -p gas -f elf32"
 fi
 
+# set things up
 mkdir -p build
 mkdir -p config
 rm -f $outputmake
 > $outputlog
 > $outputheader
 
-# x86 detection
-if try_asm "xorl %eax, %eax"; then
+
+# assembler detection
+foundas="no"
+if [ "$HAVEAS" = "yes" ] && try_asm "xorl %eax, %eax"; then
     echo "#define ARCH_X86" >> $outputheader
     ARCH="x86"
 
@@ -176,41 +191,62 @@ if try_asm "xorl %eax, %eax"; then
        fatal_error "[x86] Unable to determine object format!"
     fi
 
+    CFLAGS="$CFLAGS -m$OBITS"
     if [ "$AS" = "yasm" ]; then
         ASFLAGS="-r nasm -p gas -f $OFORMAT$OBITS"
     else
-       CFLAGS="$CFLAGS -m$OBITS"
        ASFLAGS="$ASFLAGS -m$OBITS -c"
-       if [ "$osxbypass" = "yes" ]; then
-          CFLAGS="$CFLAGS -Wa,-q"
-          ASFLAGS="$ASFLAGS -Wa,-q"
-       fi
     fi
+
+    printf "#define CPU_%sBITS\n" "$OBITS" >> $outputheader
+    foundas="yes"
+fi
+
+if [ "$HAVEAS" = "yes" ]; then
+    if [ "$foundas" = "no" ]; then
+        echo "Unable to find a working assembler/assembler dialect, you're flying solo!"
+        HAVEAS="no"
+    fi
+fi
+
+if [ "$pic" = "yes" ]; then
+    CFLAGS="$CFLAGS -fPIC"
+fi
+
+if [ "$debug" = "yes" ]; then
+    CFLAGS="$CFLAGS -g"
 else
-    fatal_error "unable to find working assembler"
+    CFLAGS="$CFLAGS -O3"
 fi
 
 if [ "$strict" = "yes" ]; then
-    CFLAGS="$CFLAGS -Wall -fno-strict-aliasing -W -Wall -Wextra -Werror -Wmissing-prototypes -Warray-bounds"
+    CFLAGS="$CFLAGS -Wall -fno-strict-aliasing -W -Wextra -Werror -Wmissing-prototypes -Warray-bounds"
 fi
 
 # Intel Compiler for Windows
 if [ "$CC" = "icl" ]; then
-    DEPMM="-QMM"
-    DEPMT="-QMT"
+    DEPMM="-QMMD"
+    DEPMF="-QMF"
 fi
 
 cat > $outputmake << EOF
 CC=$CC
 CFLAGS=$CFLAGS
+AR=$AR
+RANLIB=$RANLIB
+STRIP=$STRIP
+INSTALL=$INSTALL
+HAVEAS=$HAVEAS
 AS=$AS
 ASFLAGS=$ASFLAGS
 ARCH=$ARCH
 EXE=$EXE
 DEPMM=$DEPMM
-DEPMT=$DEPMT
+DEPMF=$DEPMF
 EOF
 
 cleanup
+
+make clean
 
 echo "$outputheader generated, run 'make' now"
