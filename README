@@ -43,6 +43,13 @@ Once bootstrapped, the following macros are available to every assembler file.
 
 ### INCLUDING FILES ###
 
+Note: If you compiling on OS X with gcc, any file that is included _must_ have Unix line endings! The `as` that ships with OS X appears to puke on Windows line endings and spits out a confusing mess of errors:
+
+    “NÖÖÖoØˆ7¸~ÿ:0:Junk character 13 (
+    ).
+    “NÖÖÖoØˆ7¸~ÿ:0:invalid character (0xd) in operand 2
+    “NÖÖÖoØˆ7¸~ÿ:0:invalid character (0xd) in operand 1
+
 * `INCLUDE` "file"
 
    Include `file`
