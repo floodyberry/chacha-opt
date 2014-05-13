@@ -42,13 +42,13 @@ unsigned long cpuid(void);
 /* runtime dispatching based on current cpu */
 typedef struct cpu_specific_impl_t {
 	unsigned long cpu_flags;
+	const char *desc;
 	/* additional information, pointers to methods, etc... */
 } cpu_specific_impl_t;
 
 typedef int (*impl_test)(const void *impl);
 
 const void *cpu_select(const void *impls, size_t impl_size, impl_test test_fn);
-int cpu_test_all(const void *impls, size_t impl_size, impl_test test_fn);
 
 
 #if defined(__cplusplus)

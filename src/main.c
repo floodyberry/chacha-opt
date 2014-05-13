@@ -2,6 +2,8 @@
 #include "cpuid.h"
 #include "example/include.h"
 
+#if !defined(FUZZ)
+
 #if defined(ARCH_X86)
 static void
 print_cpuflags(void) {
@@ -66,16 +68,18 @@ try_example() {
 	printf("sum of (93..219) = %d (check vs http://www.wolframalpha.com/input/?i=sum+of+93+to+219)\n", example(arr, 127));
 }
 
+#endif /* !defined(FUZZ) */
+
 int main(void) {
 	if (example_init() != 0) {
 		printf("example failed to initialize\n");
 		return 1;
 	}
-	if (example_test_all() != 0) {
-		printf("an example implementation failed!\n");
-		return 1;
-	}
+#if defined(FUZZ)
+	example_fuzzer();
+#else
 	print_cpuflags();
 	try_example();
+#endif
 	return 0;
 }

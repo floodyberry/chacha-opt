@@ -8,9 +8,8 @@ extern "C" {
 #endif
 
 int example(const int *arr, size_t count);
-
 int example_init(void);
-int example_test_all(void);
+void example_fuzzer(void);
 
 #if defined(__cplusplus)
 }
