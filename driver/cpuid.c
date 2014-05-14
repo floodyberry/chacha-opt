@@ -1,13 +1,13 @@
 #include "cpuid.h"
 
-static unsigned long cpuid_flags = CPUID_GENERIC;
-static unsigned long cpuid_mask = (unsigned long)-1;
+static uint32_t cpuid_flags = CPUID_GENERIC;
+static uint32_t cpuid_mask = ~(uint32_t)0;
 
 #if defined(ARCH_X86)
-extern unsigned long cpuid_x86();
+extern uint32_t cpuid_x86();
 #endif
 
-unsigned long
+uint32_t
 cpuid(void) {
 	if (cpuid_flags == CPUID_GENERIC) {
 #if defined(ARCH_X86)
@@ -19,8 +19,8 @@ cpuid(void) {
 
 const void *
 cpu_select(const void *impls, size_t impl_size, impl_test test_fn) {
-	unsigned long cpu_flags = cpuid();
-	const char *p = (const char *)impls;
+	uint32_t cpu_flags = cpuid();
+	const uint8_t *p = (const uint8_t *)impls;
 	for (;;) {
 		const cpu_specific_impl_t *impl = (const cpu_specific_impl_t *)p;
 		if (impl->cpu_flags == (impl->cpu_flags & cpu_flags)) {

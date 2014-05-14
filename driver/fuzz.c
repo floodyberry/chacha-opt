@@ -12,7 +12,7 @@
 
 /* store a 32 bit unsigned integer as four 8 bit unsigned integers in little endian */
 static void
-store8(unsigned char *p, unsigned long v) {
+store8(uint8_t *p, uint32_t v) {
 	p[0] = (v      ) & 0xff;
 	p[1] = (v >>  8) & 0xff;
 	p[2] = (v >> 16) & 0xff;
@@ -20,21 +20,21 @@ store8(unsigned char *p, unsigned long v) {
 }
 
 /* 32 bit left rotate */
-static unsigned long
-rotate32(unsigned long x, int k) {
-	return ((x << k) | (x >> (32 - k))) & 0xffffffff;
+static uint32_t
+rotate32(uint32_t x, int k) {
+	return ((x << k) | (x >> (32 - k)));
 }
 
 typedef struct chacha_state_t {
-	unsigned long s[12];
+	uint32_t s[12];
 } chacha_state_t;
 
 /* 1 block = 64 bytes */
 static void
-chacha_blocks(chacha_state_t *state, unsigned char *out, size_t blocks) {
-	unsigned long x0,x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13,x14,x15;
-	unsigned long             j4,j5,j6,j7,j8,j9,j10,j11,j12,j13,j14,j15;
-	unsigned long t;
+chacha_blocks(chacha_state_t *state, uint8_t *out, size_t blocks) {
+	uint32_t x0,x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13,x14,x15;
+	uint32_t             j4,j5,j6,j7,j8,j9,j10,j11,j12,j13,j14,j15;
+	uint32_t t;
 	size_t i;
 
 	j4 = state->s[0];
@@ -70,10 +70,10 @@ chacha_blocks(chacha_state_t *state, unsigned char *out, size_t blocks) {
 		x15 = j15;
 
 		#define quarter(a,b,c,d) \
-			a = (a + b) & 0xffffffff; t = d^a; d = rotate32(t,16); \
-			c = (c + d) & 0xffffffff; t = b^c; b = rotate32(t,12); \
-			a = (a + b) & 0xffffffff; t = d^a; d = rotate32(t, 8); \
-			c = (c + d) & 0xffffffff; t = b^c; b = rotate32(t, 7);
+			a = (a + b); t = d^a; d = rotate32(t,16); \
+			c = (c + d); t = b^c; b = rotate32(t,12); \
+			a = (a + b); t = d^a; d = rotate32(t, 8); \
+			c = (c + d); t = b^c; b = rotate32(t, 7);
 
 		for (i = 0; i < 6; i += 2) {
 			quarter( x0, x4, x8,x12)
@@ -104,13 +104,13 @@ chacha_blocks(chacha_state_t *state, unsigned char *out, size_t blocks) {
 		store8(out + 60, x15);
 
 		/* use counter+iv as a 128 bit counter */
-		j12 = (j12 + 1) & 0xffffffff;
+		j12 = (j12 + 1);
 		if (!j12) {
-			j13 = (j13 + 1) & 0xffffffff;
+			j13 = (j13 + 1);
 			if (!j13) {
-				j14 = (j14 + 1) & 0xffffffff;
+				j14 = (j14 + 1);
 				if (!j14)
-					j15 = (j15 + 1) & 0xffffffff;
+					j15 = (j15 + 1);
 			}
 		}
 	}
@@ -123,7 +123,7 @@ chacha_blocks(chacha_state_t *state, unsigned char *out, size_t blocks) {
 
 typedef struct fuzz_state_t {
 	chacha_state_t rng;
-	unsigned char buffer[64];
+	uint8_t buffer[64];
 	size_t remaining;
 } fuzz_state_t;
 
@@ -172,7 +172,7 @@ fuzz_init(void) {
 /* get len random bytes */
 void
 fuzz_get_bytes(void *out, size_t len) {
-	unsigned char *outb = (unsigned char *)out;
+	uint8_t *outb = (uint8_t *)out;
 
 	while (len) {
 		/* drain the stored buffer first */
@@ -203,17 +203,17 @@ fuzz_get_bytes(void *out, size_t len) {
 void
 fuzz(const void *impls, size_t impl_size, impl_fuzz_setup setup_fn, impl_fuzz fuzz_fn, impl_fuzz_print print_fn) {
 	/* allocate data */
-	unsigned char *fuzz_input = (unsigned char *)malloc(16384 + 1024); /* 16k for raw data, 1k for key material and derived data */
-	unsigned char *fuzz_output = (unsigned char *)malloc((16384 + 1024) * 32); /* room for 32 implementations */
+	uint8_t *fuzz_input = (uint8_t *)malloc(16384 + 1024); /* 16k for raw data, 1k for key material and derived data */
+	uint8_t *fuzz_output = (uint8_t *)malloc((16384 + 1024) * 32); /* room for 32 implementations */
 	const cpu_specific_impl_t **impl_list_alloc = (const cpu_specific_impl_t **)malloc(sizeof(const cpu_specific_impl_t *) * 32), **impl_list;
 	size_t impl_count = 0;
 
 	/* cpu detection */
-	unsigned long cpu_flags = cpuid();
+	uint32_t cpu_flags = cpuid();
 	const char *p = (const char *)impls;
 
 	size_t expected_bytes_in, expected_bytes_out;
-	unsigned char *outp;
+	uint8_t *outp;
 	size_t i;
 
 	/* counter display */
@@ -253,7 +253,7 @@ fuzz(const void *impls, size_t impl_size, impl_fuzz_setup setup_fn, impl_fuzz fu
 	counter = 0;
 	start = clock();
 	for (;;) {
-		unsigned char *generic_out = fuzz_output;
+		uint8_t *generic_out = fuzz_output;
 
 		/* set up the data for this run */
 		setup_fn(fuzz_input, &expected_bytes_in, &expected_bytes_out);

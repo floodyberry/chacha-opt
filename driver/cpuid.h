@@ -1,9 +1,7 @@
 #ifndef CPUID_H
 #define CPUID_H
 
-#include <stddef.h>
-#include <stdint.h> /* maybe do this more portably later */
-#include "config.h"
+#include "driver.h"
 
 #if defined(__cplusplus)
 extern "C" {

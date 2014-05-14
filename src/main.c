@@ -7,7 +7,7 @@
 #if defined(ARCH_X86)
 static void
 print_cpuflags(void) {
-	unsigned long cpuflags = cpuid();
+	uint32_t cpuflags = cpuid();
 
 	printf("cpu extensions:\n");
 	if (cpuflags & CPUID_MMX)
@@ -61,8 +61,8 @@ print_cpuflags(void) {
 
 static void
 try_example() {
-	int arr[127];
-	size_t i;
+	int32_t arr[127];
+	int32_t i;
 	for (i = 0; i < 127; i++)
 		arr[i] = (i + 93);
 	printf("sum of (93..219) = %d (check vs http://www.wolframalpha.com/input/?i=sum+of+93+to+219)\n", example(arr, 127));

@@ -250,4 +250,5 @@ cleanup
 
 make clean
 
-echo "$outputheader generated, run 'make' now"
+echo "$outputheader generated, run 'make' or 'make fuzz' now"
+

@@ -1,13 +1,13 @@
 #ifndef EXAMPLE_H
 #define EXAMPLE_H
 
-#include <stddef.h>
+#include "driver.h"
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
-int example(const int *arr, size_t count);
+int32_t example(const int32_t *arr, size_t count);
 int example_init(void);
 void example_fuzzer(void);
 
