@@ -2,6 +2,7 @@
 #define CPUID_H
 
 #include <stddef.h>
+#include <stdint.h> /* maybe do this more portably later */
 #include "config.h"
 
 #if defined(__cplusplus)
@@ -36,12 +37,12 @@ enum cpuid_flags_x86_t {
 };
 #endif
 
-unsigned long cpuid(void);
+uint32_t cpuid(void);
 
 
 /* runtime dispatching based on current cpu */
 typedef struct cpu_specific_impl_t {
-	unsigned long cpu_flags;
+	uint32_t cpu_flags;
 	const char *desc;
 	/* additional information, pointers to methods, etc... */
 } cpu_specific_impl_t;

@@ -10,10 +10,33 @@
 #define HAVE_SSE2
 #define HAVE_SSE
 #define HAVE_MMX
+
 #if (defined(_M_IX86))
 	#define CPU_32BITS
 #elif (defined(_M_X64))
 	#define CPU_64BITS
 #else
 	#error This should never happen
+#endif
+
+#if (_MSC_VER < 1300)
+	typedef signed char       int8_t;
+	typedef signed short      int16_t;
+	typedef signed int        int32_t;
+	typedef unsigned char     uint8_t;
+	typedef unsigned short    uint16_t;
+	typedef unsigned int      uint32_t;
+	typedef signed __int64    int64_t;
+	typedef unsigned __int64  uint64_t;
+#elif (_MSC_VER < 1600)
+	typedef signed __int8     int8_t;
+	typedef signed __int16    int16_t;
+	typedef signed __int32    int32_t;
+	typedef unsigned __int8   uint8_t;
+	typedef unsigned __int16  uint16_t;
+	typedef unsigned __int32  uint32_t;
+	typedef signed __int64    int64_t;
+	typedef unsigned __int64  uint64_t;
+#else
+	#include <stdint.h>
 #endif
