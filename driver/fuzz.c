@@ -75,7 +75,7 @@ chacha_blocks(chacha_state_t *state, uint8_t *out, size_t blocks) {
 			a = (a + b); t = d^a; d = rotate32(t, 8); \
 			c = (c + d); t = b^c; b = rotate32(t, 7);
 
-		for (i = 0; i < 6; i += 2) {
+		for (i = 0; i < 8; i += 2) {
 			quarter( x0, x4, x8,x12)
 			quarter( x1, x5, x9,x13)
 			quarter( x2, x6,x10,x14)
@@ -203,8 +203,7 @@ fuzz_get_bytes(void *out, size_t len) {
 void
 fuzz(const void *impls, size_t impl_size, impl_fuzz_setup setup_fn, impl_fuzz fuzz_fn, impl_fuzz_print print_fn) {
 	/* allocate data */
-	uint8_t *fuzz_input = (uint8_t *)malloc(16384 + 1024); /* 16k for raw data, 1k for key material and derived data */
-	uint8_t *fuzz_output = (uint8_t *)malloc((16384 + 1024) * 32); /* room for 32 implementations */
+	uint8_t *fuzz_input = NULL, *fuzz_output = NULL;
 	const cpu_specific_impl_t **impl_list_alloc = (const cpu_specific_impl_t **)malloc(sizeof(const cpu_specific_impl_t *) * 32), **impl_list;
 	size_t impl_count = 0;
 
@@ -241,6 +240,9 @@ fuzz(const void *impls, size_t impl_size, impl_fuzz_setup setup_fn, impl_fuzz fu
 	/* point it at the last impl added */
 	impl_list += 1; 
 
+	/* 16k for raw data, 1k for key material and derived data */
+	fuzz_input = (uint8_t *)malloc(16384 + 1024); 
+	fuzz_output = (uint8_t *)malloc((16384 + 1024) * impl_count);
 
 	/* show list of implementations being fuzzed */
 	printf("fuzzing %s", impl_list[0]->desc);
@@ -313,22 +315,22 @@ fuzz(const void *impls, size_t impl_size, impl_fuzz_setup setup_fn, impl_fuzz fu
 	}
 
 failure:
-	printf("fuzz mismatch!\n\n");
+	printf("fuzz mismatch! dumping input and output data\n\n");
 
 	outp = fuzz_output;
-	print_fn(impl_list[0], outp, NULL);
+	print_fn(impl_list[0], fuzz_input, outp, fuzz_output);
 	outp += expected_bytes_out;
 
-	printf("xor of each version against generic (blank means the byte was identical)\n\n");
-	
 	for (i = 1; i < impl_count; i++) {
-		print_fn(impl_list[i], outp, fuzz_output);
+		print_fn(impl_list[i], fuzz_input, outp, fuzz_output);
 		outp += expected_bytes_out;
 	}
 
 done:
-	free(fuzz_input);
-	free(fuzz_output);
+	if (fuzz_input)
+		free(fuzz_input);
+	if (fuzz_output)
+		free(fuzz_output);
 	free(impl_list_alloc);
 }
 

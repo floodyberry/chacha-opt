@@ -9,7 +9,7 @@ extern "C" {
 
 typedef void (*impl_fuzz_setup)(uint8_t *in, size_t *in_bytes, size_t *out_bytes);
 typedef size_t (*impl_fuzz)(const void *impl, const uint8_t *in, uint8_t *out);
-typedef void (*impl_fuzz_print)(const void *impl, const uint8_t *out, const uint8_t *generic_out);
+typedef void (*impl_fuzz_print)(const void *impl, const uint8_t *in, const uint8_t *out, const uint8_t *generic_out);
 
 void fuzz_init(void);
 void fuzz_init_deterministic(void);
