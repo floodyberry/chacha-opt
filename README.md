@@ -1,6 +1,6 @@
 # ABOUT #
 
-This is a solution to the problem of easy to use write-once, run everywhere x86 assembler. I have experimented with write-once inline assembler (in the style of [Crypto++](http://www.cryptopp.com/)), but it turned out to be too clunky and limited, e.g. source code must be transformed to Intel Syntax and then C macros which expand the instructions properly, referencing C constants in assembler which are not referenced by C is sketchy because the constants can get optimized away and/or are linked under a different name, Win64 versions have to jump through a lot of hoops to merely generate code which then has to be compiled by MASM, clang's integrated assembler does not understand `.intel_syntax`, etc.
+This is a solution to the problem of easy to use write-once, run everywhere x86 assembler. I have experimented with write-once inline assembler (in the style of [Crypto++](http://www.cryptopp.com/)), but it turned out to be too clunky and limited, e.g. source code must be transformed to Intel Syntax and then C macros which expand the instructions properly, referencing C constants in assembler which are not referenced by C is sketchy because the constants can get optimized away and/or are linked under a different name, Win64 versions have to jump through a lot of hoops to merely generate code which then has to be compiled by MASM, clang's integrated assembler (pre 3.2ish) does not understand `.intel_syntax`, etc.
 
 I decided the only way was to switch to an external assembler. [Yasm](http://yasm.tortall.net/) appears to be the most well supported and up-to-date, and, unlike NASM, supports GAS syntax. This means, with limiting the assembler to AT&T syntax and a few careful macros, that it is possible to have x86 assembler that is compilable by either Yasm _or_ gcc compatible compilers!
 
@@ -87,7 +87,7 @@ Extension based includes are available for all combinations of [X86, MMX, SSE, S
 
 ## CPUID ##
 
-CPUID implementations are in `driver/arch/` and exposed through [cpuid.c](driver/cpuid.c) with `unsigned long cpuid(void)`.
+CPUID implementations are in `driver/arch/` and exposed through [cpuid.c](driver/cpuid.c) with `uint32_t cpuid(void)`.
 
 The [x86 cpuid](driver/x86/cpuid_x86.S) detects everything from MMX up to (theoretically, based on Intel's programming reference) AVX-512. The implementation "cheats" by having the bootstrap provide `CPUID_PROLOGUE` and `CPUID_EPILOGUE` so a single implementation can be used for both x86 and x86-64.
 
@@ -126,7 +126,8 @@ Major architecture flags start from the bottom, while individual features go fro
 ### IMPLEMENTATION SELECTION BY CPUID ###
 
     typedef struct cpu_specific_impl_t {
-        unsigned long cpu_flags;
+        uint32_t cpu_flags;
+        const char *desc;
         /* additional information, pointers to methods, etc... */
     } cpu_specific_impl_t;
     
@@ -134,7 +135,7 @@ Major architecture flags start from the bottom, while individual features go fro
 
 `cpu_select` returns a pointer to the first implementation that will run on the current CPU and passes the provided test. If no implementations passes, NULL is returned.
 
-`impls` is a pointer to an array of structs where each struct represents an optimized implementation with the first field being an `unsigned long` that holds the required cpu flags (see `cpu_specific_impl_t`). The structs must be ordered from most the optimized implementation to the least.
+`impls` is a pointer to an array of structs where each struct represents an optimized implementation with the first field being an `uint32_t` that holds the required cpu flags (see `cpu_specific_impl_t`), and the second being a pointer to an arbitrary string describing the implementation, e.g. "x86", "avx2-popcnt", etc. The structs must be ordered from most the optimized implementation to the least.
 
 `impl_size` is the size of each struct.
 
@@ -142,7 +143,7 @@ Major architecture flags start from the bottom, while individual features go fro
 
 ## EXAMPLE ##
 
-An [example](src/example/) is provided demonstrating how to implement, select, and call an optimized function. The example algorithm being implemented is summing up the ints in a given array and returning the result. 
+An [example](src/example/) is provided demonstrating how to implement, select, and call an optimized function. The example algorithm being implemented is summing up the little-endian 32-bit signed integers in a given array and returning the result. 
 
 ### PUTTING IT TOGETHER ###
 
@@ -193,42 +194,43 @@ Suggested function naming is name_extension, e.g. `example_x86`, `aes_avx2`, `cu
 The C code "glue" is [impl.c](src/example/impl.c), which starts by declaring an implementation struct holding the cpu flags for the implementation and its methods. Note that an optimized implementation may have multiple methods, such as a signing function which would have separate functions for key generation, signing, and verifying:
 
     typedef struct example_impl_t {
-        unsigned long cpu_flags;
-        int (*example)(const int *arr, size_t count);
+        uint32_t cpu_flags;
+        const char *desc;
+        int32_t (*example)(const int32_t *arr, size_t count);
     } example_impl_t;
 
-The available implementations are then detected and declared based on the defines from `config.h` (which is included by [cpuid.h](driver/cpuid.h)):
+The available implementations are then detected and declared based on the defines from `config.h` (which is included by [driver.h](driver/driver.h)):
 
     /* declare the prototypes of the provided functions */
     #define EXAMPLE_DECLARE(ext) \
-        extern int example_##ext(const int *arr, size_t count);
+        extern int32_t example_##ext(const int32_t *arr, size_t count);
 
     #if defined(ARCH_X86)
         /* 32 bit only implementations */
         #if defined(CPU_32BITS)
             EXAMPLE_DECLARE(x86)
-            #define EXAMPLE_X86 {CPUID_X86, example_x86}
+            #define EXAMPLE_X86 {CPUID_X86, "x86", example_x86}
         #endif
 
         /* 64 bit only implementations */
         #if defined(CPU_64BITS)
             #if defined(HAVE_AVX)
                 EXAMPLE_DECLARE(avx)
-                #define EXAMPLE_AVX {CPUID_AVX, example_avx}
+                #define EXAMPLE_AVX {CPUID_AVX, "avx", example_avx}
             #endif
         #endif
 
         /* both 32 & 64 bit implementations */
         #if defined(HAVE_SSE2)
             EXAMPLE_DECLARE(sse2)
-            #define EXAMPLE_SSE2  {CPUID_SSE2, example_sse2}
+            #define EXAMPLE_SSE2  {CPUID_SSE2, "sse2", example_sse2}
         #endif
     #endif
 
 The "generic" version, which should be maximally portable C, is then declared. Its purpose is to both be a "reference" implementation, and to allow the function to run on platforms where you do not yet have optimized assembler. It is obviously up to you, but speed should most likely be second to portability and readability:
 
     /* the "always runs" version */
-    #define EXAMPLE_GENERIC {CPUID_GENERIC, example_generic}
+    #define EXAMPLE_GENERIC {CPUID_GENERIC, "generic", example_generic}
     #include "example_generic.h"
 
 Finally, the full list of optimized functions is declared, going in order of most optimized to least, with the generic implementation at the bottom. The chosen optimized implementation is declared as well; this could be an integer index in to the implementation list, a pointer to an implemention, etc. I've chosen a static struct to minimize the pointer loads, but that is a minor detail.
@@ -247,7 +249,7 @@ Finally, the full list of optimized functions is declared, going in order of mos
         EXAMPLE_GENERIC
     };
     
-    static example_impl_t example_opt = {0,0};
+    static example_impl_t example_opt = {0,0,0};
 
 To select the best implementation for the current CPU, two functions are needed: one to test an implementation, which is not called directly:
 
@@ -255,7 +257,7 @@ To select the best implementation for the current CPU, two functions are needed:
     static int
     example_test(const void *impl) {
         const example_impl_t *example_impl = (const example_impl_t *)impl;
-        int arr[50], i;
+        int32_t arr[50], i;
         for (i = 0; i < 50; i++)
             arr[i] = i;
         return (example_impl->example(arr, 50) == 1225) ? 0 : 1;
@@ -279,7 +281,7 @@ The user facing function exposing the chosen optimized implementation is the las
 
     /* call the optimized implementation */
     int
-    example(const int *arr, size_t count) {
+    example(const int32_t *arr, size_t count) {
         return example_opt.example(arr, count);
     }
 
@@ -319,6 +321,154 @@ Well some aren't used yet, but you know, for the future.
 ### VISUAL STUDIO ###
 
 Rename `config/config.h.visualstudio` to `config/config.h`, download at least [Yasm 1.2](http://yasm.tortall.net/) and [follow the Yasm integration steps](http://yasm.tortall.net/Download.html) for your version of Visual Studio. Set the parser for each `.S` file to "Gas"; manual flags for Yasm are `-r nasm -p gas -f win[32,64]`. Additionally add `driver;src;` to the include path for C/C++ and Yasm.
+
+## FUZZING ##
+
+Abstract fuzzing is provided through [fuzz.h](driver/fuzz.h) and [fuzz.c](driver/fuzz.c). Extending an example to support fuzzing requires 3 simple functions to be passed to the fuzzer, which then handles the work of selecting available implementations, producing random numbers, collecting the output, comparing the output, detecting mismatches, and displaying the progress a simple counter so you can tell progress is being made.
+
+### EXAMPLE ###
+
+First, the fuzzer must be intialized, which right now is just initializing its random number generator, a non-threadsafe, insecure, portable implementation of `Chacha/8`. There are two options for this:
+
+* `void fuzz_init(void)`: initializes the rng randomly through `/dev/urandom` or `CryptGenRandom`.
+
+* `void fuzz_init_deterministic(void)`: sets the rng state to all zeros, ensuring the same data is produced every run.
+
+
+
+The fuzzer then needs 3 functions passed to it:
+
+#### 1. SETUP ####
+
+`typedef void (*impl_fuzz_setup)(uint8_t *in, size_t *in_bytes, size_t *out_bytes);`
+
+`fuzz_setup` takes a pointer for the input data to be generated in to (`in`), a pointer which stores the amount of input bytes generated (`in_bytes`), and a pointer which stores the expected output bytes based on the input (`out_bytes`). The fuzzer internally uses a buffer of `16384+1024` bytes for generated input any additional input data needed, and `16384+1024` bytes for each implementation to generate output.
+
+    /* setup a fuzz pass, generate random data for the input, and tell the 
+       fuzzer how much output to expect */
+    static void
+    example_fuzz_setup(uint8_t *in, size_t *in_bytes, size_t *out_bytes) {
+        uint8_t *in_start = in;
+        size_t arr_len;
+        fuzz_get_bytes(&arr_len, sizeof(arr_len));
+    
+        /* use an array size of 0->16384 bytes / sizeof(int32_t) = number 
+           of ints to count up */
+        arr_len = (arr_len % 16384) / sizeof(int32_t);
+        memcpy(in, &arr_len, sizeof(arr_len));
+        in += sizeof(arr_len);
+    
+        /* generate the input ints! */
+        fuzz_get_bytes(in, arr_len * sizeof(int32_t));
+        in += arr_len * sizeof(int32_t);
+    
+        /* amount of input that will be used */
+        *in_bytes = in - in_start;
+    
+        /* amount of output each implementation will produce */
+        *out_bytes = sizeof(int32_t);
+    }
+
+#### 2. FUZZ ####
+
+Next is the function which processes the input and generates output for each implementation. For example, a fuzzing function could use the input as a private key, generate a public key and store it, sign a block of data and store the signature, and finally verify the signature and store the result.
+
+`typedef size_t (*impl_fuzz)(const void *impl, const uint8_t *in, uint8_t *out);`
+
+    /* process the input with the given implementation and write it to the 
+       output */
+    static size_t
+    example_fuzz(const void *impl, const uint8_t *in, uint8_t *out) {
+        const example_impl_t *example_impl = (const example_impl_t *)impl;
+        uint8_t *out_start = out;
+        size_t int_count;
+        int32_t sum;
+    
+        /* read count */
+        memcpy(&int_count, in, sizeof(int_count));
+        in += sizeof(int_count);
+    
+        /* sum the array */
+        sum = example_impl->example((const int32_t *)in, int_count);
+    
+        /* store the result */
+        memcpy(out, &sum, sizeof(sum));
+        out += sizeof(sum);
+    
+        /* return bytes written */
+        return (out - out_start);
+    }
+
+#### 3. PRINT ####
+
+Last is a function to print the input and output data for each implementation if a mismatch in the output data occurs. A call is made for each implementation with a copy of the input, that implementation's output data, and the generic output data. This allows the printing function to diff each implementation against the generic implementation, and for it to detect the generic function so the raw data, not diffs, are printed. Diffs are computed by xor'ing each byte with the generic output byte, and printing "____" if the bytes are equal, if not the hexadecimal value of the xor is printed.
+
+`typedef void (*impl_fuzz_print)(const void *impl, const uint8_t *in, const uint8_t *out, const uint8_t *generic_out);`
+
+    /* print len bytes from bytes in hex format, xor'd against base if 
+       base != bytes */
+    static void
+    example_fuzz_print_bytes(const char *desc, const uint8_t *base, const uint8_t *bytes, size_t len) {
+        size_t i;
+        printf("%s: ", desc);
+        for (i = 0; i < len; i++) {
+            if (i && ((i % 16) == 0))
+                printf("\\n");
+            if (base != bytes) {
+                uint8_t diff = base[i] ^ bytes[i];
+                if (diff)
+                    printf("0x%02x,", diff);
+                else
+                    printf("____,");
+            } else {
+                printf("0x%02x,", bytes[i]);
+            }
+        }
+        printf("\\n\\n");
+    }
+
+    /* print the output for the given implementation, and xor it against 
+       generic_out if needed */
+    static void
+    example_fuzz_print(const void *impl, const uint8_t *in, const uint8_t *out, const uint8_t *generic_out) {
+        const example_impl_t *example_impl = (const example_impl_t *)impl;
+        if (out == generic_out) {
+            size_t int_count;
+            /* this is the generic data, print the input first */
+            printf("INPUT\\n\\n");
+    
+            /* input length */
+            memcpy(&int_count, in, sizeof(int_count));
+            in += sizeof(int_count);
+            printf("length: %u\\n", (uint32_t)int_count);
+
+            /* dump data */
+            example_fuzz_print_bytes("data", in, in, int_count * sizeof(int32_t));
+
+            /* switch to output! */
+            printf("OUTPUT\\n\\n");
+        }
+        printf("IMPLEMENTATION:%s\\n", example_impl->desc);
+        example_fuzz_print_bytes("sum", generic_out, out, sizeof(int32_t));
+        out += sizeof(int32_t);
+        generic_out += sizeof(int32_t);
+    }
+
+#### PUTTING IT ALL TOGETHER ####
+
+    /* run the fuzzer on example */
+    void
+    example_fuzzer(void) {
+        fuzz_init();
+        fuzz(example_list, sizeof(example_impl_t), example_fuzz_setup, example_fuzz, example_fuzz_print);
+    }
+
+That's it! Now build and run with:
+
+    make fuzz
+    ./example-fuzz
+
+and let it run for as long as you like (except not with the example fuzzer, that would be wasting electricity).
 
 # LICENSE #
 
