@@ -14,7 +14,9 @@ typedef void (*impl_fuzz_print)(const void *impl, const uint8_t *in, const uint8
 void fuzz_init(void);
 void fuzz_init_deterministic(void);
 void fuzz_get_bytes(void *out, size_t len);
+void fuzz_print_bytes(const char *desc, const uint8_t *bytes, const uint8_t *base, size_t len);
 void fuzz(const void *impls, size_t impl_size, impl_fuzz_setup setup_fn, impl_fuzz fuzz_fn, impl_fuzz_print print_fn);
+
 
 #if defined(__cplusplus)
 }

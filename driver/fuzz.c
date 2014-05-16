@@ -199,6 +199,27 @@ fuzz_get_bytes(void *out, size_t len) {
 	}
 }
 
+/* print len bytes from bytes in hex format, xor'd against base if bytes != base */
+void
+fuzz_print_bytes(const char *desc, const uint8_t *bytes, const uint8_t *base, size_t len) {
+	size_t i;
+	printf("%s: ", desc);
+	for (i = 0; i < len; i++) {
+		if (i && ((i % 16) == 0))
+			printf("\n");
+		if (base != bytes) {
+			uint8_t diff = base[i] ^ bytes[i];
+			if (diff)
+				printf("0x%02x,", diff);
+			else
+				printf("____,");
+		} else {
+			printf("0x%02x,", bytes[i]);
+		}
+	}
+	printf("\n\n");
+}
+
 /* run the fuzzer */
 void
 fuzz(const void *impls, size_t impl_size, impl_fuzz_setup setup_fn, impl_fuzz fuzz_fn, impl_fuzz_print print_fn) {

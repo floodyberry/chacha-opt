@@ -401,31 +401,22 @@ Next is the function which processes the input and generates output for each imp
 
 #### 3. PRINT ####
 
-Last is a function to print the input and output data for each implementation if a mismatch in the output data occurs. A call is made for each implementation with a copy of the input, that implementation's output data, and the generic output data. This allows the printing function to diff each implementation against the generic implementation, and for it to detect the generic function so the raw data, not diffs, are printed. Diffs are computed by xor'ing each byte with the generic output byte, and printing "____" if the bytes are equal, if not the hexadecimal value of the xor is printed.
+The fuzzer provides a function to print raw data in hexadecimal format, optionally diff'd against a base buffer:
+
+`void fuzz_print_bytes(const char *desc, const uint8_t *bytes, const uint8_t *base, size_t len)`
+
+`desc` is a simple description that will be printed before the data
+
+`bytes` is the raw data to print.
+
+`base` is pointer to the 'known good' data. If `base == bytes` (the pointer value, not the data), the raw data will be printed. If `base != bytes` then `bytes[i] ^ base[i]` will be printed. If the values are equal, `____` is printed to aid in ignoring equal values.
+
+`len` is the number of bytes to print.
+
+
+When a mismatch occurs between implementations, the fuzzer stops and calls the user defined print function for each implementation with a pointer to the input data, the output data for that implemenattion, and the output data for the "generic" implementation.
 
 `typedef void (*impl_fuzz_print)(const void *impl, const uint8_t *in, const uint8_t *out, const uint8_t *generic_out);`
-
-    /* print len bytes from bytes in hex format, xor'd against base if 
-       base != bytes */
-    static void
-    example_fuzz_print_bytes(const char *desc, const uint8_t *base, const uint8_t *bytes, size_t len) {
-        size_t i;
-        printf("%s: ", desc);
-        for (i = 0; i < len; i++) {
-            if (i && ((i % 16) == 0))
-                printf("\\n");
-            if (base != bytes) {
-                uint8_t diff = base[i] ^ bytes[i];
-                if (diff)
-                    printf("0x%02x,", diff);
-                else
-                    printf("____,");
-            } else {
-                printf("0x%02x,", bytes[i]);
-            }
-        }
-        printf("\\n\\n");
-    }
 
     /* print the output for the given implementation, and xor it against 
        generic_out if needed */
@@ -435,21 +426,21 @@ Last is a function to print the input and output data for each implementation if
         if (out == generic_out) {
             size_t int_count;
             /* this is the generic data, print the input first */
-            printf("INPUT\\n\\n");
+            printf("INPUT\n\n");
     
             /* input length */
             memcpy(&int_count, in, sizeof(int_count));
             in += sizeof(int_count);
-            printf("length: %u\\n", (uint32_t)int_count);
+            printf("length: %u\n", (uint32_t)int_count);
 
             /* dump data */
             example_fuzz_print_bytes("data", in, in, int_count * sizeof(int32_t));
 
             /* switch to output! */
-            printf("OUTPUT\\n\\n");
+            printf("OUTPUT\n\n");
         }
-        printf("IMPLEMENTATION:%s\\n", example_impl->desc);
-        example_fuzz_print_bytes("sum", generic_out, out, sizeof(int32_t));
+        printf("IMPLEMENTATION:%s\n", example_impl->desc);
+        example_fuzz_print_bytes("sum", out, generic_out, sizeof(int32_t));
         out += sizeof(int32_t);
         generic_out += sizeof(int32_t);
     }
