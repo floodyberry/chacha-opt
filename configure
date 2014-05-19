@@ -24,6 +24,7 @@ fi
 
 cleanup() {
     rm -f test.o
+    rm -f test
     rm -f test.log
 }
 
@@ -60,6 +61,54 @@ try_c() {
     res=$?
     cat test.log >> $outputlog
     return $res
+}
+
+try_c_stdint() {
+    echo "checking for $1.." >> $outputlog
+    prog=$(printf "#include <stdint.h>\nint main() { %s x = 53; return (int)x; }" "$1")
+    try_c "$prog"
+    res=$?
+    return $res
+}
+
+try_c_runnable() {
+    rm -f test
+    printf "%s\n" "$1" | $CC $CFLAGSTEST -o test.o - >test.log 2>&1
+    res=$?
+    cat test.log >> $outputlog
+    if [ "$res" != "0" ]; then
+       return $res
+    fi
+    $CC -o test test.o >test.log 2>&1
+    res=$?
+    cat test.log >> $outputlog
+    return $res
+}
+
+try_c_type() {
+    echo "checking for $1.." >> $outputlog
+    prog=$(printf "int main() {\n%s t = 0; return (int) t;\n}" "$1")
+    try_c "$prog"
+    res=$?
+    return $res
+}
+
+try_c_type_unsigned() {
+    echo "checking for $2 with $1 bits.." >> $outputlog
+    prog=$(printf "typedef %s mytype; int main(int argc,char *argv[]) {mytype x; int i; x = (mytype) atoi(argv[1]); for(i=0;i<%s;i++){if(x==0) return 100; x+=x+(mytype)atoi(argv[2]);} if(x!=0) return 100; x-=1; if(x<0) return 100; return 0;}" "$2" "$1")
+    try_c_runnable "$prog" || return $?
+    ./test 1 0
+    res=$?
+    return $res
+}
+
+define_c_type() {
+    echo "#define HAVE_$1" >> $outputheader
+    echo "#define DEFINE_$1 typedef $2; typedef $3;" >> $outputheader
+}
+
+define_c_type_undefined() {
+    echo "#define DEFINE_$1" >> $outputheader
 }
 
 does_c_define_exist() {
@@ -207,6 +256,87 @@ if [ "$HAVEAS" = "yes" ]; then
     if [ "$foundas" = "no" ]; then
         echo "Unable to find a working assembler/assembler dialect, you're flying solo!"
         HAVEAS="no"
+    fi
+fi
+
+
+# stdint
+have_stdint="no"
+have_uint128="no"
+if try_c_stdint "uint8_t"; then
+    if [ "$OBITS" == "64" ]; then
+        if try_c_stdint "uint128_t"; then
+            echo "#define HAVE_INT128" >> $outputheader
+            have_uint128="yes"
+        fi
+    fi
+    if try_c_stdint "int64_t"; then
+        echo "#define HAVE_INT64" >> $outputheader
+    fi
+    echo "#define HAVE_INT32" >> $outputheader
+    echo "#define HAVE_INT16" >> $outputheader
+    echo "#define HAVE_INT8" >> $outputheader
+    echo "#define HAVE_STDINT" >> $outputheader
+    have_stdint="yes"
+fi
+
+# external uint128_t detection if stdint didn't have it
+ctype="INT128"
+if [ "$OBITS" == "64" ]; then
+    if [ "$have_uint128" = "no" ]; then
+        if try_c_type "__int128"; then
+            define_c_type "$ctype" "signed __int128 int128_t" "unsigned __int128 uint128_t"
+        elif try_c_type "__uint128_t"; then
+            define_c_type "$ctype" "__int128_t int128_t" "__uint128_t uint128_t"
+        elif try_c_type "unsigned int __attribute__ ((__mode__ (TI)))"; then
+            define_c_type "$ctype" "signed int int128_t __attribute__ ((__mode__ (TI)))" "unsigned int uint128_t __attribute__ ((__mode__ (TI)))"
+        else
+            define_c_type_undefined "$ctype"
+        fi
+    fi
+else
+    define_c_type_undefined "$ctype"
+fi
+
+if [ "$have_stdint" = "no" ]; then
+    # 64 bit int
+    ctype="INT64"
+    if try_c_type_unsigned "64" "unsigned long long"; then
+        define_c_type "$ctype" "signed long long int64_t" "unsigned long long uint64_t"
+    elif try_c_type_unsigned "64" "unsigned long"; then
+        define_c_type "$ctype" "signed long int64_t" "unsigned long uint64_t"
+    elif try_c_type_unsigned "64" "int __attribute__ ((__mode__ (DI)))"; then
+        define_c_type "$ctype" "signed int int64_t __attribute__ ((__mode__ (DI)))" "unsigned int uint64_t __attribute__ ((__mode__ (DI)))"
+    else
+        define_c_type_undefined "$ctype"
+    fi
+
+    # 32 bit int
+    ctype="INT32"
+    if try_c_type_unsigned "32" "unsigned long"; then
+        define_c_type "$ctype" "signed long int32_t" "unsigned long uint32_t"
+    elif try_c_type_unsigned "32" "unsigned int"; then
+        define_c_type "$ctype" "signed int uint32_t" "unsigned int uint32_t"
+    else
+        define_c_type_undefined "$ctype"
+    fi
+
+    # 16 bit int
+    ctype="INT16"
+    if try_c_type_unsigned "16" "unsigned int"; then
+        define_c_type "$ctype" "signed int int16_t" "unsigned int uint16_t"
+    elif try_c_type_unsigned "16" "unsigned short"; then
+        define_c_type "$ctype" "signed short int16_t" "unsigned short uint16_t"
+    else
+        define_c_type_undefined "$ctype"
+    fi
+
+    # 8bits
+    ctype="INT8"
+    if try_c_type_unsigned "8" "unsigned char"; then
+        define_c_type "$ctype" "signed char int8_t" "unsigned char uint8_t"
+    else
+        define_c_type_undefined "$ctype"
     fi
 fi
 
