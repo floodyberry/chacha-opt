@@ -4,17 +4,9 @@ endif
 
 include config/config.mak
 
-.PHONY: all
-.PHONY: default
-.PHONY: fuzz
-.PHONY: clean
-
-all: default
-default: example$(EXE)
-fuzz: example-fuzz$(EXE)
-
-# recursive wildcard: $(call rwildcard, basepath, globs)
-rwildcard = $(foreach d, $(wildcard $(1)*), $(call rwildcard, $(d)/, $(2)) $(filter $(subst *, %, $(2)), $(d)))
+##########################
+# set up variables
+#
 
 BASEDIR = .
 BUILDDIR = build
@@ -28,7 +20,12 @@ COMMA := ,
 ASMINCLUDE += $(addprefix -Wa$(COMMA),$(INCLUDE))
 endif
 
-# grab all the c files
+###########################
+# define recursive wildcard: $(call rwildcard, basepath, globs)
+#
+rwildcard = $(foreach d, $(wildcard $(1)*), $(call rwildcard, $(d)/, $(2)) $(filter $(subst *, %, $(2)), $(d)))
+
+# grab all the c files in driver/ and src/
 SRCC += $(call rwildcard, driver/, *.c)
 SRCC += $(call rwildcard, src/, *.c)
 
@@ -38,14 +35,16 @@ ifeq ($(HAVEAS),yes)
 # grab all the assembler files
 SRCASM = $(call rwildcard, src/, *.S)
 
-# add cpuid for our arch
+# add cpuid for the appropriate arch
 ifeq ($(ARCH),x86)
 SRCASM += driver/x86/cpuid_x86.S
 endif
 
 endif
 
-# expand all source file paths in to $(BUILDDIR)
+##########################
+# expand all source file paths in to object files in $(BUILDDIR)/$(BUILDDIRFUZZ)
+#
 OBJC =
 OBJCFUZZ =
 OBJASM =
@@ -53,11 +52,35 @@ OBJC += $(patsubst %.c, $(BUILDDIR)/%.o, $(SRCC))
 OBJCFUZZ += $(patsubst %.c, $(BUILDDIRFUZZ)/%.o, $(SRCC))
 OBJASM += $(patsubst %.S, $(BUILDDIR)/%.o, $(SRCASM))
 
+
+
+##########################
+# non-file targets
+#
+.PHONY: all
+.PHONY: default
+.PHONY: fuzz
+.PHONY: clean
+
+all: default
+default: example$(EXE)
+fuzz: example-fuzz$(EXE)
+clean:
+	@rm -rf $(BUILDDIR)/*
+	@rm -rf $(BUILDDIRFUZZ)/*
+	@rm -f example$(EXE)
+	@rm -f example-fuzz$(EXE)
+
+
+##########################
+# build rules for files
+#
+
 # use $(BASEOBJ) in build rules to grab the base path/name of the object file, without an extension
 BASEOBJ = $(BUILDDIR)/$*
 BASEOBJFUZZ = $(BUILDDIRFUZZ)/$*
 
-# rule to build assembler files
+# building .S (assembler) files
 $(BUILDDIR)/%.o: %.S
 	@mkdir -p $(dir $@)
 # yasm needs one pass to compile, and one to generate dependencies
@@ -76,7 +99,7 @@ endif
 	< $(BASEOBJ).temp >> $(BASEOBJ).P
 	@rm -f $(BASEOBJ).temp
 
-# rule to build C files
+# building .c (C) files
 $(BUILDDIR)/%.o: %.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(CINCLUDE) $(DEPMM) $(DEPMF) $(BASEOBJ).temp -c -o $(BASEOBJ).o $<
@@ -90,7 +113,7 @@ $(BUILDDIR)/%.o: %.c
 	< $(BASEOBJ).temp >> $(BASEOBJ).P
 	@rm -f $(BASEOBJ).temp
 
-# rule to build C files, fuzzing
+# building .c (C) files for fuzzing
 $(BUILDDIRFUZZ)/%.o: %.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(CINCLUDE) $(DEPMM) $(DEPMF) $(BASEOBJFUZZ).temp -DFUZZ -c -o $(BASEOBJFUZZ).o $<
@@ -105,20 +128,20 @@ $(BUILDDIRFUZZ)/%.o: %.c
 	@rm -f $(BASEOBJFUZZ).temp
 
 
-# include generated dependencies
+##########################
+# include all auto-generated dependencies
+#
 -include $(SRCC:%.c=$(BUILDDIR)/%.P)
 -include $(SRCC:%.c=$(BUILDDIRFUZZ)/%.P)
 -include $(SRCASM:%.S=$(BUILDDIR)/%.P)
 
+
+##########################
+# final build targets
+#
 example$(EXE): $(OBJC) $(OBJASM)
 	$(CC) $(CFLAGS) -o $@ $(OBJC) $(OBJASM)
 
 example-fuzz$(EXE): $(OBJCFUZZ) $(OBJASM)
 	$(CC) $(CFLAGS) -o $@ $(OBJCFUZZ) $(OBJASM) -DFUZZ
-
-clean:
-	@rm -rf $(BUILDDIR)/*
-	@rm -rf $(BUILDDIRFUZZ)/*
-	@rm -f example$(EXE)
-	@rm -f example-fuzz$(EXE)
 
