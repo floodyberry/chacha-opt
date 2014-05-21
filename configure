@@ -11,6 +11,7 @@ Standard options:
 
 
 Configuration options:
+  --generic                           alias for --disable-as, forces a generic build
   --disable-as                        do not use external assembly
   --force-32bits                      build for 32bits regardless of underlying system
   --pic                               pass -fPIC to the compiler
@@ -139,6 +140,9 @@ while [ "$1" != "" ]; do
         --disable-as ) HAVEAS="no"
                        ;;
 
+        --generic ) HAVEAS="no"
+                       ;;
+
         --force-32bits ) bits32="yes"
                          ;;
 
@@ -171,7 +175,7 @@ ASFLAGSTEST="-x assembler -c -m32"
 HAVEAS=${HAVEAS:-yes}
 DEPMM="-MMD"
 DEPMF="-MF"
-ARCH=""
+ARCH="generic"
 EXE=""
 
 if [ "$yasm" = "yes" ]; then

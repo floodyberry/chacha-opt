@@ -22,6 +22,13 @@ FN cpuid_x86
 
 	/* eax = max level, store in edi */
 	movl %eax, %edi
+
+	/* cpus with >=2 cpuid levels support rdtsc */
+	cmpl $2, %edi
+	jb 1f
+		orl $(CPUID_RDTSC), %esi
+	1:
+
 	testl $0x00000500, %edi
 	jz Lcpuid_x86_notp5
 
@@ -197,3 +204,11 @@ Lcpuid_x86_done:
 	CPUID_EPILOGUE
 FN_END cpuid_x86
 
+
+
+GLOBAL cpucycles_x86
+FN cpucycles_x86
+
+CPUCYCLES
+
+FN_END cpucycles_x86

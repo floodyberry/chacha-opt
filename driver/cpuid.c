@@ -1,19 +1,13 @@
 #include "cpuid.h"
+#include "cpuid_impl.inc"
 
 static uint32_t cpuid_flags = CPUID_GENERIC;
 static uint32_t cpuid_mask = ~(uint32_t)0;
 
-#if defined(ARCH_X86)
-extern uint32_t cpuid_x86();
-#endif
-
 uint32_t
 cpuid(void) {
-	if (cpuid_flags == CPUID_GENERIC) {
-#if defined(ARCH_X86)
-		cpuid_flags = cpuid_x86();
-#endif
-	}
+	if (cpuid_flags == CPUID_GENERIC)
+		cpuid_flags = cpuid_impl();
 	return cpuid_flags & cpuid_mask;
 }
 

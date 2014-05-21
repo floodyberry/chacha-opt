@@ -11,8 +11,8 @@ include config/config.mak
 BASEDIR = .
 BUILDDIR = build
 BUILDDIRFUZZ = build_fuzz
-INCLUDE = $(addprefix -I$(BASEDIR)/,config src driver)
-CINCLUDE = $(INCLUDE)
+INCLUDE = $(addprefix -I$(BASEDIR)/,config src driver $(addsuffix $(ARCH)/,driver/))
+CINCLUDE = $(INCLUDE) 
 ASMINCLUDE = $(INCLUDE)
 # yasm doesn't need includes passed to the assembler
 ifneq ($(AS),yasm)
@@ -35,10 +35,8 @@ ifeq ($(HAVEAS),yes)
 # grab all the assembler files
 SRCASM = $(call rwildcard, src/, *.S)
 
-# add cpuid for the appropriate arch
-ifeq ($(ARCH),x86)
-SRCASM += driver/x86/cpuid_x86.S
-endif
+# add asm for the appropriate arch
+SRCASM += $(call rwildcard, $(addsuffix $(ARCH),driver/), *.S)
 
 endif
 

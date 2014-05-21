@@ -257,6 +257,15 @@
 	ret
 %endmacro
 
+%macro CPUCYCLES 0
+	rdtsc
+#if (IS_X86_64)
+	shlq $32, %rdx
+	orq %rdx, %rax
+#endif
+	ret
+%endmacro
+
 %define CPUID_GENERIC  (0     )
 %define CPUID_X86      (1 << 0)
 %define CPUID_MMX      (1 << 1)
@@ -271,6 +280,7 @@
 %define CPUID_AVX2     (1 << 10)
 %define CPUID_AVX512   (1 << 11)
 
+%define CPUID_RDTSC     (1 << 25)
 %define CPUID_RDRAND    (1 << 26)
 %define CPUID_POPCNT    (1 << 27)
 %define CPUID_FMA4      (1 << 28)
