@@ -110,7 +110,7 @@ FN cpuid_x86
 	1:
 
 	/* MMX */
-	testl $(1 << 23), %ecx
+	testl $(1 << 23), %edx
 	jz 1f
 		orl $(CPUID_MMX), %esi
 	1:
