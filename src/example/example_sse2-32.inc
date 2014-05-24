@@ -6,23 +6,43 @@ FN example_sse2
 	movl 8(%esp), %ecx
 	xorl %eax, %eax
 
-	cmpl $4, %ecx
+	andl %ecx, %ecx
+	jz Lexample_sse2_done
+
+	testl $0xf, %edx
+	jz Lexample_sse2_aligned
+
+Lexample_sse2_loop1:
+	addl 0(%edx), %eax
+	addl $4, %edx
+	decl %ecx
+	jz Lexample_sse2_done
+	testl $0xf, %edx
+	jnz Lexample_sse2_loop1
+
+Lexample_sse2_aligned:
+	cmpl $8, %ecx
 	jb Lexample_sse2_final3
 
+	pushl %ebx
 	pxor %xmm0, %xmm0
+	pxor %xmm1, %xmm1
 Lexample_sse2_loop4:
-	movdqu 0(%edx), %xmm1
-	paddd %xmm1, %xmm0
-	addl $16, %edx
-	subl $4, %ecx
-	cmpl $4, %ecx
+	paddd 0(%edx), %xmm0
+	paddd 16(%edx), %xmm1
+	addl $32, %edx
+	subl $8, %ecx
+	cmpl $8, %ecx
 	jae Lexample_sse2_loop4
 
+	paddd %xmm1, %xmm0
 	pshufd $0xee, %xmm0, %xmm1
 	paddd %xmm1, %xmm0
 	pshufd $0x55, %xmm0, %xmm1
 	paddd %xmm1, %xmm0
-	movd %xmm0, %eax
+	movd %xmm0, %ebx
+	addl %ebx, %eax
+	popl %ebx
 
 Lexample_sse2_final3:
 	andl %ecx, %ecx
