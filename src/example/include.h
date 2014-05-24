@@ -10,6 +10,7 @@ extern "C" {
 int32_t example(const int32_t *arr, size_t count);
 int example_init(void);
 void example_fuzzer(void);
+void example_bench(void);
 
 #if defined(__cplusplus)
 }

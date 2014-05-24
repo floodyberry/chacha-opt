@@ -1,5 +1,11 @@
 static cycles_t
 cpucycles_impl(void) {
+#if defined(HAVE_GETTIMEOFDAY)
+	struct timeval t;
+	gettimeofday(&t, NULL);
+	return ((cycles_t)t.tv_usec * 1000000) + (cycles_t)t.tv_sec;
+#else
 	static cycles_t cludge = 0;
 	return cludge++;
+#endif
 }

@@ -1,8 +1,9 @@
 #include <stdio.h>
+#include <string.h>
 #include "cpuid.h"
 #include "example/include.h"
 
-#if !defined(FUZZ)
+#if !defined(UTILITIES)
 
 #if defined(ARCH_X86)
 static void
@@ -68,15 +69,22 @@ try_example() {
 	printf("sum of (93..219) = %d (check vs http://www.wolframalpha.com/input/?i=sum+of+93+to+219)\n", example(arr, 127));
 }
 
-#endif /* !defined(FUZZ) */
+#endif /* !defined(UTILITIES) */
 
-int main(void) {
+int main(int argc, const char *argv[]) {
 	if (example_init() != 0) {
 		printf("example failed to initialize\n");
 		return 1;
 	}
-#if defined(FUZZ)
-	example_fuzzer();
+#if defined(UTILITIES)
+	if (argc < 2) {
+		printf("example-util [fuzz,bench]\n");
+	} else {
+		if (strcmp(argv[1], "fuzz") == 0)
+			example_fuzzer();
+		else if (strcmp(argv[1], "bench") == 0)
+			example_bench();
+	}
 #else
 	print_cpuflags();
 	try_example();

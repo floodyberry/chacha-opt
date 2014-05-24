@@ -60,10 +60,18 @@ static example_impl_t example_opt = {0,0,0};
 static int
 example_test(const void *impl) {
 	const example_impl_t *example_impl = (const example_impl_t *)impl;
-	int32_t arr[50], i;
-	for (i = 0; i < 50; i++)
+	int32_t arr[50], i, sum;
+	int ret = 0;
+
+	for (i = 0, sum = 0; i < 50; i++) {
 		arr[i] = i;
-	return (example_impl->example(arr, 50) == 1225) ? 0 : 1;
+		sum += i;
+	}
+	for (i = 0; i <= 50; i++) {
+		ret |= (example_impl->example(arr, 50 - i) == sum) ? 0 : 1;
+		sum -= (50 - i - 1);
+	}
+	return ret;
 }
 
 /* choose the best implemenation for the current cpu */
@@ -84,11 +92,12 @@ example(const int32_t *arr, size_t count) {
 	return example_opt.example(arr, count);
 }
 
-#if defined(FUZZ)
+#if defined(UTILITIES)
 
 #include <stdio.h>
 #include <string.h>
 #include "fuzz.h"
+#include "cpucycles.h"
 
 /* setup a fuzz pass, generate random data for the input, and tell the fuzzer how much output to expect */
 static void
@@ -171,4 +180,28 @@ example_fuzzer(void) {
 	fuzz(example_list, sizeof(example_impl_t), example_fuzz_setup, example_fuzz, example_fuzz_print);
 }
 
-#endif /* FUZZ */
+
+
+static int32_t *bench_arr = NULL;
+static size_t bench_len = 0;
+static const size_t bench_trials = 1000000;
+
+static size_t
+example_bench_impl(const void *impl) {
+	const example_impl_t *example_impl = (const example_impl_t *)impl;
+	example_impl->example(bench_arr, bench_len);
+	return bench_len;
+}
+
+void
+example_bench(void) {
+	static const size_t lengths[] = {16, 256, 4096, 0};
+	size_t i;
+	bench_arr = (int32_t *)bench_get_buffer();
+	for (i = 0; lengths[i]; i++) {
+		bench_len = lengths[i];
+		bench(example_list, sizeof(example_impl_t), example_bench_impl, "byte", bench_trials);
+	}
+}
+
+#endif /* defined(UTILITIES) */

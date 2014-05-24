@@ -10,7 +10,7 @@ include config/config.mak
 
 BASEDIR = .
 BUILDDIR = build
-BUILDDIRFUZZ = build_fuzz
+BUILDDIRUTIL = build_util
 INCLUDE = $(addprefix -I$(BASEDIR)/,config src driver $(addsuffix $(ARCH)/,driver/))
 CINCLUDE = $(INCLUDE) 
 ASMINCLUDE = $(INCLUDE)
@@ -41,13 +41,13 @@ SRCASM += $(call rwildcard, $(addsuffix $(ARCH),driver/), *.S)
 endif
 
 ##########################
-# expand all source file paths in to object files in $(BUILDDIR)/$(BUILDDIRFUZZ)
+# expand all source file paths in to object files in $(BUILDDIR)/$(BUILDDIRUTIL)
 #
 OBJC =
-OBJCFUZZ =
+OBJCUTIL =
 OBJASM =
 OBJC += $(patsubst %.c, $(BUILDDIR)/%.o, $(SRCC))
-OBJCFUZZ += $(patsubst %.c, $(BUILDDIRFUZZ)/%.o, $(SRCC))
+OBJCUTIL += $(patsubst %.c, $(BUILDDIRUTIL)/%.o, $(SRCC))
 OBJASM += $(patsubst %.S, $(BUILDDIR)/%.o, $(SRCASM))
 
 
@@ -57,17 +57,17 @@ OBJASM += $(patsubst %.S, $(BUILDDIR)/%.o, $(SRCASM))
 #
 .PHONY: all
 .PHONY: default
-.PHONY: fuzz
+.PHONY: util
 .PHONY: clean
 
 all: default
 default: example$(EXE)
-fuzz: example-fuzz$(EXE)
+util: example-util$(EXE)
 clean:
 	@rm -rf $(BUILDDIR)/*
-	@rm -rf $(BUILDDIRFUZZ)/*
+	@rm -rf $(BUILDDIRUTIL)/*
 	@rm -f example$(EXE)
-	@rm -f example-fuzz$(EXE)
+	@rm -f example-util$(EXE)
 
 
 ##########################
@@ -76,7 +76,7 @@ clean:
 
 # use $(BASEOBJ) in build rules to grab the base path/name of the object file, without an extension
 BASEOBJ = $(BUILDDIR)/$*
-BASEOBJFUZZ = $(BUILDDIRFUZZ)/$*
+BASEOBJUTIL = $(BUILDDIRUTIL)/$*
 
 # building .S (assembler) files
 $(BUILDDIR)/%.o: %.S
@@ -111,26 +111,26 @@ $(BUILDDIR)/%.o: %.c
 	< $(BASEOBJ).temp >> $(BASEOBJ).P
 	@rm -f $(BASEOBJ).temp
 
-# building .c (C) files for fuzzing
-$(BUILDDIRFUZZ)/%.o: %.c
+# building .c (C) files for fuzzing/benching
+$(BUILDDIRUTIL)/%.o: %.c
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(CINCLUDE) $(DEPMM) $(DEPMF) $(BASEOBJFUZZ).temp -DFUZZ -c -o $(BASEOBJFUZZ).o $<
-	@cp $(BASEOBJFUZZ).temp $(BASEOBJFUZZ).P
+	$(CC) $(CFLAGS) $(CINCLUDE) $(DEPMM) $(DEPMF) $(BASEOBJUTIL).temp -DUTILITIES -c -o $(BASEOBJUTIL).o $<
+	@cp $(BASEOBJUTIL).temp $(BASEOBJUTIL).P
 	@sed \
 	-e 's/#.*//' \
 	-e 's/^[^:]*: *//' \
 	-e 's/ *\\$$//' \
 	-e '/^$$/ d' \
 	-e 's/$$/ :/' \
-	< $(BASEOBJFUZZ).temp >> $(BASEOBJFUZZ).P
-	@rm -f $(BASEOBJFUZZ).temp
+	< $(BASEOBJUTIL).temp >> $(BASEOBJUTIL).P
+	@rm -f $(BASEOBJUTIL).temp
 
 
 ##########################
 # include all auto-generated dependencies
 #
 -include $(SRCC:%.c=$(BUILDDIR)/%.P)
--include $(SRCC:%.c=$(BUILDDIRFUZZ)/%.P)
+-include $(SRCC:%.c=$(BUILDDIRUTIL)/%.P)
 -include $(SRCASM:%.S=$(BUILDDIR)/%.P)
 
 
@@ -140,6 +140,6 @@ $(BUILDDIRFUZZ)/%.o: %.c
 example$(EXE): $(OBJC) $(OBJASM)
 	$(CC) $(CFLAGS) -o $@ $(OBJC) $(OBJASM)
 
-example-fuzz$(EXE): $(OBJCFUZZ) $(OBJASM)
-	$(CC) $(CFLAGS) -o $@ $(OBJCFUZZ) $(OBJASM) -DFUZZ
+example-util$(EXE): $(OBJCUTIL) $(OBJASM)
+	$(CC) $(CFLAGS) -o $@ $(OBJCUTIL) $(OBJASM) -DUTILITIES
 

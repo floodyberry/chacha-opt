@@ -268,7 +268,7 @@ fi
 have_stdint="no"
 have_uint128="no"
 if try_c_stdint "uint8_t"; then
-    if [ "$OBITS" == "64" ]; then
+    if [ "$OBITS" = "64" ]; then
         if try_c_stdint "uint128_t"; then
             echo "#define HAVE_INT128" >> $outputheader
             have_uint128="yes"
@@ -286,7 +286,7 @@ fi
 
 # external uint128_t detection if stdint didn't have it
 ctype="INT128"
-if [ "$OBITS" == "64" ]; then
+if [ "$OBITS" = "64" ]; then
     if [ "$have_uint128" = "no" ]; then
         if try_c_type "__int128"; then
             define_c_type "$ctype" "signed __int128 int128_t" "unsigned __int128 uint128_t"
@@ -344,6 +344,11 @@ if [ "$have_stdint" = "no" ]; then
     fi
 fi
 
+# gettimeofday
+if try_c "#include <sys/time.h> int main(void) { struct timeval t; gettimeofday(&t, NULL); return 0; }"; then
+    echo "#define HAVE_GETTIMEOFDAY" >> $outputheader
+fi
+
 if [ "$pic" = "yes" ]; then
     CFLAGS="$CFLAGS -fPIC"
 fi
@@ -384,5 +389,5 @@ cleanup
 
 make clean
 
-echo "$outputheader generated, run 'make' or 'make fuzz' now"
+echo "$outputheader generated, run 'make' or 'make util' now"
 

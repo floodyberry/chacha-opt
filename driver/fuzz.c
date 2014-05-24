@@ -1,3 +1,5 @@
+#if defined(UTILITIES)
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -6,7 +8,7 @@
 #include "fuzz.h"
 
 /*
-	Chacha/6 rng with no addition of state words post-mixing, no security at all, but good 
+	Chacha/8 rng with no addition of state words post-mixing, no security at all, but good 
 	portable random numbers for fuzzing
 */
 
@@ -355,3 +357,4 @@ done:
 	free(impl_list_alloc);
 }
 
+#endif /* defined(UTILITIES) */

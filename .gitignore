@@ -1,7 +1,7 @@
 build/*
-build_fuzz/*
+build_util/*
 config/config.log
 config/config.mak
 config/config.h
 example
-example-fuzz
+example-util
