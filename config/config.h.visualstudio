@@ -19,24 +19,23 @@
 	#error This should never happen
 #endif
 
+#define HAVE_INT64
+#define HAVE_INT32
+#define HAVE_INT16
+#define HAVE_INT8
+
 #if (_MSC_VER < 1300)
-	typedef signed char       int8_t;
-	typedef signed short      int16_t;
-	typedef signed int        int32_t;
-	typedef unsigned char     uint8_t;
-	typedef unsigned short    uint16_t;
-	typedef unsigned int      uint32_t;
-	typedef signed __int64    int64_t;
-	typedef unsigned __int64  uint64_t;
+	#define DEFINE_INT64 typedef signed __int64  int64_t; typedef unsigned __int64  uint64_t;
+	#define DEFINE_INT32 typedef signed int      int32_t; typedef unsigned int      uint32_t;
+	#define DEFINE_INT16 typedef signed short    int16_t; typedef unsigned short    uint16_t;
+	#define DEFINE_INT8  typedef signed char      int8_t; typedef unsigned char      uint8_t;
 #elif (_MSC_VER < 1600)
-	typedef signed __int8     int8_t;
-	typedef signed __int16    int16_t;
-	typedef signed __int32    int32_t;
-	typedef unsigned __int8   uint8_t;
-	typedef unsigned __int16  uint16_t;
-	typedef unsigned __int32  uint32_t;
-	typedef signed __int64    int64_t;
-	typedef unsigned __int64  uint64_t;
+	#define DEFINE_INT64 typedef signed __int64  int64_t; typedef unsigned __int64  uint64_t;
+	#define DEFINE_INT32 typedef signed __int32  int32_t; typedef unsigned __int32  uint32_t;
+	#define DEFINE_INT16 typedef signed __int16  int16_t; typedef unsigned __int16  uint16_t;
+	#define DEFINE_INT8  typedef signed __int8    int8_t; typedef unsigned __int8    uint8_t;
 #else
-	#include <stdint.h>
+	#define HAVE_STDINT
 #endif
+
+#define DEFINE_INT128

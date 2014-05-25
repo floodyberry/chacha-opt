@@ -35,7 +35,7 @@ bench(const void *impls, size_t impl_size, bench_fn fn, const char *units_desc, 
 
 		if (impl->cpu_flags == (impl->cpu_flags & cpu_flags)) {
 			double tbest = 1000000000000.0;
-			size_t units, i;
+			size_t units = 1, i;
 
 			for (i = 0; i < trials; i++) {
 				double tavg;

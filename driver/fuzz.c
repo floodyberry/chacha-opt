@@ -1,5 +1,10 @@
 #if defined(UTILITIES)
 
+#if (defined(_WIN32) || defined(_WIN64))
+#include <windows.h>
+#include <Wincrypt.h>
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -240,7 +245,7 @@ fuzz(const void *impls, size_t impl_size, impl_fuzz_setup setup_fn, impl_fuzz fu
 
 	/* counter display */
 	clock_t start, clocks;
-	size_t counter, counter_dot, counter_line;
+	size_t counter = 0, counter_dot = 0, counter_line = 0;
 	int display_counter = 0;
 
 	/* aggregate number of implementations, storing them in reverse order (generic first, most optimized last) */
@@ -354,7 +359,7 @@ done:
 		free(fuzz_input);
 	if (fuzz_output)
 		free(fuzz_output);
-	free(impl_list_alloc);
+	free((void *)impl_list_alloc);
 }
 
 #endif /* defined(UTILITIES) */
