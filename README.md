@@ -320,7 +320,9 @@ Well some aren't used yet, but you know, for the future.
 
 ### VISUAL STUDIO ###
 
-Rename `config/config.h.visualstudio` to `config/config.h`, download at least [Yasm 1.2](http://yasm.tortall.net/) and [follow the Yasm integration steps](http://yasm.tortall.net/Download.html) for your version of Visual Studio. Set the parser for each `.S` file to "Gas"; manual flags for Yasm are `-r nasm -p gas -f win[32,64]`. Additionally add `driver;src;` to the include path for C/C++ and Yasm.
+Rename `config/config.h.visualstudio` to `config/config.h`, download at least [Yasm 1.2](http://yasm.tortall.net/) and [follow the Yasm integration steps](http://yasm.tortall.net/Download.html) for your version of Visual Studio. Set the global Yasm parser to "Gas" and add `driver;src;config;` to the include path for C/C++ and Yasm.
+
+If you are setting Yasm flags manually, they are `-r nasm -p gas -f win[32,64]`.
 
 ## FUZZING ##
 
@@ -456,10 +458,57 @@ When a mismatch occurs between implementations, the fuzzer stops and calls the u
 
 That's it! Now build and run with:
 
-    make fuzz
-    ./example-fuzz
+    make util
+    ./example-util fuzz
 
 and let it run for as long as you like (except not with the example fuzzer, that would be wasting electricity).
+
+## BENCHING ##
+
+Basic benchmarking is now in! Optimizing implementations is pointless if you cannot tell if they are actually optimized or not, e.g. I had to _actually_ optimize the assembler examples here because they turned out to be slower than the "generic" version!
+
+Benching is much simpler than fuzzing.
+
+    typedef void (*bench_fn)(const void *impl);
+    
+    void bench(const void *impls, size_t impl_size, bench_fn fn, size_t units_count, const char *units_desc, size_t trials);
+
+`bench` will call `fn` for each available implementation `trials` times, reports the best time for each divided by units_count. The strategy is to call bench once per specific combination of parameters and methods, e.g. call bench once for encrypting 16 bytes, once for 256, or once for signing a message, once for verifying a message, etc. `units_desc` is the type of unit being measured, e.g. "byte", "signature", "keypair generation".
+
+    uint8_t *bench_get_buffer(void);
+
+`bench_get_buffer` returns a 64 byte aligned 32768 byte scratch buffer the benchmarked function can do whatever it like with. 
+
+### EXAMPLE ###
+
+    static int32_t *bench_arr = NULL;
+    static size_t bench_len = 0;
+    static const size_t bench_trials = 1000000;
+
+    static void
+    example_bench_impl(const void *impl) {
+        const example_impl_t *example_impl = (const example_impl_t *)impl;
+        example_impl->example(bench_arr, bench_len);
+    }
+
+    void
+    example_bench(void) {
+        static const size_t lengths[] = {16, 256, 4096, 0};
+        size_t i;
+        bench_arr = (int32_t *)bench_get_buffer();
+        memset(bench_arr, 0xf5, 32768);
+        for (i = 0; lengths[i]; i++) {
+            bench_len = lengths[i];
+            bench(example_list, sizeof(example_impl_t), example_bench_impl, bench_len, "byte", bench_trials / ((bench_len / 100) + 1));
+        }
+    }
+
+Static variables are used to keep track of what the current settings are. The bench scratch buffer is used for the input data, although its contents are not important. One call is made to `bench` for each length, and the number of trials is (magically) adjusted per length to keep bench time from growing too much with length.
+
+#### BUILDING ####
+
+    make util
+    ./example-util bench
 
 # LICENSE #
 
