@@ -184,13 +184,12 @@ example_fuzzer(void) {
 
 static int32_t *bench_arr = NULL;
 static size_t bench_len = 0;
-static const size_t bench_trials = 1000000;
+static const size_t bench_trials = 10000000;
 
-static size_t
+static void
 example_bench_impl(const void *impl) {
 	const example_impl_t *example_impl = (const example_impl_t *)impl;
 	example_impl->example(bench_arr, bench_len);
-	return bench_len;
 }
 
 void
@@ -198,9 +197,10 @@ example_bench(void) {
 	static const size_t lengths[] = {16, 256, 4096, 0};
 	size_t i;
 	bench_arr = (int32_t *)bench_get_buffer();
+	memset(bench_arr, 0xf5, 32768);
 	for (i = 0; lengths[i]; i++) {
 		bench_len = lengths[i];
-		bench(example_list, sizeof(example_impl_t), example_bench_impl, "byte", bench_trials);
+		bench(example_list, sizeof(example_impl_t), example_bench_impl, bench_len, "byte", bench_trials / ((bench_len / 100) + 1));
 	}
 }
 
