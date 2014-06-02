@@ -1,7 +1,7 @@
 #ifndef BASE_GCC_X86_S
 #define BASE_GCC_X86_S
 
-#include "config.h"
+#include "asmopt.h"
 
 #if !defined(HAVE_SLASHMACRO) && !defined(HAVE_DOLLARMACRO)
 	#error Unknown gnu as macro parameter convention! Run ./configure

@@ -1,7 +1,7 @@
 build/*
 build_util/*
-config/config.log
-config/config.mak
-config/config.h
+config.log
+asmopt.mak
+include/asmopt.h
 example
 example-util

@@ -11,9 +11,10 @@ Standard options:
 
 
 Configuration options:
-  --generic                           alias for --disable-as, forces a generic build
+  --debug                             builds with no optimization and debugging symbols enbaled
   --disable-as                        do not use external assembly
   --force-32bits                      build for 32bits regardless of underlying system
+  --generic                           alias for --disable-as, forces a generic build
   --pic                               pass -fPIC to the compiler
   --strict                            use strict compiler flags for C
   --yasm                              use yasm to compile external asm
@@ -121,9 +122,9 @@ does_c_define_exist() {
 }
 
 # options
-outputheader="config/config.h"
-outputmake="config/config.mak"
-outputlog="config/config.log"
+outputheader="include/asmopt.h"
+outputmake="asmopt.mak"
+outputlog="config.log"
 debug="no"
 bits32="no"
 strict="no"
@@ -188,7 +189,13 @@ mkdir -p build
 mkdir -p config
 rm -f $outputmake
 > $outputlog
-> $outputheader
+
+
+cat > $outputheader << EOF
+#ifndef ASMOPT_H
+#define ASMOPT_H
+
+EOF
 
 
 # assembler detection
@@ -383,6 +390,32 @@ ARCH=$ARCH
 EXE=$EXE
 DEPMM=$DEPMM
 DEPMF=$DEPMF
+EOF
+
+cat >> $outputheader << EOF
+
+#if !defined(ASM_PASS)
+
+#include <stddef.h>
+
+/* use HAVE_INTxxx to determine if an integer with [8,16,32,64,128] bits is available */
+
+#if defined(HAVE_STDINT)
+	#include <stdint.h>
+#else
+	DEFINE_INT64
+	DEFINE_INT32
+	DEFINE_INT16
+	DEFINE_INT8
+#endif
+
+/* stdint doesn't currently detect this, but may in the future */
+DEFINE_INT128
+
+#endif /* !defined(ASM_PASS) */
+
+#endif /* ASMOPT_H */
+
 EOF
 
 cleanup

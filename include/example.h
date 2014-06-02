@@ -1,7 +1,7 @@
 #ifndef EXAMPLE_H
 #define EXAMPLE_H
 
-#include "driver.h"
+#include "asmopt.h"
 
 #if defined(__cplusplus)
 extern "C" {

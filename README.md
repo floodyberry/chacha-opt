@@ -12,7 +12,7 @@ Room has been made for other architectures to fit in to the sample framework, bu
 
 I really wanted to avoid this, but before anything is done, a configuration script must be run to determine compiler capabilities, instruction sets supported, and so on. This is both for the assembler to know what it can assemble, and for the C code which will use the assembler to know which versions it can use.
 
-gcc and Yasm each have their own bootstrap file ([gcc\_driver.inc](driver/gcc_driver.inc) and [yasm\_driver.inc](config/yasm_driver.inc)) which handles determining platform, compiler, and setting up the macros needed. The initial file that includes the bootstrap code must have an `.S` extension to allow the C preprocessor to run for gcc compatible implementations. The C preprocessor macros are however only used to set up the GNU assembler macros which will be used by the assembler files; this is because there is no way to include a file from a macro with the C preprocessor.
+gcc and Yasm each have their own bootstrap file ([gcc\_driver.inc](driver/gcc_driver.inc) and [yasm\_driver.inc](driver/yasm_driver.inc)) which handles determining platform, compiler, and setting up the macros needed. The initial file that includes the bootstrap code must have an `.S` extension to allow the C preprocessor to run for gcc compatible implementations. The C preprocessor macros are however only used to set up the GNU assembler macros which will be used by the assembler files; this is because there is no way to include a file from a macro with the C preprocessor.
 
 ## BOOTSTRAPPING ##
 
@@ -48,6 +48,8 @@ Note: If you are compiling on OS X with gcc, any file that is included _must_ ha
     ).3????7?~?:0:Junk character 13 (
     ??3????7?~?:0:invalid character (0xd) in operand 2
     ??3????7?~?:0:invalid character (0xd) in operand 1
+
+I _believe_ I have this automatically done through .gitattributes now, but, you know, for posterity and search engines.
 
 * `INCLUDE` "file"
 
@@ -199,7 +201,7 @@ The C code "glue" is [impl.c](src/example/impl.c), which starts by declaring an 
         int32_t (*example)(const int32_t *arr, size_t count);
     } example_impl_t;
 
-The available implementations are then detected and declared based on the defines from `config.h` (which is included by [driver.h](driver/driver.h)):
+The available implementations are then detected and declared based on the defines from `asmopt.h`:
 
     /* declare the prototypes of the provided functions */
     #define EXAMPLE_DECLARE(ext) \
@@ -298,6 +300,7 @@ The user facing function exposing the chosen optimized implementation is the las
  * `--debug`: Builds with no optimization and debugging symbols enbaled
  * `--disable-as`: Do not use external assembly
  * `--force-32bits`: Build for 32bits regardless of underlying system
+ * `--generic`: Alias for --disable-as, forces a generic build
  * `--pic`: Pass `-fPIC` to the compiler. If you are using `LOAD_VAR_PIC` properly, all assembler will be PIC safe by default
  * `--strict`: Use strict compiler flags for C
  * `--yasm`: Use Yasm to compile external asm
@@ -320,7 +323,7 @@ Well some aren't used yet, but you know, for the future.
 
 ### VISUAL STUDIO ###
 
-Rename `config/config.h.visualstudio` to `config/config.h`, download at least [Yasm 1.2](http://yasm.tortall.net/) and [follow the Yasm integration steps](http://yasm.tortall.net/Download.html) for your version of Visual Studio. Set the global Yasm parser to "Gas" and add `driver;src;config;` to the include path for C/C++ and Yasm.
+Rename `include/asmopt.h.visualstudio.yasm` to `include/asmopt.h`, download at least [Yasm 1.2](http://yasm.tortall.net/) and [follow the Yasm integration steps](http://yasm.tortall.net/Download.html) for your version of Visual Studio. Set the global Yasm parser to "Gas" and add `driver;src;include;` to the include path for C/C++ and Yasm.
 
 If you are setting Yasm flags manually, they are `-r nasm -p gas -f win[32,64]`.
 

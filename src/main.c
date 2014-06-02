@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "cpuid.h"
-#include "example/include.h"
+#include "example.h"
 
 #if !defined(UTILITIES)
 

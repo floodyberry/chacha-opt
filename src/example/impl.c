@@ -1,6 +1,6 @@
 #include <stddef.h>
 #include "cpuid.h"
-#include "example/include.h"
+#include "example.h"
 
 /* int example(const int *arr, size_t count) returns the sum of count ints in arr */
 

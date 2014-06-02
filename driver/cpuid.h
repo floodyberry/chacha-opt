@@ -1,7 +1,7 @@
 #ifndef CPUID_H
 #define CPUID_H
 
-#include "driver.h"
+#include "asmopt.h"
 
 #if defined(__cplusplus)
 extern "C" {

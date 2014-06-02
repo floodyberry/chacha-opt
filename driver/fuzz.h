@@ -1,7 +1,7 @@
 #ifndef FUZZ_H
 #define FUZZ_H
 
-#include "driver.h"
+#include "asmopt.h"
 
 #if defined(__cplusplus)
 extern "C" {

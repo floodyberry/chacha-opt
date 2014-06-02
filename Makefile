@@ -1,8 +1,8 @@
-ifeq ($(wildcard config/config.mak),)
+ifeq ($(wildcard asmopt.mak),)
 $(error Run ./configure first)
 endif
 
-include config/config.mak
+include asmopt.mak
 
 ##########################
 # set up variables
@@ -11,7 +11,7 @@ include config/config.mak
 BASEDIR = .
 BUILDDIR = build
 BUILDDIRUTIL = build_util
-INCLUDE = $(addprefix -I$(BASEDIR)/,config src driver $(addsuffix $(ARCH)/,driver/))
+INCLUDE = $(addprefix -I$(BASEDIR)/,include src driver $(addsuffix $(ARCH)/,driver/))
 CINCLUDE = $(INCLUDE) 
 ASMINCLUDE = $(INCLUDE)
 # yasm doesn't need includes passed to the assembler
@@ -86,7 +86,7 @@ ifeq ($(AS),yasm)
 	$(AS) $(ASFLAGS) $(ASMINCLUDE) -o $@ $<
 	@$(AS) $(ASFLAGS) $(ASMINCLUDE) -o $@ -M $< >$(BASEOBJ).temp
 else
-	$(AS) $(ASFLAGS) $(ASMINCLUDE) $(DEPMM) $(DEPMF) $(BASEOBJ).temp -c -o $(BASEOBJ).o $<
+	$(AS) $(ASFLAGS) $(ASMINCLUDE) $(DEPMM) $(DEPMF) $(BASEOBJ).temp -D ASM_PASS -c -o $(BASEOBJ).o $<
 endif
 	@cp $(BASEOBJ).temp $(BASEOBJ).P
 	@sed \
