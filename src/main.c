@@ -81,7 +81,7 @@ int main(int argc, const char *argv[]) {
 		printf("example-util [fuzz,bench]\n");
 	} else {
 		if (strcmp(argv[1], "fuzz") == 0)
-			example_fuzzer();
+			example_fuzz();
 		else if (strcmp(argv[1], "bench") == 0)
 			example_bench();
 	}

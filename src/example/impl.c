@@ -125,7 +125,7 @@ example_fuzz_setup(uint8_t *in, size_t *in_bytes, size_t *out_bytes) {
 
 /* process the input with the given implementation and write it to the output */
 static size_t
-example_fuzz(const void *impl, const uint8_t *in, uint8_t *out) {
+example_fuzz_impl(const void *impl, const uint8_t *in, uint8_t *out) {
 	const example_impl_t *example_impl = (const example_impl_t *)impl;
 	uint8_t *out_start = out;
 	size_t int_count;
@@ -175,9 +175,9 @@ example_fuzz_print(const void *impl, const uint8_t *in, const uint8_t *out, cons
 
 /* run the fuzzer on example */
 void
-example_fuzzer(void) {
+example_fuzz(void) {
 	fuzz_init();
-	fuzz(example_list, sizeof(example_impl_t), example_fuzz_setup, example_fuzz, example_fuzz_print);
+	fuzz(example_list, sizeof(example_impl_t), example_fuzz_setup, example_fuzz_impl, example_fuzz_print);
 }
 
 
