@@ -186,7 +186,6 @@ fi
 
 # set things up
 mkdir -p build
-mkdir -p config
 rm -f $outputmake
 > $outputlog
 
