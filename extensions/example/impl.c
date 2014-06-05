@@ -96,8 +96,8 @@ example(const int32_t *arr, size_t count) {
 
 #include <stdio.h>
 #include <string.h>
-#include "fuzz.h"
-#include "cpucycles.h"
+#include "util/fuzz.h"
+#include "util/bench.h"
 
 /* setup a fuzz pass, generate random data for the input, and tell the fuzzer how much output to expect */
 static void

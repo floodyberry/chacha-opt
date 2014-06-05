@@ -3,8 +3,6 @@
 #include "cpuid.h"
 #include "example.h"
 
-#if !defined(UTILITIES)
-
 #if defined(ARCH_X86)
 static void
 print_cpuflags(void) {
@@ -61,7 +59,7 @@ print_cpuflags(void) {
 #endif /* defined(ARCH_X86) */
 
 static void
-try_example() {
+try_example(void) {
 	int32_t arr[127];
 	int32_t i;
 	for (i = 0; i < 127; i++)
@@ -69,25 +67,12 @@ try_example() {
 	printf("sum of (93..219) = %d (check vs http://www.wolframalpha.com/input/?i=sum+of+93+to+219)\n", example(arr, 127));
 }
 
-#endif /* !defined(UTILITIES) */
-
-int main(int argc, const char *argv[]) {
+int main(void) {
 	if (example_init() != 0) {
 		printf("example failed to initialize\n");
 		return 1;
 	}
-#if defined(UTILITIES)
-	if (argc < 2) {
-		printf("example-util [fuzz,bench]\n");
-	} else {
-		if (strcmp(argv[1], "fuzz") == 0)
-			example_fuzz();
-		else if (strcmp(argv[1], "bench") == 0)
-			example_bench();
-	}
-#else
 	print_cpuflags();
 	try_example();
-#endif
 	return 0;
 }

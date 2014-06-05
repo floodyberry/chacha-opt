@@ -145,13 +145,13 @@ Major architecture flags start from the bottom, while individual features go fro
 
 ## EXAMPLE ##
 
-An [example](src/example/) is provided demonstrating how to implement, select, and call an optimized function. The example algorithm being implemented is summing up the little-endian 32-bit signed integers in a given array and returning the result. 
+An [example](extensions/example/) is provided demonstrating how to implement, select, and call an optimized function. The example algorithm being implemented is summing up the ~~~little-endian~~~ 32-bit signed integers in a given array and returning the result. 
 
 ### PUTTING IT TOGETHER ###
 
 #### ASSEMBLER ####
 
-[example.S](src/example/example.S) includes the bootstrap header and aggregates all the implementations in to a single file:
+[example.S](extensions/example/example.S) includes the bootstrap header and aggregates all the implementations in to a single file:
 
     #if defined(__GNUC__)
     #include "gcc_driver.inc"
@@ -167,7 +167,7 @@ An [example](src/example/) is provided demonstrating how to implement, select, a
     INCLUDE_IF_SSE2_32BIT "example/example_sse2-32.inc"
     INCLUDE_IF_X86_32BIT "example/example_x86-32.inc"
 
-with an assembler implementation, [example_x86-32.inc](src/example/example_x86-32.inc), looking like:
+with an assembler implementation, [example_x86-32.inc](extensions/example/example_x86-32.inc), looking (something like) like:
 
     SECTION_TEXT
     
@@ -193,7 +193,7 @@ Suggested function naming is name_extension, e.g. `example_x86`, `aes_avx2`, `cu
 
 #### C ####
 
-The C code "glue" is [impl.c](src/example/impl.c), which starts by declaring an implementation struct holding the cpu flags for the implementation and its methods. Note that an optimized implementation may have multiple methods, such as a signing function which would have separate functions for key generation, signing, and verifying:
+The C code "glue" is [impl.c](extensions/example/impl.c), which starts by declaring an implementation struct holding the cpu flags for the implementation and its methods. Note that an optimized implementation may have multiple methods, such as a signing function which would have separate functions for key generation, signing, and verifying:
 
     typedef struct example_impl_t {
         uint32_t cpu_flags;
@@ -259,12 +259,20 @@ To select the best implementation for the current CPU, two functions are needed:
     static int
     example_test(const void *impl) {
         const example_impl_t *example_impl = (const example_impl_t *)impl;
-        int32_t arr[50], i;
-        for (i = 0; i < 50; i++)
+        int32_t arr[50], i, sum;
+        int ret = 0;
+        
+        for (i = 0, sum = 0; i < 50; i++) {
             arr[i] = i;
-        return (example_impl->example(arr, 50) == 1225) ? 0 : 1;
+            sum += i;
+        }
+        for (i = 0; i <= 50; i++) {
+            ret |= (example_impl->example(arr, 50 - i) == sum) ? 0 : 1;
+            sum -= (50 - i - 1);
+        }
+        return ret;
     }
-    
+
 and one to call `cpu_select` and set up `example_opt`:
 
     /* choose the best implemenation for the current cpu */
@@ -323,13 +331,13 @@ Well some aren't used yet, but you know, for the future.
 
 ### VISUAL STUDIO ###
 
-Rename `include/asmopt.h.visualstudio.yasm` to `include/asmopt.h`, download at least [Yasm 1.2](http://yasm.tortall.net/) and [follow the Yasm integration steps](http://yasm.tortall.net/Download.html) for your version of Visual Studio. Set the global Yasm parser to "Gas" and add `driver;src;include;` to the include path for C/C++ and Yasm.
+Rename `include/asmopt.h.visualstudio.yasm` to `include/asmopt.h`, download at least [Yasm 1.2](http://yasm.tortall.net/) and [follow the Yasm integration steps](http://yasm.tortall.net/Download.html) for your version of Visual Studio. Set the global Yasm parser to "Gas" and add `driver;extensions;include;src;` to the include path for C/C++ and Yasm.
 
 If you are setting Yasm flags manually, they are `-r nasm -p gas -f win[32,64]`.
 
 ## FUZZING ##
 
-Abstract fuzzing is provided through [fuzz.h](driver/fuzz.h) and [fuzz.c](driver/fuzz.c). Extending an example to support fuzzing requires 3 simple functions to be passed to the fuzzer, which then handles the work of selecting available implementations, producing random numbers, collecting the output, comparing the output, detecting mismatches, and displaying the progress a simple counter so you can tell progress is being made.
+Abstract fuzzing is provided through [fuzz.h](src/util/fuzz.h) and [fuzz.c](src/util/fuzz.c). Extending an example to support fuzzing requires 3 simple functions to be passed to the fuzzer, which then handles the work of selecting available implementations, producing random numbers, collecting the output, comparing the output, detecting mismatches, and displaying the progress a simple counter so you can tell progress is being made.
 
 ### EXAMPLE ###
 
@@ -347,7 +355,7 @@ The fuzzer then needs 3 functions passed to it:
 
 `typedef void (*impl_fuzz_setup)(uint8_t *in, size_t *in_bytes, size_t *out_bytes);`
 
-`fuzz_setup` takes a pointer for the input data to be generated in to (`in`), a pointer which stores the amount of input bytes generated (`in_bytes`), and a pointer which stores the expected output bytes based on the input (`out_bytes`). The fuzzer internally uses a buffer of `16384+1024` bytes for generated input any additional input data needed, and `16384+1024` bytes for each implementation to generate output.
+`fuzz_setup` takes a pointer for the input data to be generated in to (`in`), a pointer which stores the amount of input bytes generated (`in_bytes`), and a pointer which stores the expected output bytes based on the input (`out_bytes`). The fuzzer internally uses a buffer of `16384+1024` bytes for generated input and any additional input data needed, and `16384+1024` bytes for each implementation to generate output.
 
     /* setup a fuzz pass, generate random data for the input, and tell the 
        fuzzer how much output to expect */
@@ -383,7 +391,7 @@ Next is the function which processes the input and generates output for each imp
     /* process the input with the given implementation and write it to the 
        output */
     static size_t
-    example_fuzz(const void *impl, const uint8_t *in, uint8_t *out) {
+    example_fuzz_impl(const void *impl, const uint8_t *in, uint8_t *out) {
         const example_impl_t *example_impl = (const example_impl_t *)impl;
         uint8_t *out_start = out;
         size_t int_count;
@@ -454,9 +462,9 @@ When a mismatch occurs between implementations, the fuzzer stops and calls the u
 
     /* run the fuzzer on example */
     void
-    example_fuzzer(void) {
+    example_fuzz(void) {
         fuzz_init();
-        fuzz(example_list, sizeof(example_impl_t), example_fuzz_setup, example_fuzz, example_fuzz_print);
+        fuzz(example_list, sizeof(example_impl_t), example_fuzz_setup, example_fuzz_impl, example_fuzz_print);
     }
 
 That's it! Now build and run with:
@@ -480,7 +488,7 @@ Benching is much simpler than fuzzing.
 
     uint8_t *bench_get_buffer(void);
 
-`bench_get_buffer` returns a 64 byte aligned 32768 byte scratch buffer the benchmarked function can do whatever it like with. 
+`bench_get_buffer` returns a 64 byte aligned 32768 byte scratch buffer the benchmarked function can do whatever it likes with. 
 
 ### EXAMPLE ###
 

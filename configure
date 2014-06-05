@@ -178,6 +178,7 @@ DEPMM="-MMD"
 DEPMF="-MF"
 ARCH="generic"
 EXE=""
+STATICLIB=".lib"
 
 if [ "$yasm" = "yes" ]; then
     AS="yasm"
@@ -366,13 +367,17 @@ else
 fi
 
 if [ "$strict" = "yes" ]; then
-    CFLAGS="$CFLAGS -Wall -fno-strict-aliasing -W -Wextra -Werror -Wmissing-prototypes -Warray-bounds"
+    CFLAGS="$CFLAGS -Wall -fno-strict-aliasing -W -Wextra -Werror -Wmissing-prototypes"
 fi
 
 # Intel Compiler for Windows
 if [ "$CC" = "icl" ]; then
+    AR="xilib -nolog -out:"
     DEPMM="-QMMD"
     DEPMF="-QMF"
+    RANLIB=""
+else
+    AR="$AR rc "
 fi
 
 cat > $outputmake << EOF
@@ -387,6 +392,7 @@ AS=$AS
 ASFLAGS=$ASFLAGS
 ARCH=$ARCH
 EXE=$EXE
+STATICLIB=$STATICLIB
 DEPMM=$DEPMM
 DEPMF=$DEPMF
 EOF
@@ -421,5 +427,5 @@ cleanup
 
 make clean
 
-echo "$outputheader generated, run 'make' or 'make util' now"
+echo "$outputheader generated, run 'make' or 'make [util,exe]' now"
 

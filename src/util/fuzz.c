@@ -1,5 +1,3 @@
-#if defined(UTILITIES)
-
 #if (defined(_WIN32) || defined(_WIN64))
 #include <windows.h>
 #include <Wincrypt.h>
@@ -10,7 +8,7 @@
 #include <string.h>
 #include <time.h>
 #include "cpuid.h"
-#include "fuzz.h"
+#include "util/fuzz.h"
 
 /*
 	Chacha/8 rng with no addition of state words post-mixing, no security at all, but good 
@@ -361,5 +359,3 @@ done:
 		free(fuzz_output);
 	free((void *)impl_list_alloc);
 }
-
-#endif /* defined(UTILITIES) */

@@ -8,11 +8,12 @@ include asmopt.mak
 # set up variables
 #
 
+PROJECTNAME = example
 BASEDIR = .
 BUILDDIR = build
 BUILDDIRUTIL = build_util
-INCLUDE = $(addprefix -I$(BASEDIR)/,include src driver $(addsuffix $(ARCH)/,driver/))
-CINCLUDE = $(INCLUDE) 
+INCLUDE = $(addprefix -I$(BASEDIR)/,driver extensions include src $(addsuffix $(ARCH)/,driver/))
+CINCLUDE = $(INCLUDE)
 ASMINCLUDE = $(INCLUDE)
 # yasm doesn't need includes passed to the assembler
 ifneq ($(AS),yasm)
@@ -25,15 +26,18 @@ endif
 #
 rwildcard = $(foreach d, $(wildcard $(1)*), $(call rwildcard, $(d)/, $(2)) $(filter $(subst *, %, $(2)), $(d)))
 
-# grab all the c files in driver/ and src/
-SRCC += $(call rwildcard, driver/, *.c)
-SRCC += $(call rwildcard, src/, *.c)
+SRCDRIVER = $(call rwildcard, driver/, *.c)
+SRCEXT = $(call rwildcard, extensions/, *.c)
+SRCASM =
+SRCMAIN = src/main.c
+SRCUTIL = src/util.c
+SRCUTIL += $(call rwildcard, src/util/, *.c)
 
 # do we have an assembler?
 ifeq ($(HAVEAS),yes)
 
 # grab all the assembler files
-SRCASM = $(call rwildcard, src/, *.S)
+SRCASM = $(call rwildcard, extensions/, *.S)
 
 # add asm for the appropriate arch
 SRCASM += $(call rwildcard, $(addsuffix $(ARCH),driver/), *.S)
@@ -43,31 +47,35 @@ endif
 ##########################
 # expand all source file paths in to object files in $(BUILDDIR)/$(BUILDDIRUTIL)
 #
-OBJC =
-OBJCUTIL =
-OBJASM =
-OBJC += $(patsubst %.c, $(BUILDDIR)/%.o, $(SRCC))
-OBJCUTIL += $(patsubst %.c, $(BUILDDIRUTIL)/%.o, $(SRCC))
-OBJASM += $(patsubst %.S, $(BUILDDIR)/%.o, $(SRCASM))
-
-
+OBJDRIVER = $(patsubst %.c, $(BUILDDIR)/%.o, $(SRCDRIVER))
+OBJEXT = $(patsubst %.c, $(BUILDDIR)/%.o, $(SRCEXT))
+OBJASM = $(patsubst %.S, $(BUILDDIR)/%.o, $(SRCASM))
+OBJMAIN = $(patsubst %.c, $(BUILDDIR)/%.o, $(SRCMAIN))
+OBJUTIL = $(patsubst %.c, $(BUILDDIRUTIL)/%.o, $(SRCUTIL))
+OBJEXTUTIL = $(patsubst %.c, $(BUILDDIRUTIL)/%.o, $(SRCEXT))
 
 ##########################
 # non-file targets
 #
 .PHONY: all
 .PHONY: default
+.PHONY: exe
+.PHONY: lib
 .PHONY: util
 .PHONY: clean
 
 all: default
-default: example$(EXE)
-util: example-util$(EXE)
+default: lib
+exe: $(PROJECTNAME)$(EXE)
+lib: $(PROJECTNAME)$(STATICLIB)
+util: $(PROJECTNAME)-util$(EXE)
+
 clean:
 	@rm -rf $(BUILDDIR)/*
 	@rm -rf $(BUILDDIRUTIL)/*
-	@rm -f example$(EXE)
-	@rm -f example-util$(EXE)
+	@rm -f $(PROJECTNAME)$(EXE)
+	@rm -f $(PROJECTNAME)$(STATICLIB)
+	@rm -f $(PROJECTNAME)-util$(EXE)
 
 
 ##########################
@@ -129,17 +137,32 @@ $(BUILDDIRUTIL)/%.o: %.c
 ##########################
 # include all auto-generated dependencies
 #
--include $(SRCC:%.c=$(BUILDDIR)/%.P)
--include $(SRCC:%.c=$(BUILDDIRUTIL)/%.P)
--include $(SRCASM:%.S=$(BUILDDIR)/%.P)
 
+OBJDRIVER = $(patsubst %.c, $(BUILDDIR)/%.o, $(SRCDRIVER))
+OBJEXT = $(patsubst %.c, $(BUILDDIR)/%.o, $(SRCEXT))
+OBJASM = $(patsubst %.S, $(BUILDDIR)/%.o, $(SRCASM))
+OBJMAIN = $(patsubst %.c, $(BUILDDIR)/%.o, $(SRCMAIN))
+OBJUTIL = $(patsubst %.c, $(BUILDDIRUTIL)/%.o, $(SRCUTIL))
+OBJEXTUTIL = $(patsubst %.c, $(BUILDDIRUTIL)/%.o, $(SRCEXT))
+
+-include $(OBJDRIVER:%.o=%.P)
+-include $(OBJEXT:%.o=%.P)
+-include $(OBJASM:%.o=%.P)
+-include $(OBJMAIN:%.o=%.P)
+-include $(OBJUTIL:%.o=%.P)
+-include $(OBJEXTUTIL:%.o=%.P)
 
 ##########################
 # final build targets
 #
-example$(EXE): $(OBJC) $(OBJASM)
-	$(CC) $(CFLAGS) -o $@ $(OBJC) $(OBJASM)
+$(PROJECTNAME)$(EXE): $(OBJDRIVER) $(OBJEXT) $(OBJASM) $(OBJMAIN)
+	$(CC) $(CFLAGS) -o $@ $(OBJDRIVER) $(OBJEXT) $(OBJASM) $(OBJMAIN)
 
-example-util$(EXE): $(OBJCUTIL) $(OBJASM)
-	$(CC) $(CFLAGS) -o $@ $(OBJCUTIL) $(OBJASM) -DUTILITIES
+$(PROJECTNAME)$(STATICLIB): $(OBJDRIVER) $(OBJEXT) $(OBJASM)
+	rm -f $(PROJECTNAME)$(STATICLIB)
+	$(AR)$@ $(OBJDRIVER) $(OBJEXT) $(OBJASM)
+	$(if $(RANLIB), $(RANLIB) $@)
+
+$(PROJECTNAME)-util$(EXE): $(OBJDRIVER) $(OBJEXTUTIL) $(OBJASM) $(OBJUTIL)
+	$(CC) $(CFLAGS) -o $@ $(OBJDRIVER) $(OBJEXTUTIL) $(OBJASM) $(OBJUTIL)
 

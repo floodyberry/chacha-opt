@@ -5,3 +5,4 @@ asmopt.mak
 include/asmopt.h
 example
 example-util
+!example/
