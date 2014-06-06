@@ -8,6 +8,12 @@ Note that this is _not_ for coding entire programs in assembler, general purpose
 
 Room has been made for other architectures to fit in to the sample framework, but until I uh, run in to other architectures, nothing is actually done for them yet!
 
+# QUICK OVERVIEW #
+
+* Platform specific code (cpu feature detection, cpu cycles, assembler macros) is in `driver/platform`
+* Optimized implementations go in `extensions/name` and are exposed through `include/name.h`
+* Sample `main.c` and fuzzing / benchmarking support is in `src`.
+
 # HOW IT WORKS #
 
 I really wanted to avoid this, but before anything is done, a configuration script must be run to determine compiler capabilities, instruction sets supported, and so on. This is both for the assembler to know what it can assemble, and for the C code which will use the assembler to know which versions it can use.
@@ -326,8 +332,9 @@ Well some aren't used yet, but you know, for the future.
 
 ### COMPILING ###
 
-    make
-    ./example
+* `make` or `make lib` compile as a static library
+* `make exe` creates a sample executable
+* `make util` creates a fuzzing / benchmarking executable
 
 ### VISUAL STUDIO ###
 
