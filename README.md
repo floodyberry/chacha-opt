@@ -263,7 +263,7 @@ To select the best implementation for the current CPU, two functions are needed:
 
     /* test an implementation */
     static int
-    example_test(const void *impl) {
+    example_test_impl(const void *impl) {
         const example_impl_t *example_impl = (const example_impl_t *)impl;
         int32_t arr[50], i, sum;
         int ret = 0;
@@ -284,7 +284,7 @@ and one to call `cpu_select` and set up `example_opt`:
     /* choose the best implemenation for the current cpu */
     int
     example_init(void) {
-        const void *opt = cpu_select(example_list, sizeof(example_impl_t), example_test);
+        const void *opt = cpu_select(example_list, sizeof(example_impl_t), example_test_impl);
         if (opt) {
             example_opt = *(const example_impl_t *)opt;
             return 0;
@@ -489,9 +489,9 @@ Benching is much simpler than fuzzing.
 
     typedef void (*impl_bench)(const void *impl);
     
-    void bench(const void *impls, size_t impl_size, impl_bench bench_fn, size_t units_count, const char *units_desc, size_t trials);
+    void bench(const void *impls, size_t impl_size, impl_test test_fn, impl_bench bench_fn, size_t units_count, const char *units_desc, size_t trials);
 
-`bench` will call `fn` for each available implementation `trials` times, reports the best time for each divided by units_count. The strategy is to call bench once per specific combination of parameters and methods, e.g. call bench once for encrypting 16 bytes, once for 256, or once for signing a message, once for verifying a message, etc. `units_desc` is the type of unit being measured, e.g. "byte", "signature", "keypair generation".
+`bench` calls `test_fn` for each available implementation, and if that succeeds, `bench_fn` `trials` times, and reports the best time for each divided by units_count. The strategy is to call bench once per specific combination of parameters and methods, e.g. call bench once for encrypting 16 bytes, once for 256, or once for signing a message, once for verifying a message, etc. `units_desc` is the type of unit being measured, e.g. "byte", "signature", "keypair generation".
 
     uint8_t *bench_get_buffer(void);
 
