@@ -13,7 +13,7 @@ uint8_t *bench_get_buffer(void) {
 }
 
 void
-bench(const void *impls, size_t impl_size, bench_fn fn, size_t units_count, const char *units_desc, size_t trials) {
+bench(const void *impls, size_t impl_size, impl_bench fn, size_t units_count, const char *units_desc, size_t trials) {
 	uint32_t cpu_flags = cpuid();
 	const uint8_t *p = (const uint8_t *)impls;
 	int first_item = 1;

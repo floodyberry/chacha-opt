@@ -487,9 +487,9 @@ Basic benchmarking is now in! Optimizing implementations is pointless if you can
 
 Benching is much simpler than fuzzing.
 
-    typedef void (*bench_fn)(const void *impl);
+    typedef void (*impl_bench)(const void *impl);
     
-    void bench(const void *impls, size_t impl_size, bench_fn fn, size_t units_count, const char *units_desc, size_t trials);
+    void bench(const void *impls, size_t impl_size, impl_bench bench_fn, size_t units_count, const char *units_desc, size_t trials);
 
 `bench` will call `fn` for each available implementation `trials` times, reports the best time for each divided by units_count. The strategy is to call bench once per specific combination of parameters and methods, e.g. call bench once for encrypting 16 bytes, once for 256, or once for signing a message, once for verifying a message, etc. `units_desc` is the type of unit being measured, e.g. "byte", "signature", "keypair generation".
 
