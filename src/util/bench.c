@@ -12,14 +12,14 @@ uint8_t *bench_get_buffer(void) {
 	return p;
 }
 
-void
-bench(const void *impls, size_t impl_size, impl_bench fn, size_t units_count, const char *units_desc, size_t trials) {
+int
+bench(const void *impls, size_t impl_size, impl_test test_fn, impl_bench bench_fn, size_t units_count, const char *units_desc, size_t trials) {
 	uint32_t cpu_flags = cpuid();
 	const uint8_t *p = (const uint8_t *)impls;
 	int first_item = 1;
 
 	if (trials == 0)
-		return;
+		return 1;
 
 	for (;;) {
 		const cpu_specific_impl_t *impl = (const cpu_specific_impl_t *)p;
@@ -28,10 +28,15 @@ bench(const void *impls, size_t impl_size, impl_bench fn, size_t units_count, co
 			double tbest = 1000000000000.0;
 			size_t i;
 
+			if (test_fn(impl) != 0) {
+				printf("%s failed to validate\n", impl->desc);
+				return 1;
+			}
+
 			for (i = 0; i < trials; i++) {
 				double tavg;
 				cycles_t t1 = cpucycles();
-				fn(impl);
+				bench_fn(impl);
 				t1 = cpucycles() - t1;
 				tavg = (double)t1 / units_count;
 				if (tavg < tbest)
@@ -47,7 +52,7 @@ bench(const void *impls, size_t impl_size, impl_bench fn, size_t units_count, co
 		}
 
 		if (impl->cpu_flags == CPUID_GENERIC)
-			return;
+			return 0;
 		p += impl_size;
 	}
 }

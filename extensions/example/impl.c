@@ -58,7 +58,7 @@ static example_impl_t example_opt = {0,0,0};
 
 /* test an implementation */
 static int
-example_test(const void *impl) {
+example_test_impl(const void *impl) {
 	const example_impl_t *example_impl = (const example_impl_t *)impl;
 	int32_t arr[50], i, sum;
 	int ret = 0;
@@ -77,7 +77,7 @@ example_test(const void *impl) {
 /* choose the best implemenation for the current cpu */
 int
 example_init(void) {
-	const void *opt = cpu_select(example_list, sizeof(example_impl_t), example_test);
+	const void *opt = cpu_select(example_list, sizeof(example_impl_t), example_test_impl);
 	if (opt) {
 		example_opt = *(const example_impl_t *)opt;
 		return 0;
@@ -200,7 +200,7 @@ example_bench(void) {
 	memset(bench_arr, 0xf5, 32768);
 	for (i = 0; lengths[i]; i++) {
 		bench_len = lengths[i];
-		bench(example_list, sizeof(example_impl_t), example_bench_impl, bench_len, "byte", bench_trials / ((bench_len / 100) + 1));
+		bench(example_list, sizeof(example_impl_t), example_test_impl, example_bench_impl, bench_len, "byte", bench_trials / ((bench_len / 100) + 1));
 	}
 }
 
