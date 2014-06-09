@@ -52,6 +52,7 @@ int main(int argc, const char *argv[]) {
 		while (sel < end) {
 			if (strcmp(argv[1], sel->name) == 0)
 				break;
+			sel++;
 		}
 
 		if (sel == end)
