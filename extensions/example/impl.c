@@ -99,41 +99,26 @@ example(const int32_t *arr, size_t count) {
 #include "util/fuzz.h"
 #include "util/bench.h"
 
-/* setup a fuzz pass, generate random data for the input, and tell the fuzzer how much output to expect */
-static void
-example_fuzz_setup(uint8_t *in, size_t *in_bytes, size_t *out_bytes) {
-	uint8_t *in_start = in;
-	size_t arr_len;
-	fuzz_get_bytes(&arr_len, sizeof(arr_len));
+static fuzz_variable_t fuzz_inputs[] = {
+	{"input", FUZZ_RANDOM_LENGTH_ARRAY0, 16384},
+	{0, FUZZ_DONE, 0}
+};
 
-	/* use an array size of 0->16384 bytes / sizeof(int32_t) = number of ints to count up */
-	arr_len = (arr_len % 16384) / sizeof(int32_t);
-	memcpy(in, &arr_len, sizeof(arr_len));
-	in += sizeof(arr_len);
-
-	/* generate the input ints! */
-	fuzz_get_bytes(in, arr_len * sizeof(int32_t));
-	in += arr_len * sizeof(int32_t);
-
-	/* amount of input that will be used */
-	*in_bytes = in - in_start;
-
-	/* amount of output each implementation will produce */
-	*out_bytes = sizeof(int32_t);
-}
+static fuzz_variable_t fuzz_outputs[] = {
+	{"sum", FUZZ_INT32, 1},
+	{0, FUZZ_DONE, 0}
+};
 
 
 /* process the input with the given implementation and write it to the output */
-static size_t
-example_fuzz_impl(const void *impl, const uint8_t *in, uint8_t *out) {
+static void
+example_fuzz_impl(const void *impl, const uint8_t *in, const size_t *random_sizes, uint8_t *out) {
 	const example_impl_t *example_impl = (const example_impl_t *)impl;
-	uint8_t *out_start = out;
 	size_t int_count;
 	int32_t sum;
 
-	/* read count */
-	memcpy(&int_count, in, sizeof(int_count));
-	in += sizeof(int_count);
+	/* get count of random array 0 */
+	int_count = random_sizes[0] / sizeof(int32_t);
 
 	/* sum the array */
 	sum = example_impl->example((const int32_t *)in, int_count);
@@ -141,43 +126,13 @@ example_fuzz_impl(const void *impl, const uint8_t *in, uint8_t *out) {
 	/* store the result */
 	memcpy(out, &sum, sizeof(sum));
 	out += sizeof(sum);
-
-	/* return bytes written */
-	return (out - out_start);
-}
-
-
-/* print the output for the given implementation, and xor it against generic_out if needed */
-static void
-example_fuzz_print(const void *impl, const uint8_t *in, const uint8_t *out, const uint8_t *generic_out) {
-	const example_impl_t *example_impl = (const example_impl_t *)impl;
-	if (out == generic_out) {
-		size_t int_count;
-		/* this is the generic data, print the input first */
-		printf("INPUT\n\n");
-
-		/* input length */
-		memcpy(&int_count, in, sizeof(int_count));
-		in += sizeof(int_count);
-		printf("length: %u\n", (uint32_t)int_count);
-
-		/* dump data */
-		fuzz_print_bytes("data", in, in, int_count * sizeof(int32_t));
-
-		/* switch to output! */
-		printf("OUTPUT\n\n");
-	}
-	printf("IMPLEMENTATION:%s\n", example_impl->desc);
-	fuzz_print_bytes("sum", out, generic_out, sizeof(int32_t));
-	out += sizeof(int32_t);
-	generic_out += sizeof(int32_t);
 }
 
 /* run the fuzzer on example */
 void
 example_fuzz(void) {
 	fuzz_init();
-	fuzz(example_list, sizeof(example_impl_t), example_fuzz_setup, example_fuzz_impl, example_fuzz_print);
+	fuzz(example_list, sizeof(example_impl_t), fuzz_inputs, fuzz_outputs, example_fuzz_impl);
 }
 
 

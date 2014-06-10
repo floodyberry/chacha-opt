@@ -225,26 +225,93 @@ fuzz_print_bytes(const char *desc, const uint8_t *bytes, const uint8_t *base, si
 	printf("\n\n");
 }
 
+static void
+fuzz_print_input(const fuzz_variable_t *input_variables, const size_t *random_sizes, const uint8_t *input) {
+	size_t random_size;
+
+	for ( ; ; input_variables++) {
+		switch (input_variables->type) {
+			case FUZZ_DONE:
+				return;
+
+			case FUZZ_INT32:
+				break;
+
+			case FUZZ_ARRAY:
+				fuzz_print_bytes(input_variables->desc, input, input, input_variables->size);
+				input += input_variables->size;
+				break;
+
+			case FUZZ_RANDOM_LENGTH_ARRAY0:
+			case FUZZ_RANDOM_LENGTH_ARRAY1:
+			case FUZZ_RANDOM_LENGTH_ARRAY2:
+			case FUZZ_RANDOM_LENGTH_ARRAY3:
+				random_size = random_sizes[input_variables->type - FUZZ_RANDOM_LENGTH_ARRAY0];
+				fuzz_print_bytes(input_variables->desc, input, input, random_size);
+				input += random_size;
+				break;
+		}
+	}
+}
+
+
+static void
+fuzz_print_output(const cpu_specific_impl_t *impl, const fuzz_variable_t *output_variables, const size_t *random_sizes, const uint8_t *output, const uint8_t *generic_output) {
+	size_t random_size;
+
+	printf("IMPLEMENTATION: %s\n", impl->desc);
+
+	for ( ; ; output_variables++) {
+		switch (output_variables->type) {
+			case FUZZ_DONE:
+				return;
+
+			case FUZZ_INT32:
+				fuzz_print_bytes(output_variables->desc, output, generic_output, sizeof(int32_t));
+				output += sizeof(int32_t);
+				generic_output += sizeof(int32_t);
+				break;
+
+			case FUZZ_ARRAY:
+				fuzz_print_bytes(output_variables->desc, output, generic_output, output_variables->size);
+				output += output_variables->size;
+				generic_output += output_variables->size;
+				break;
+
+			case FUZZ_RANDOM_LENGTH_ARRAY0:
+			case FUZZ_RANDOM_LENGTH_ARRAY1:
+			case FUZZ_RANDOM_LENGTH_ARRAY2:
+			case FUZZ_RANDOM_LENGTH_ARRAY3:
+				random_size = random_sizes[output_variables->type - FUZZ_RANDOM_LENGTH_ARRAY0];
+				fuzz_print_bytes(output_variables->desc, output, generic_output, random_size);
+				output += random_size;
+				generic_output += random_size;
+				break;
+		}
+	}
+}
+
 /* run the fuzzer */
 void
-fuzz(const void *impls, size_t impl_size, impl_fuzz_setup setup_fn, impl_fuzz fuzz_fn, impl_fuzz_print print_fn) {
+fuzz(const void *impls, size_t impl_size, const fuzz_variable_t *input_variables, const fuzz_variable_t *output_variables, impl_fuzz fuzz_fn) {
 	/* allocate data */
 	uint8_t *fuzz_input = NULL, *fuzz_output = NULL;
 	const cpu_specific_impl_t **impl_list_alloc = (const cpu_specific_impl_t **)malloc(sizeof(const cpu_specific_impl_t *) * 32), **impl_list;
 	size_t impl_count = 0;
+	size_t random_sizes[4], *random_size;
 
 	/* cpu detection */
 	uint32_t cpu_flags = cpuid();
 	const char *p = (const char *)impls;
 
-	size_t expected_bytes_in, expected_bytes_out;
+	size_t expected_bytes_out;
 	uint8_t *outp;
 	size_t i;
 
 	/* counter display */
 	clock_t start, clocks;
-	size_t counter = 0, counter_dot = 0, counter_line = 0;
-	int display_counter = 0;
+	size_t counter, counter_dot, counter_line;
+	int display_counter;
 
 	/* aggregate number of implementations, storing them in reverse order (generic first, most optimized last) */
 	impl_list = &impl_list_alloc[31];
@@ -278,22 +345,71 @@ fuzz(const void *impls, size_t impl_size, impl_fuzz_setup setup_fn, impl_fuzz fu
 	printf("\n\n");
 
 	/* fuzz loop */
+	display_counter = 0;
 	counter = 0;
+	counter_dot = 0;
+	counter_line = 0;
+
 	start = clock();
 	for (;;) {
+		uint8_t *inp = fuzz_input;
 		uint8_t *generic_out = fuzz_output;
 
 		/* set up the data for this run */
-		setup_fn(fuzz_input, &expected_bytes_in, &expected_bytes_out);
+		for (i = 0; input_variables[i].type != FUZZ_DONE; i++) {
+			switch (input_variables[i].type) {
+				case FUZZ_DONE:
+					break;
+
+				case FUZZ_INT32:
+					break;
+
+				case FUZZ_ARRAY:
+					fuzz_get_bytes(inp, input_variables[i].size);
+					inp += input_variables[i].size;
+					break;
+
+				case FUZZ_RANDOM_LENGTH_ARRAY0:
+				case FUZZ_RANDOM_LENGTH_ARRAY1:
+				case FUZZ_RANDOM_LENGTH_ARRAY2:
+				case FUZZ_RANDOM_LENGTH_ARRAY3:
+					random_size = &random_sizes[input_variables[i].type - FUZZ_RANDOM_LENGTH_ARRAY0];
+					fuzz_get_bytes(random_size, sizeof(*random_size));
+					*random_size = (*random_size % input_variables[i].size);
+					fuzz_get_bytes(inp, *random_size);
+					inp += *random_size;
+					break;
+			}
+		}
+
+		expected_bytes_out = 0;
+		for (i = 0; output_variables[i].type != FUZZ_DONE; i++) {
+			switch (output_variables[i].type) {
+				case FUZZ_DONE:
+					break;
+
+				case FUZZ_INT32:
+					expected_bytes_out += sizeof(int32_t);
+					break;
+
+				case FUZZ_ARRAY:
+					expected_bytes_out += input_variables[i].size;
+					break;
+
+				case FUZZ_RANDOM_LENGTH_ARRAY0:
+				case FUZZ_RANDOM_LENGTH_ARRAY1:
+				case FUZZ_RANDOM_LENGTH_ARRAY2:
+				case FUZZ_RANDOM_LENGTH_ARRAY3:
+					random_size = &random_sizes[output_variables[i].type - FUZZ_RANDOM_LENGTH_ARRAY0];
+					expected_bytes_out += *random_size;
+					break;
+			}
+		}
 
 		/* gather results */
 		outp = fuzz_output;
 		for (i = 0; i < impl_count; i++) {
-			size_t written = fuzz_fn(impl_list[i], fuzz_input, outp);
-			if (written != expected_bytes_out) {
-				printf("%s: didn't produce the expected number of bytes!\n", impl_list[i]->desc);
-				goto done;
-			}
+			fuzz_fn(impl_list[i], fuzz_input, random_sizes, outp);
 			outp += expected_bytes_out;
 		}
 
@@ -302,6 +418,7 @@ fuzz(const void *impls, size_t impl_size, impl_fuzz_setup setup_fn, impl_fuzz fu
 		for (i = 1; i < impl_count; i++) {
 			if (memcmp(generic_out, outp, expected_bytes_out) != 0)
 				goto failure;
+			outp += expected_bytes_out;
 		}
 
 		counter++;
@@ -343,12 +460,16 @@ fuzz(const void *impls, size_t impl_size, impl_fuzz_setup setup_fn, impl_fuzz fu
 failure:
 	printf("fuzz mismatch! dumping input and output data\n\n");
 
+	printf("INPUT\n\n");
+	fuzz_print_input(input_variables, random_sizes, fuzz_input);
+
+	printf("OUTPUT\n\n");
 	outp = fuzz_output;
-	print_fn(impl_list[0], fuzz_input, outp, fuzz_output);
+	fuzz_print_output(impl_list[0], output_variables, random_sizes, outp, fuzz_output);
 	outp += expected_bytes_out;
 
 	for (i = 1; i < impl_count; i++) {
-		print_fn(impl_list[i], fuzz_input, outp, fuzz_output);
+		fuzz_print_output(impl_list[i], output_variables, random_sizes, outp, fuzz_output);
 		outp += expected_bytes_out;
 	}
 

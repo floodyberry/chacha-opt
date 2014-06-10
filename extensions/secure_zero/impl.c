@@ -124,83 +124,37 @@ secure_zero_bootup(uint8_t *p, size_t len) {
 #include "util/bench.h"
 #include "util/fuzz.h"
 
-static void
-secure_zero_fuzz_setup(uint8_t *in, size_t *in_bytes, size_t *out_bytes) {
-	uint8_t *in_start = in;
-	size_t bytes;
-	fuzz_get_bytes(&bytes, sizeof(bytes));
+static fuzz_variable_t fuzz_inputs[] = {
+	{"input", FUZZ_RANDOM_LENGTH_ARRAY0, 16384},
+	{0, FUZZ_DONE, 0}
+};
 
-	/* use an array size of 0->512 bytes */
-	bytes = (bytes % 512);
-	memcpy(in, &bytes, sizeof(bytes));
-	in += sizeof(bytes);
-
-	/* generate the input ints! */
-	fuzz_get_bytes(in, bytes);
-	in += bytes;
-
-	/* amount of input that will be used */
-	*in_bytes = in - in_start;
-
-	/* amount of output each implementation will produce */
-	*out_bytes = bytes;
-}
+static fuzz_variable_t fuzz_outputs[] = {
+	{"output", FUZZ_RANDOM_LENGTH_ARRAY0, 0},
+	{0, FUZZ_DONE, 0}
+};
 
 
 /* process the input with the given implementation and write it to the output */
-static size_t
-secure_zero_fuzz_impl(const void *impl, const uint8_t *in, uint8_t *out) {
+static void
+secure_zero_fuzz_impl(const void *impl, const uint8_t *in, const size_t *random_sizes, uint8_t *out) {
 	const secure_zero_extension_t *ext = (const secure_zero_extension_t *)impl;
-	uint8_t *out_start = out;
 	size_t bytes;
 
-	/* read bytes */
-	memcpy(&bytes, in, sizeof(bytes));
-	in += sizeof(bytes);
+	/* get count for random array 0 */
+	bytes = random_sizes[0];
 
 	/* process the data */
 	memcpy(out, in, bytes);
 	ext->secure_zero(out, bytes);
 	out += bytes;
-
-	/* return bytes written */
-	return (out - out_start);
-}
-
-
-/* print the output for the given implementation, and xor it against generic_out if needed */
-static void
-secure_zero_fuzz_print(const void *impl, const uint8_t *in, const uint8_t *out, const uint8_t *generic_out) {
-	const secure_zero_extension_t *ext = (const secure_zero_extension_t *)impl;
-	size_t bytes;
-
-	/* input length */
-	memcpy(&bytes, in, sizeof(bytes));
-	in += sizeof(bytes);
-
-	if (out == generic_out) {
-		/* this is the generic data, print the input first */
-		printf("INPUT\n\n");
-
-		printf("length: %u\n", (uint32_t)bytes);
-
-		/* dump data */
-		fuzz_print_bytes("data", in, in, bytes);
-
-		/* switch to output! */
-		printf("OUTPUT\n\n");
-	}
-	printf("IMPLEMENTATION:%s\n", ext->desc);
-	fuzz_print_bytes("output", out, generic_out, bytes);
-	out += bytes;
-	generic_out += bytes;
 }
 
 /* run the fuzzer on secure_zero */
 void
 secure_zero_fuzz(void) {
 	fuzz_init();
-	fuzz(secure_zero_list, sizeof(secure_zero_extension_t), secure_zero_fuzz_setup, secure_zero_fuzz_impl, secure_zero_fuzz_print);
+	fuzz(secure_zero_list, sizeof(secure_zero_extension_t), fuzz_inputs, fuzz_outputs, secure_zero_fuzz_impl);
 }
 
 
