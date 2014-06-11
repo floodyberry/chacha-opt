@@ -1,7 +1,7 @@
 SECTION_TEXT
 
 GLOBAL secure_zero_x86
-FN secure_zero_x86
+FN_EXT secure_zero_x86, 2, 1
 pxor %xmm0, %xmm0
 xorq %rax, %rax
 
