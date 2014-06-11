@@ -3,6 +3,7 @@
 #include "asmopt.h"
 #include "example.h"
 #include "secure_zero.h"
+#include "secure_compare.h"
 
 /* includes, and implementations, implementations_count */
 typedef struct implementation_t {
@@ -16,6 +17,7 @@ typedef struct implementation_t {
 
 static const implementation_t implementations[] = {
 	make_impl(example),
+	make_impl(secure_compare),
 	make_impl(secure_zero)
 };
 
