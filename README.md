@@ -301,6 +301,27 @@ The user facing function exposing the chosen optimized implementation is the las
         return example_opt.example(arr, count);
     }
 
+## GENERAL PURPOSE EXTENSIONS ##
+
+### secure_zero ###
+
+    #include "secure_zero.h"
+    
+    void secure_zero(uint8_t *p, size_t len);
+
+Securely erases an array, removing the chance that the compiler could optimize the call out
+
+
+### secure_compare ###
+
+    #include "secure_compare.h"
+
+    int secure_compare8(const uint8_t *x, const uint8_t *y);
+    int secure_compare16(const uint8_t *x, const uint8_t *y);
+    int secure_compare32(const uint8_t *x, const uint8_t *y);
+
+Compares two 8/16/32 byte arrays in constant time without leaking timing information.
+
 ## BUILDING ##
 
 ### CONFIGURING ###
