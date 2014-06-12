@@ -13,15 +13,6 @@ typedef struct secure_zero_extension_t {
 #define DECLARE_SECURE_ZERO_EXTENSION(ext) void secure_zero_##ext(uint8_t *p, size_t len);
 
 #if defined(ARCH_X86)
-	#if defined(CPU_32BITS)
-		#if defined(HAVE_SSE)
-			#define SECURE_ZERO_SSE
-			DECLARE_SECURE_ZERO_EXTENSION(sse)
-		#endif
-	#endif
-
-	#define SECURE_ZERO_X86
-	DECLARE_SECURE_ZERO_EXTENSION(x86)
 #endif
 
 #include "secure_zero/secure_zero_generic.inc"
@@ -29,12 +20,6 @@ typedef struct secure_zero_extension_t {
 #define ADD_SECURE_ZERO_EXTENSION(flags, desc, ext) {flags, desc, secure_zero_##ext}
 
 static const secure_zero_extension_t secure_zero_list[] = {
-#if defined(SECURE_ZERO_SSE)
-	ADD_SECURE_ZERO_EXTENSION(CPUID_SSE, "sse", sse),
-#endif
-#if defined(SECURE_ZERO_X86)
-	ADD_SECURE_ZERO_EXTENSION(CPUID_X86, "x86", x86),
-#endif
 	ADD_SECURE_ZERO_EXTENSION(CPUID_GENERIC, "generic", generic)
 };
 
@@ -170,12 +155,17 @@ secure_zero_bench_impl(const void *impl) {
 
 void
 secure_zero_bench(void) {
-	static const size_t lengths[] = {16, 256, 4096, 0};
-	size_t i;
+	static const size_t lengths[] = {7, 16, 32, 40, 50, 64, 128, 256, 4096, 0};
+	static const char *titles[] = {"aligned", "unaligned"};
+	size_t i, j;
 	bench_arr = (uint8_t *)bench_get_buffer();
-	for (i = 0; lengths[i]; i++) {
-		bench_len = lengths[i];
-		bench(secure_zero_list, sizeof(secure_zero_extension_t), secure_zero_test_impl, secure_zero_bench_impl, bench_len, "byte", bench_trials / ((bench_len / 100) + 1));
+	for (i = 0; i < 2; i++) {
+		printf("%s test\n", titles[i]);
+		for (j = 0; lengths[j]; j++) {
+			bench_len = lengths[j];
+			bench(secure_zero_list, sizeof(secure_zero_extension_t), secure_zero_test_impl, secure_zero_bench_impl, bench_len, "byte", bench_trials / ((bench_len / 100) + 1));
+		}
+		bench_arr++;
 	}
 }
 
