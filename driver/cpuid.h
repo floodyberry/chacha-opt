@@ -2,6 +2,7 @@
 #define CPUID_H
 
 #include "asmopt.h"
+#include "../project.def"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -13,7 +14,7 @@ enum cpuid_flags_generic_t {
 
 #include "cpuid_impl.h"
 
-uint32_t cpuid(void);
+uint32_t LOCAL_PREFIX(cpuid)(void);
 
 /* runtime dispatching based on current cpu */
 typedef struct cpu_specific_impl_t {
@@ -24,7 +25,7 @@ typedef struct cpu_specific_impl_t {
 
 typedef int (*impl_test)(const void *impl);
 
-const void *cpu_select(const void *impls, size_t impl_size, impl_test test_fn);
+const void *LOCAL_PREFIX(cpu_select)(const void *impls, size_t impl_size, impl_test test_fn);
 
 #if defined(__cplusplus)
 }

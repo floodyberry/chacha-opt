@@ -58,10 +58,28 @@ test_for_asm_macro_parameter_convention() {
     fi
 }
 
+test_for_asm_function_annotation() {
+    echo "checking for $1.." >>$outputlog
+    prog=$(printf ".globl %s\n%s %s\n%s\n" "myfn" "$1" "myfn" "myfn:")
+    try_asm "$prog"
+    res=$?
+    return $res
+}
+
 try_c() {
     printf "%s\n" "$1" | $CC $CFLAGSTEST -o test.o - >test.log 2>&1
     res=$?
     cat test.log >> $outputlog
+    return $res
+}
+
+try_c_visibility() {
+    echo "checking for $1.." >> $outputlog
+    OLDFLAGS="$CFLAGSTEST"
+    CFLAGSTEST="$CFLAGSTEST -fvisibility=hidden -Werror"
+    prog=$(printf "%s int vis() { return 53; }" "$1")
+    try_c "$prog"
+    res=$?
     return $res
 }
 
@@ -239,7 +257,7 @@ if [ "$HAVEAS" = "yes" ] && try_asm "xorl %eax, %eax"; then
 
     # output format
     if does_c_define_exist "__MACH__"; then
-       OFORMAT="mach"
+       OFORMAT="macho"
     elif does_c_define_exist "__ELF__"; then
        OFORMAT="elf"
     elif does_c_define_exist "_WIN32"; then
@@ -257,6 +275,12 @@ if [ "$HAVEAS" = "yes" ] && try_asm "xorl %eax, %eax"; then
         ASFLAGS="-r nasm -p gas -f $OFORMAT$OBITS"
     else
        ASFLAGS="$ASFLAGS -m$OBITS -c"
+    fi
+
+    if test_for_asm_function_annotation ".hidden"; then
+        echo "#define HAVE_AS_HIDDEN" >> $outputheader
+    elif test_for_asm_function_annotation ".private_extern"; then
+        echo "#define HAVE_AS_PRIVATE_EXTERN" >> $outputheader
     fi
 
     printf "#define CPU_%sBITS\n" "$OBITS" >> $outputheader
@@ -356,6 +380,20 @@ if try_c "#include <sys/time.h> int main(void) { struct timeval t; gettimeofday(
     echo "#define HAVE_GETTIMEOFDAY" >> $outputheader
 fi
 
+# visibility
+if try_c_visibility '__attribute__ ((dllexport))'; then
+    LIB_EXPORT="__attribute__ ((dllexport))"
+    LIB_IMPORT="__attribute__ ((dllimport))"
+    CFLAGS="$CFLAGS -fvisibility=hidden"
+elif try_c_visibility '__attribute__ ((visibility ("default")))'; then
+    LIB_EXPORT='__attribute__ ((visibility ("default")))'
+    LIB_IMPORT='__attribute__ ((visibility ("default")))'
+    CFLAGS="$CFLAGS -fvisibility=hidden"
+else
+    LIB_EXPORT=''
+    LIB_IMPORT=''
+fi
+
 if [ "$pic" = "yes" ]; then
     CFLAGS="$CFLAGS -fPIC"
 fi
@@ -416,6 +454,9 @@ cat >> $outputheader << EOF
 
 /* stdint doesn't currently detect this, but may in the future */
 DEFINE_INT128
+
+#define LIB_EXPORT $LIB_EXPORT
+#define LIB_IMPORT $LIB_IMPORT
 
 #endif /* !defined(ASM_PASS) */
 

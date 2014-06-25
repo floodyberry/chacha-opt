@@ -5,15 +5,15 @@ static uint32_t cpuid_flags = CPUID_GENERIC;
 static uint32_t cpuid_mask = ~(uint32_t)0;
 
 uint32_t
-cpuid(void) {
+LOCAL_PREFIX(cpuid)(void) {
 	if (cpuid_flags == CPUID_GENERIC)
 		cpuid_flags = cpuid_impl();
 	return cpuid_flags & cpuid_mask;
 }
 
 const void *
-cpu_select(const void *impls, size_t impl_size, impl_test test_fn) {
-	uint32_t cpu_flags = cpuid();
+LOCAL_PREFIX(cpu_select)(const void *impls, size_t impl_size, impl_test test_fn) {
+	uint32_t cpu_flags = LOCAL_PREFIX(cpuid)();
 	const uint8_t *p = (const uint8_t *)impls;
 	for (;;) {
 		const cpu_specific_impl_t *impl = (const cpu_specific_impl_t *)p;

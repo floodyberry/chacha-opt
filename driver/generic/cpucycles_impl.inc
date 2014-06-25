@@ -1,3 +1,7 @@
+#if defined(HAVE_GETTIMEOFDAY)
+#include <sys/time.h>
+#endif
+
 static cycles_t
 cpucycles_impl(void) {
 #if defined(HAVE_GETTIMEOFDAY)

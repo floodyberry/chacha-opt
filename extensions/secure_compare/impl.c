@@ -116,7 +116,7 @@ secure_compare_test_impl(const void *impl) {
 
 int
 secure_compare_init(void) {
-	const void *opt = cpu_select(secure_compare_list, sizeof(secure_compare_extension_t), secure_compare_test_impl);
+	const void *opt = LOCAL_PREFIX(cpu_select)(secure_compare_list, sizeof(secure_compare_extension_t), secure_compare_test_impl);
 	if (opt) {
 		secure_compare_opt = (const secure_compare_extension_t *)opt;
 		return 0;

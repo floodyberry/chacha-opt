@@ -6,7 +6,7 @@
 #if defined(ARCH_X86)
 static void
 print_cpuflags(void) {
-	uint32_t cpuflags = cpuid();
+	uint32_t cpuflags = LOCAL_PREFIX(cpuid)();
 
 	printf("cpu extensions:\n");
 	if (cpuflags & CPUID_MMX)

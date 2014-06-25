@@ -1,6 +1,7 @@
 SECTION_TEXT
 
 GLOBAL example_sse2
+HIDDEN example_sse2
 FN example_sse2
 	xorl %eax, %eax
 

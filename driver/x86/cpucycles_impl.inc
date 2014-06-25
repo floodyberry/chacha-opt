@@ -1,6 +1,6 @@
 typedef cycles_t (*cpucycles_x86_fn)(void);
 
-extern cycles_t cpucycles_x86(void);
+extern cycles_t LOCAL_PREFIX(cpucycles_x86)(void);
 static cycles_t cpucycles_select(void);
 
 static cpucycles_x86_fn cpucycles_impl = cpucycles_select;
@@ -25,6 +25,6 @@ cpucycles_x86_cludge(void) {
 
 static cycles_t
 cpucycles_select(void) {
-	cpucycles_impl = (cpuid() & CPUID_RDTSC) ? cpucycles_x86 : cpucycles_x86_cludge;
+	cpucycles_impl = (LOCAL_PREFIX(cpuid)() & CPUID_RDTSC) ? LOCAL_PREFIX(cpucycles_x86) : cpucycles_x86_cludge;
 	return cpucycles_impl();
 }

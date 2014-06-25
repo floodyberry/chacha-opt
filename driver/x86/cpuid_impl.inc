@@ -1,7 +1,7 @@
-extern uint32_t cpuid_x86(void);
+extern uint32_t LOCAL_PREFIX(cpuid_x86)(void);
 
 static uint32_t
 cpuid_impl(void) {
-	return cpuid_x86();
+	return LOCAL_PREFIX(cpuid_x86)();
 }
 

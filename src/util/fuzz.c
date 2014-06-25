@@ -301,7 +301,7 @@ fuzz(const void *impls, size_t impl_size, const fuzz_variable_t *input_variables
 	size_t random_sizes[4], *random_size;
 
 	/* cpu detection */
-	uint32_t cpu_flags = cpuid();
+	uint32_t cpu_flags = LOCAL_PREFIX(cpuid)();
 	const char *p = (const char *)impls;
 
 	size_t expected_bytes_out;

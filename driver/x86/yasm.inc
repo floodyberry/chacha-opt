@@ -18,6 +18,10 @@
 	%define HAVE_AVX2 1
 %endif
 
+%if (__YASM_VERSION_ID__ >= 999999999) ; avx-512 isn't supported yet
+	%define HAVE_AVX512 1
+%endif
+
 
 %define BITS32 0
 %define BITS64 0
@@ -136,6 +140,9 @@
 		%macro FN_END 1
 		%endmacro
 	%endif
+
+	%macro HIDDEN 1
+	%endmacro
 %elif (ELF)
 	; FN name
 	%macro FN 1
@@ -153,6 +160,14 @@
 	%macro FN_END 1
 		.size %1, .-%1
 		.type %1, @function
+	%endmacro
+
+	; declares a global is hidden: HIDDEN name
+	%macro HIDDEN 1
+	%if (__YASM_VERSION_ID__ >= 09999999h) ; .hidden isn't in yasm yet?
+		.hidden %1
+		.hidden _ %+ %1
+	%endif
 	%endmacro
 
 	; set NX for stack
@@ -173,6 +188,14 @@
 	; FN_END name
 	%macro FN_END 1
 	%endmacro
+
+	; declares a global is hidden: HIDDEN name
+	%macro HIDDEN 1
+	%if (__YASM_VERSION_ID__ >= 09999999h) ; .private_extern isn't in yasm yet?
+		.private_extern %1
+		.private_extern _ %+ %1
+	%endif
+	%endmacro
 %endif
 
 ; put everything in the code segment to simplify things
@@ -184,6 +207,24 @@
 	.globl %1
 	.globl _ %+ %1
 %endmacro
+
+%macro FN_LOCAL_PREFIX 1
+	FN PROJECT_NAME %+ _ %+ %1
+%endmacro
+
+%macro FN_EXT_LOCAL_PREFIX 3
+	FN_EXT PROJECT_NAME %+ _ %+ %1, %2, %3
+%endmacro
+
+%macro FN_END_LOCAL_PREFIX 1
+	FN_END PROJECT_NAME %+ _ %+ %1
+%endmacro
+
+%macro GLOBAL_LOCAL_PREFIX 1
+	GLOBAL PROJECT_NAME %+ _ %+ %1
+	HIDDEN PROJECT_NAME %+ _ %+ %1
+%endmacro
+
 
 ; pic support: LOAD_VAR_PIC var, reg
 %macro LOAD_VAR_PIC 2
@@ -259,10 +300,10 @@
 
 %macro CPUCYCLES 0
 	rdtsc
-#if (IS_X86_64)
+%if (BITS64)
 	shlq $32, %rdx
 	orq %rdx, %rax
-#endif
+%endif
 	ret
 %endmacro
 

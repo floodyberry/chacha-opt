@@ -1,6 +1,7 @@
 SECTION_TEXT
 
 GLOBAL secure_compare8_x86
+HIDDEN secure_compare8_x86
 FN secure_compare8_x86
 pushl %esi
 movl 8(%esp), %edx
@@ -26,6 +27,7 @@ ret
 FN_END secure_compare8_x86
 
 GLOBAL secure_compare16_x86
+HIDDEN secure_compare16_x86
 FN secure_compare16_x86
 pushl %esi
 movl 8(%esp), %edx
@@ -57,6 +59,7 @@ ret
 FN_END secure_compare16_x86
 
 GLOBAL secure_compare32_x86
+HIDDEN secure_compare32_x86
 FN secure_compare32_x86
 pushl %esi
 pushl %edi

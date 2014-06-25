@@ -1,6 +1,8 @@
 %ifndef YASM_DRIVER_INC
 %define YASM_DRIVER_INC
 
+%include "../project.def"
+
 %include "x86/yasm.inc"
 
 %macro INCLUDE_IF_X86_32BIT 1

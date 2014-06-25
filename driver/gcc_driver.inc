@@ -1,6 +1,8 @@
 #ifndef GCC_DRIVER_INC
 #define GCC_DRIVER_INC
 
+#include "../project.def"
+
 #if (defined(__i386__  ) || defined(__x86_64__))
 	#include "x86/gcc.inc"
 #endif

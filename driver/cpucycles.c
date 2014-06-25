@@ -4,6 +4,6 @@
 #include "cpucycles_impl.inc"
 
 cycles_t
-cpucycles(void) {
+LOCAL_PREFIX(cpucycles)(void) {
 	return cpucycles_impl();
 }

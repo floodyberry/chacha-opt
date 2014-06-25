@@ -8,8 +8,8 @@
 
 SECTION_TEXT
 
-GLOBAL cpuid_x86
-FN cpuid_x86
+GLOBAL_LOCAL_PREFIX cpuid_x86
+FN_LOCAL_PREFIX cpuid_x86
 	CPUID_PROLOGUE
 
 	/* use esi for flags */
@@ -202,13 +202,13 @@ Lcpuid_x86_done:
 	movl %esi, %eax
 
 	CPUID_EPILOGUE
-FN_END cpuid_x86
+FN_END_LOCAL_PREFIX cpuid_x86
 
 
 
-GLOBAL cpucycles_x86
-FN cpucycles_x86
+GLOBAL_LOCAL_PREFIX cpucycles_x86
+FN_LOCAL_PREFIX cpucycles_x86
 
 CPUCYCLES
 
-FN_END cpucycles_x86
+FN_END_LOCAL_PREFIX cpucycles_x86

@@ -14,7 +14,7 @@ uint8_t *bench_get_buffer(void) {
 
 int
 bench(const void *impls, size_t impl_size, impl_test test_fn, impl_bench bench_fn, size_t units_count, const char *units_desc, size_t trials) {
-	uint32_t cpu_flags = cpuid();
+	uint32_t cpu_flags = LOCAL_PREFIX(cpuid)();
 	const uint8_t *p = (const uint8_t *)impls;
 	int first_item = 1;
 
@@ -35,9 +35,9 @@ bench(const void *impls, size_t impl_size, impl_test test_fn, impl_bench bench_f
 
 			for (i = 0; i < trials; i++) {
 				double tavg;
-				cycles_t t1 = cpucycles();
+				cycles_t t1 = LOCAL_PREFIX(cpucycles)();
 				bench_fn(impl);
-				t1 = cpucycles() - t1;
+				t1 = LOCAL_PREFIX(cpucycles)() - t1;
 				tavg = (double)t1 / units_count;
 				if (tavg < tbest)
 					tbest = tavg;

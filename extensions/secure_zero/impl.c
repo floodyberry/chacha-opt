@@ -82,7 +82,7 @@ secure_zero_test_impl(const void *impl) {
 
 int
 secure_zero_init(void) {
-	const void *opt = cpu_select(secure_zero_list, sizeof(secure_zero_extension_t), secure_zero_test_impl);
+	const void *opt = LOCAL_PREFIX(cpu_select)(secure_zero_list, sizeof(secure_zero_extension_t), secure_zero_test_impl);
 	if (opt) {
 		secure_zero_opt = (const secure_zero_extension_t *)opt;
 		return 0;
