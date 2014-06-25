@@ -161,7 +161,7 @@ FN_LOCAL_PREFIX cpuid_x86
 				/* AVX-512 */
 				testl $(1 << 16), %ebx
 				jz 1f
-					orl $(CPUID_AVX2), %esi
+					orl $(CPUID_AVX512), %esi
 				1:
 
 			Lcpuid_x86_skipavx512:
