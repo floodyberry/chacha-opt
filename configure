@@ -260,10 +260,7 @@ if [ "$HAVEAS" = "yes" ] && try_asm "xorl %eax, %eax"; then
        OFORMAT="macho"
     elif does_c_define_exist "__ELF__"; then
        OFORMAT="elf"
-    elif does_c_define_exist "_WIN32"; then
-       OFORMAT="win"
-       EXE=".exe"
-    elif does_c_define_exist "_WIN64"; then
+    elif does_c_define_exist "_WIN32" || does_c_define_exist "_WIN64" || does_c_define_exist "__CYGWIN__"; then
        OFORMAT="win"
        EXE=".exe"
     else
