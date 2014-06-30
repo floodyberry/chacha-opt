@@ -1,9 +1,21 @@
 #ifndef ASMOPT_H
 #define ASMOPT_H
 
-/* Visual Studio without Yasm */
+/* Visual Studio with Yasm 1.2+ */
 
 #include <stddef.h>
+
+#define ARCH_X86
+#define HAVE_AVX2
+#define HAVE_AVX
+#define HAVE_XOP
+#define HAVE_SSE4_2
+#define HAVE_SSE4_1
+#define HAVE_SSSE3
+#define HAVE_SSE3
+#define HAVE_SSE2
+#define HAVE_SSE
+#define HAVE_MMX
 
 #if (defined(_M_IX86))
 	#define CPU_32BITS
@@ -30,6 +42,16 @@
 	typedef signed __int8    int8_t; typedef unsigned __int8    uint8_t;
 #else
 	#include <stdint.h>
+#endif
+
+
+#define LIB_EXPORT __declspec(dllexport)
+#define LIB_IMPORT __declspec(dllimport)
+
+#if defined(BUILDING_DLL)
+#define LIB_PUBLIC LIB_EXPORT
+#else
+#define LIB_PUBLIC LIB_IMPORT
 #endif
 
 #endif /* ASMOPT_H */
