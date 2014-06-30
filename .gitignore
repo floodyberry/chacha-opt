@@ -1,8 +1,9 @@
+asmopt.mak
 build/*
 build_util/*
 config.log
-asmopt.mak
-include/asmopt.h
+driver/asmopt_internal.h
+include/asmopt_*
 example
 example-util
 !example/

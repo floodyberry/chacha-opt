@@ -1,8 +1,7 @@
 #ifndef BENCH_H
 #define BENCH_H
 
-#include "asmopt.h"
-#include "cpuid.h"
+#include "asmopt_internal.h"
 
 typedef void (*impl_bench)(const void *impl);
 

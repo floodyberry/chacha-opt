@@ -1,8 +1,7 @@
 #ifndef CPUCYCLES_H
 #define CPUCYCLES_H
 
-#include "asmopt.h"
-#include "../project.def"
+#include "asmopt_internal.h"
 
 #if defined(HAVE_INT64)
 typedef uint64_t cycles_t;

@@ -1,7 +1,7 @@
 #ifndef GCC_DRIVER_INC
 #define GCC_DRIVER_INC
 
-#include "../project.def"
+#include "asmopt_internal.h"
 
 #if (defined(__i386__  ) || defined(__x86_64__))
 	#include "x86/gcc.inc"

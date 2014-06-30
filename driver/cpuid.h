@@ -1,8 +1,7 @@
 #ifndef CPUID_H
 #define CPUID_H
 
-#include "asmopt.h"
-#include "../project.def"
+#include "asmopt_internal.h"
 
 #if defined(__cplusplus)
 extern "C" {

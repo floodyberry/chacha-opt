@@ -1,7 +1,7 @@
 #ifndef FUZZ_H
 #define FUZZ_H
 
-#include "asmopt.h"
+#include "asmopt_internal.h"
 
 #if defined(__cplusplus)
 extern "C" {

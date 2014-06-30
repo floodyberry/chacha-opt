@@ -1,7 +1,7 @@
 %ifndef YASM_DRIVER_INC
 %define YASM_DRIVER_INC
 
-%include "../project.def"
+%include "asmopt_internal.h"
 
 %include "x86/yasm.inc"
 

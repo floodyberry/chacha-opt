@@ -140,7 +140,8 @@ does_c_define_exist() {
 }
 
 # options
-outputheader="include/asmopt.h"
+outputheader="include/asmopt_placeholder.h"
+outputheaderstub="driver/asmopt_internal.h"
 outputmake="asmopt.mak"
 outputlog="config.log"
 debug="no"
@@ -197,6 +198,14 @@ DEPMF="-MF"
 ARCH="generic"
 EXE=""
 STATICLIB=".lib"
+PROJECTNAME=`tr -d '\n' <project.def | sed "s/\(.*\)/\L\1/"`
+PROJECTNAMEUPPER=`tr -d '\n' <project.def | sed "s/\(.*\)/\U\1/"`
+
+if [ x"$PROJECTNAME" = "x" ]; then
+    fatal_error "Unable to determine project name! Edit project.def to set it"
+fi
+
+outputheader="include/asmopt_${PROJECTNAME}.h"
 
 if [ "$yasm" = "yes" ]; then
     AS="yasm"
@@ -208,13 +217,17 @@ mkdir -p build
 rm -f $outputmake
 > $outputlog
 
-
-cat > $outputheader << EOF
-#ifndef ASMOPT_H
-#define ASMOPT_H
+cat > $outputheaderstub << EOF
+#ifndef ASMOPT_INTERNAL_H
+#define ASMOPT_INTERNAL_H
 
 EOF
 
+cat > $outputheader << EOF
+#ifndef ASMOPT_${PROJECTNAMEUPPER}_H
+#define ASMOPT_${PROJECTNAMEUPPER}_H
+
+EOF
 
 # assembler detection
 foundas="no"
@@ -415,7 +428,10 @@ else
     AR="$AR rc "
 fi
 
+CFLAGS="$CFLAGS -DBULIDING_ASMOPT_${PROJECTNAMEUPPER}"
+
 cat > $outputmake << EOF
+PROJECTNAME=$PROJECTNAME
 CC=$CC
 CFLAGS=$CFLAGS
 AR=$AR
@@ -434,7 +450,7 @@ EOF
 
 cat >> $outputheader << EOF
 
-#if !defined(ASM_PASS)
+#if !defined(BUILDING_ASM)
 
 #include <stddef.h>
 
@@ -455,15 +471,40 @@ DEFINE_INT128
 #define LIB_EXPORT $LIB_EXPORT
 #define LIB_IMPORT $LIB_IMPORT
 
-#endif /* !defined(ASM_PASS) */
+#if !defined(BUILDING_ASMOPT_${PROJECTNAMEUPPER})
+	#define LIB_PUBLIC LIB_IMPORT
+#else
+	#define LIB_PUBLIC LIB_EXPORT
+#endif
 
-#endif /* ASMOPT_H */
+#endif /* !defined(BUILDING_ASM) */
+
+#endif /* ASMOPT_${PROJECTNAMEUPPER}_H */
 
 EOF
+
+
+cat >> $outputheaderstub << EOF
+#include "asmopt_${PROJECTNAME}.h"
+
+#define LOCAL_PREFIX3(a,b) a##_##b
+#define LOCAL_PREFIX2(a,b) LOCAL_PREFIX3(a,b)
+#define LOCAL_PREFIX(n) LOCAL_PREFIX2(PROJECT_NAME,n)
+#define PROJECT_NAME ${PROJECTNAME}
+
+/* yasm */
+#if (0)
+%define PROJECT_NAME ${PROJECTNAME}
+#endif
+
+#endif /* ASMOPT_INTERNAL_H */
+
+EOF
+
 
 cleanup
 
 make clean
 
-echo "$outputheader generated, run 'make' or 'make [util,exe]' now"
+echo "$outputheader generated for $PROJECTNAME, run 'make' or 'make [util,exe]' now"
 

@@ -8,7 +8,6 @@ include asmopt.mak
 # set up variables
 #
 
-PROJECTNAME = example
 BASEDIR = .
 BUILDDIR = build
 BUILDDIRUTIL = build_util
@@ -67,10 +66,14 @@ OBJEXTUTIL = $(patsubst %.c, $(BUILDDIRUTIL)/%.o, $(SRCEXT))
 all: default
 default: lib
 exe: $(PROJECTNAME)$(EXE)
+	@echo built [$(PROJECTNAME)$(EXE)]
 lib: $(PROJECTNAME)$(STATICLIB)
+	@echo built [$(PROJECTNAME)$(STATICLIB)]
 util: $(PROJECTNAME)-util$(EXE)
+	@echo built [$(PROJECTNAME)-util$(EXE)]
 
 clean:
+	@echo cleaning project [$(PROJECTNAME)]
 	@rm -rf $(BUILDDIR)/*
 	@rm -rf $(BUILDDIRUTIL)/*
 	@rm -f $(PROJECTNAME)$(EXE)
@@ -94,7 +97,7 @@ ifeq ($(AS),yasm)
 	$(AS) $(ASFLAGS) $(ASMINCLUDE) -o $@ $<
 	@$(AS) $(ASFLAGS) $(ASMINCLUDE) -o $@ -M $< >$(BASEOBJ).temp
 else
-	$(AS) $(ASFLAGS) $(ASMINCLUDE) $(DEPMM) $(DEPMF) $(BASEOBJ).temp -D ASM_PASS -c -o $(BASEOBJ).o $<
+	$(AS) $(ASFLAGS) $(ASMINCLUDE) $(DEPMM) $(DEPMF) $(BASEOBJ).temp -D BUILDING_ASM -c -o $(BASEOBJ).o $<
 endif
 	@cp $(BASEOBJ).temp $(BASEOBJ).P
 	@sed \

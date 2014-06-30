@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <string.h>
-#include "asmopt.h"
 #include "example.h"
 #include "secure_zero.h"
 #include "secure_compare.h"

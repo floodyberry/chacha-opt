@@ -1,10 +1,1 @@
-#if (1)
-#define LOCAL_PREFIX3(a,b) a##_##b
-#define LOCAL_PREFIX2(a,b) LOCAL_PREFIX3(a,b)
-#define LOCAL_PREFIX(n) LOCAL_PREFIX2(PROJECT_NAME,n)
-
-#define PROJECT_NAME example
-#else
-%define PROJECT_NAME example
-#endif
-
+example
