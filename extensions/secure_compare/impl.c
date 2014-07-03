@@ -167,13 +167,13 @@ secure_compare32_bootup(const uint8_t *x, const uint8_t *y) {
 #include "util/bench.h"
 #include "util/fuzz.h"
 
-static fuzz_variable_t fuzz_inputs[] = {
+static const fuzz_variable_t fuzz_inputs[] = {
 	{"input32x", FUZZ_ARRAY, 32},
 	{"input32y", FUZZ_ARRAY, 32},
 	{0, FUZZ_DONE, 0}
 };
 
-static fuzz_variable_t fuzz_outputs[] = {
+static const fuzz_variable_t fuzz_outputs[] = {
 	{"output8same", FUZZ_ARRAY, 1},
 	{"output8dif", FUZZ_ARRAY, 1},
 	{"output16same", FUZZ_ARRAY, 1},

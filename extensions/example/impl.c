@@ -99,12 +99,12 @@ example(const int32_t *arr, size_t count) {
 #include "util/fuzz.h"
 #include "util/bench.h"
 
-static fuzz_variable_t fuzz_inputs[] = {
+static const fuzz_variable_t fuzz_inputs[] = {
 	{"input", FUZZ_RANDOM_LENGTH_ARRAY0, 16384},
 	{0, FUZZ_DONE, 0}
 };
 
-static fuzz_variable_t fuzz_outputs[] = {
+static const fuzz_variable_t fuzz_outputs[] = {
 	{"sum", FUZZ_INT32, 1},
 	{0, FUZZ_DONE, 0}
 };
