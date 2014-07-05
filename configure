@@ -139,6 +139,16 @@ does_c_define_exist() {
     return $res
 }
 
+test_for_gnu_make() {
+    if [ "$GNUMAKE" = "" ]; then
+        echo "checking for gnu make as '$1'" >> $outputlog
+        res=`$1 -v 2>$outputlog | grep GNU`
+        if [ "$res" != "" ]; then
+            GNUMAKE="$1"
+        fi
+    fi
+}
+
 # options
 outputheader="include/asmopt_placeholder.h"
 outputheaderstub="driver/asmopt_internal.h"
@@ -181,25 +191,35 @@ while [ "$1" != "" ]; do
     shift
 done
 
+GNUMAKE=""
+test_for_gnu_make "make"
+test_for_gnu_make "gmake"
+if [ "$GNUMAKE" = "" ]; then
+    fatal_error "Unable to find gnu make! (tried make, gmake)"
+fi
+
 # make variables
 CC="${CC:-gcc}"
 AR="${AR:-ar}"
 RANLIB="${RANLIB:-ranlib}"
 STRIP="${STRIP:-strip}"
 INSTALL="${INSTALL:-install}"
-CFLAGS=${CFLAGS:-}
+CFLAGS="${CFLAGS:-}"
 CFLAGSTEST="-x c -c"
+SOFLAGS="${SOFLAGS:-}"
+SONAME="generic"
 AS="$CC"
 ASFLAGS=""
 ASFLAGSTEST="-x assembler -c -m32"
-HAVEAS=${HAVEAS:-yes}
+HAVEAS="${HAVEAS:-yes}"
 DEPMM="-MMD"
 DEPMF="-MF"
 ARCH="generic"
+OFORMAT="generic"
 EXE=""
 STATICLIB=".lib"
-PROJECTNAME=`tr -d '\n' <project.def | sed "s/\(.*\)/\L\1/"`
-PROJECTNAMEUPPER=`tr -d '\n' <project.def | sed "s/\(.*\)/\U\1/"`
+PROJECTNAME=`tr -d '\n' <project.def | tr '[:upper:]' '[:lower:]'`
+PROJECTNAMEUPPER=`tr -d '\n' <project.def | tr '[:lower:]' '[:upper:]'`
 
 if [ x"$PROJECTNAME" = "x" ]; then
     fatal_error "Unable to determine project name! Edit project.def to set it"
@@ -228,6 +248,18 @@ cat > $outputheader << EOF
 #define ASMOPT_${PROJECTNAMEUPPER}_H
 
 EOF
+
+# output format
+if does_c_define_exist "__MACH__"; then
+    OFORMAT="macho"
+elif does_c_define_exist "__ELF__"; then
+    OFORMAT="elf"
+elif does_c_define_exist "_WIN32" || does_c_define_exist "_WIN64" || does_c_define_exist "__CYGWIN__"; then
+    OFORMAT="win"
+    EXE=".exe"
+else
+    OFORMAT="generic"
+fi
 
 # assembler detection
 foundas="no"
@@ -268,21 +300,14 @@ if [ "$HAVEAS" = "yes" ] && try_asm "xorl %eax, %eax"; then
       OBITS="32"
     fi
 
-    # output format
-    if does_c_define_exist "__MACH__"; then
-       OFORMAT="macho"
-    elif does_c_define_exist "__ELF__"; then
-       OFORMAT="elf"
-    elif does_c_define_exist "_WIN32" || does_c_define_exist "_WIN64" || does_c_define_exist "__CYGWIN__"; then
-       OFORMAT="win"
-       EXE=".exe"
-    else
-       fatal_error "[x86] Unable to determine object format!"
-    fi
-
     CFLAGS="$CFLAGS -m$OBITS"
     if [ "$AS" = "yasm" ]; then
-        ASFLAGS="-r nasm -p gas -f $OFORMAT$OBITS"
+        case "$OFORMAT" in
+            "elf" | "win" | "macho" ) ASFLAGS="-r nasm -p gas -f $OFORMAT$OBITS"
+                                    ;;
+             * ) fatal_error "[x86/yasm] Unable to determine object format!"
+                 ;;
+        esac
     else
        ASFLAGS="$ASFLAGS -m$OBITS -c"
     fi
@@ -504,7 +529,7 @@ EOF
 
 cleanup
 
-make clean
+$GNUMAKE clean
 
-echo "$outputheader generated for $PROJECTNAME, run 'make' or 'make [util,exe]' now"
+echo "$outputheader generated for $PROJECTNAME, run '$GNUMAKE' or '$GNUMAKE [util,exe]' now"
 
