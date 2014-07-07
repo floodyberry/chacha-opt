@@ -7,15 +7,21 @@ Usage: ./configure [options]
 Help:
   -h, --help                          print this message
 
-Standard options:
-
+Installation options:
+  --prefix=PREFIX                     install architecture-independent files in PREFIX
+                                      [/usr/local]
+  --exec-prefix=EPREFIX               install architecture-dependent files in EPREFIX
+                                      [PREFIX]
+  --bindir=DIR                        install binaries in DIR [EPREFIX/bin]
+  --libdir=DIR                        install libs in DIR [EPREFIX/lib]
+  --includedir=DIR                    install includes in DIR [PREFIX/include]
 
 Configuration options:
   --debug                             builds with no optimization and debugging symbols enbaled
   --disable-as                        do not use external assembly
   --force-32bits                      build for 32bits regardless of underlying system
   --generic                           alias for --disable-as, forces a generic build
-  --pic                               pass -fPIC to the compiler
+  --pic                               pass -fPIC to the compiler, required to build shared library
   --strict                            use strict compiler flags for C
   --yasm                              use yasm to compile external asm
 
@@ -160,10 +166,31 @@ strict="no"
 yasm="no"
 pic="no"
 
+prefix="/usr/local"
+exec_prefix=""
+bindir=""
+libdir=""
+includedir=""
+
 # handle input paramters
 while [ "$1" != "" ]; do
     arg="${1#*=}"
     case $1 in
+        --prefix=* ) prefix="$arg"
+                     ;;
+
+        --exec-prefix=* ) exec_prefix="$arg"
+                          ;;
+
+        --bindir=* ) bindir="$arg"
+                     ;;
+
+        --libdir=* ) libdir="$arg"
+                     ;;
+
+        --includedir=* ) includedir="$arg"
+                         ;;
+
         --debug ) debug="yes"
                   ;;
 
@@ -191,6 +218,11 @@ while [ "$1" != "" ]; do
     shift
 done
 
+exec_prefix="${exec_prefix:-$prefix}"
+bindir="${bindir:-${exec_prefix}/bin}"
+libdir="${libdir:-${exec_prefix}/lib}"
+includedir="${includedir:-${prefix}/include}"
+
 GNUMAKE=""
 test_for_gnu_make "make"
 test_for_gnu_make "gmake"
@@ -201,17 +233,22 @@ fi
 # make variables
 CC="${CC:-gcc}"
 AR="${AR:-ar}"
+LD="${CC} -o "
 RANLIB="${RANLIB:-ranlib}"
 STRIP="${STRIP:-strip}"
 INSTALL="${INSTALL:-install}"
 CFLAGS="${CFLAGS:-}"
 CFLAGSTEST="-x c -c"
+LDFLAGS="${LDFLAGS:-}"
 SOFLAGS="${SOFLAGS:-}"
-SONAME="generic"
+SONAME=""
+SOSUFFIX=""
+SOIMPORT=""
 AS="$CC"
 ASFLAGS=""
 ASFLAGSTEST="-x assembler -c -m32"
 HAVEAS="${HAVEAS:-yes}"
+HAVESHARED="no"
 DEPMM="-MMD"
 DEPMF="-MF"
 ARCH="generic"
@@ -220,6 +257,7 @@ EXE=""
 STATICLIB=".lib"
 PROJECTNAME=`tr -d '\n' <project.def | tr '[:upper:]' '[:lower:]'`
 PROJECTNAMEUPPER=`tr -d '\n' <project.def | tr '[:lower:]' '[:upper:]'`
+PROJECTVERMAJOR=`cut -d . -f 1 project.ver`
 
 if [ x"$PROJECTNAME" = "x" ]; then
     fatal_error "Unable to determine project name! Edit project.def to set it"
@@ -431,7 +469,11 @@ fi
 
 if [ "$pic" = "yes" ]; then
     CFLAGS="$CFLAGS -fPIC"
+    HAVESHARED="yes"
+elif [ "$OFORMAT" = "win" ]; then
+    HAVESHARED="yes"
 fi
+
 
 if [ "$debug" = "yes" ]; then
     CFLAGS="$CFLAGS -g"
@@ -443,27 +485,45 @@ if [ "$strict" = "yes" ]; then
     CFLAGS="$CFLAGS -Wall -fno-strict-aliasing -W -Wextra -Werror -Wmissing-prototypes"
 fi
 
-# Intel Compiler for Windows
-if [ "$CC" = "icl" ]; then
-    AR="xilib -nolog -out:"
-    DEPMM="-QMMD"
-    DEPMF="-QMF"
-    RANLIB=""
+# only GCC style for now
+AR="$AR rc "
+
+# shared library
+if [ "$OFORMAT" = "win" ]; then
+    SONAME="lib${PROJECTNAME}.dll"
+    SOIMPORT="${SONAME}.a"
+    SOSUFFIX="dll"
+    SOFLAGS="-shared -Wl,--out-implib,\$(SOIMPORT) -Wl,--enable-auto-image-base $SOFLAGS"
+elif [ "$OFORMAT" = "macho" ]; then
+    SONAME="lib${PROJECTNAME}.${PROJECTVERMAJOR}.dylib"
+    SOIMPORT=""
+    SOSUFFIX="dylib"
+    SOFLAGS="-dynamiclib -install_name \$(libdir)/\$(SONAME) $SOFLAGS"
+elif [ `uname` = "SunOS" -a "`ld  --version  2>&1  | grep GNU`" = "" ]; then
+    SONAME="lib${PROJECTNAME}.so.${PROJECTVERMAJOR}"
+    SOIMPORT=""
+    SOSUFFIX="so"
+    SOFLAGS="-shared -Wl,-h,\$(SONAME) $SOFLAGS"
 else
-    AR="$AR rc "
+    SONAME="lib${PROJECTNAME}.so.${PROJECTVERMAJOR}"
+    SOIMPORT=""
+    SOSUFFIX="so"
+    SOFLAGS="-shared -Wl,-soname,\$(SONAME) $SOFLAGS"
 fi
 
-CFLAGS="$CFLAGS -DBULIDING_ASMOPT_${PROJECTNAMEUPPER}"
+CFLAGS="$CFLAGS -DBUILDING_ASMOPT_${PROJECTNAMEUPPER}"
 
 cat > $outputmake << EOF
 PROJECTNAME=$PROJECTNAME
 CC=$CC
 CFLAGS=$CFLAGS
 AR=$AR
+LD=$LD
 RANLIB=$RANLIB
 STRIP=$STRIP
 INSTALL=$INSTALL
 HAVEAS=$HAVEAS
+HAVESHARED=$HAVESHARED
 AS=$AS
 ASFLAGS=$ASFLAGS
 ARCH=$ARCH
@@ -471,6 +531,15 @@ EXE=$EXE
 STATICLIB=$STATICLIB
 DEPMM=$DEPMM
 DEPMF=$DEPMF
+LDFLAGS=$LDFLAGS
+SONAME=$SONAME
+SOIMPORT=$SOIMPORT
+SOSUFFIX=$SOSUFFIX
+SOFLAGS=$SOFLAGS
+exec_prefix=$exec_prefix
+bindir=$bindir
+libdir=$libdir
+includedir=$includedir
 EOF
 
 cat >> $outputheader << EOF
@@ -531,5 +600,10 @@ cleanup
 
 $GNUMAKE clean
 
-echo "$outputheader generated for $PROJECTNAME, run '$GNUMAKE' or '$GNUMAKE [util,exe]' now"
+makeshared=""
+if [ "$HAVESHARED" = "yes" ]; then
+    makeshared=",shared"
+fi
+
+echo "$outputheader generated for $PROJECTNAME, run '$GNUMAKE' or '$GNUMAKE [util,exe${makeshared}]' now"
 

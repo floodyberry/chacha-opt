@@ -14,6 +14,7 @@ BUILDDIRUTIL = build_util
 INCLUDE = $(addprefix -I$(BASEDIR)/,driver extensions include src $(addsuffix $(ARCH)/,driver/))
 CINCLUDE = $(INCLUDE)
 ASMINCLUDE = $(INCLUDE)
+
 # yasm doesn't need includes passed to the assembler
 ifneq ($(AS),yasm)
 COMMA := ,
@@ -30,6 +31,7 @@ SRCEXT = $(call rwildcard, extensions/, *.c)
 SRCASM =
 SRCMAIN = src/main.c
 SRCUTIL = src/util.c
+SRCSHARED = src/shared.c
 SRCUTIL += $(call rwildcard, src/util/, *.c)
 
 # do we have an assembler?
@@ -52,6 +54,7 @@ OBJASM = $(patsubst %.S, $(BUILDDIR)/%.o, $(SRCASM))
 OBJMAIN = $(patsubst %.c, $(BUILDDIR)/%.o, $(SRCMAIN))
 OBJUTIL = $(patsubst %.c, $(BUILDDIRUTIL)/%.o, $(SRCUTIL))
 OBJEXTUTIL = $(patsubst %.c, $(BUILDDIRUTIL)/%.o, $(SRCEXT))
+OBJSHARED = $(patsubst %.c, $(BUILDDIR)/%.o, $(SRCSHARED))
 
 ##########################
 # non-file targets
@@ -60,17 +63,62 @@ OBJEXTUTIL = $(patsubst %.c, $(BUILDDIRUTIL)/%.o, $(SRCEXT))
 .PHONY: default
 .PHONY: exe
 .PHONY: lib
+.PHONE: shared
 .PHONY: util
+
+.PHONE: install-shared
+.PHONY: install-generic
+.PHONY: install-lib
+.PHONY: uninstall
+
 .PHONY: clean
+.PHONY: distclean
+
 
 all: default
+
 default: lib
+
 exe: $(PROJECTNAME)$(EXE)
 	@echo built [$(PROJECTNAME)$(EXE)]
+
+install-generic:
+	$(INSTALL) -d $(includedir)/lib$(PROJECTNAME)
+	$(INSTALL) -d $(libdir)
+	$(INSTALL) -m 644 include/*.h $(includedir)/lib$(PROJECTNAME)
+
 lib: $(PROJECTNAME)$(STATICLIB)
 	@echo built [$(PROJECTNAME)$(STATICLIB)]
+
+install-lib: lib install-generic
+	$(INSTALL) -m 644 $(PROJECTNAME)$(STATICLIB) $(libdir)
+	$(if $(RANLIB), $(RANLIB) $(libdir)/$(PROJECTNAME)$(STATICLIB))
+
 util: $(PROJECTNAME)-util$(EXE)
 	@echo built [$(PROJECTNAME)-util$(EXE)]
+
+ifneq ($(HAVESHARED),)
+shared: $(SONAME)
+	@echo built [$(SONAME)]
+
+install-shared: shared install-generic
+ifneq ($(SOIMPORT),)
+	$(INSTALL) -d $(bindir)
+	$(INSTALL) -m 755 $(SONAME) $(bindir)
+	$(INSTALL) -m 644 $(SOIMPORT) $(libdir)
+else ifneq ($(SONAME),)
+	ln -f -s $(SONAME) $(libdir)/lib$(PROJECTNAME).$(SOSUFFIX)
+	$(INSTALL) -m 755 $(SONAME) $(libdir)
+endif
+endif # HAVESHARED
+
+uninstall:
+	rm -rf $(includedir)/lib$(PROJECTNAME)
+ifneq ($(SOIMPORT),)
+	rm -f $(bindir)/$(SONAME) $(libdir)/lib$(SOIMPORT)
+else ifneq ($(SONAME),)
+	rm -f $(libdir)/$(SONAME) $(libdir)/lib$(PROJECTNAME).$(SOSUFFIX)
+endif
 
 clean:
 	@echo cleaning project [$(PROJECTNAME)]
@@ -78,8 +126,15 @@ clean:
 	@rm -rf $(BUILDDIRUTIL)/*
 	@rm -f $(PROJECTNAME)$(EXE)
 	@rm -f $(PROJECTNAME)$(STATICLIB)
+ifneq ($(SOIMPORT),)
+	@rm -f $(SOIMPORT)
+endif
+	@rm -f $(SONAME)
 	@rm -f $(PROJECTNAME)-util$(EXE)
 
+distclean: clean
+	@rm asmopt.mak
+	@rm config.log
 
 ##########################
 # build rules for files
@@ -141,19 +196,13 @@ $(BUILDDIRUTIL)/%.o: %.c
 # include all auto-generated dependencies
 #
 
-OBJDRIVER = $(patsubst %.c, $(BUILDDIR)/%.o, $(SRCDRIVER))
-OBJEXT = $(patsubst %.c, $(BUILDDIR)/%.o, $(SRCEXT))
-OBJASM = $(patsubst %.S, $(BUILDDIR)/%.o, $(SRCASM))
-OBJMAIN = $(patsubst %.c, $(BUILDDIR)/%.o, $(SRCMAIN))
-OBJUTIL = $(patsubst %.c, $(BUILDDIRUTIL)/%.o, $(SRCUTIL))
-OBJEXTUTIL = $(patsubst %.c, $(BUILDDIRUTIL)/%.o, $(SRCEXT))
-
 -include $(OBJDRIVER:%.o=%.P)
 -include $(OBJEXT:%.o=%.P)
 -include $(OBJASM:%.o=%.P)
 -include $(OBJMAIN:%.o=%.P)
 -include $(OBJUTIL:%.o=%.P)
 -include $(OBJEXTUTIL:%.o=%.P)
+-include $(OBJSHARED:%.o=%.P)
 
 ##########################
 # final build targets
@@ -169,3 +218,7 @@ $(PROJECTNAME)$(STATICLIB): $(OBJDRIVER) $(OBJEXT) $(OBJASM)
 $(PROJECTNAME)-util$(EXE): $(OBJDRIVER) $(OBJEXTUTIL) $(OBJASM) $(OBJUTIL)
 	$(CC) $(CFLAGS) -o $@ $(OBJDRIVER) $(OBJEXTUTIL) $(OBJASM) $(OBJUTIL)
 
+ifneq ($(HAVESHARED),)
+$(SONAME): $(OBJDRIVER) $(OBJEXT) $(OBJASM) $(OBJSHARED)
+	$(LD)$@ $(OBJDRIVER) $(OBJEXT) $(OBJASM) $(OBJSHARED) $(SOFLAGS) $(LDFLAGS)
+endif
