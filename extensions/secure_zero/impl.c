@@ -33,7 +33,7 @@ static const secure_zero_extension_t secure_zero_bootup_ext = {
 
 static const secure_zero_extension_t *secure_zero_opt = &secure_zero_bootup_ext;
 
-void
+LIB_PUBLIC void
 secure_zero(uint8_t *p, size_t len) {
 	secure_zero_opt->secure_zero(p, len);
 }
@@ -80,7 +80,7 @@ secure_zero_test_impl(const void *impl) {
 	return ret;
 }
 
-int
+LIB_PUBLIC int
 secure_zero_init(void) {
 	const void *opt = LOCAL_PREFIX(cpu_select)(secure_zero_list, sizeof(secure_zero_extension_t), secure_zero_test_impl);
 	if (opt) {

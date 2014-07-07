@@ -75,7 +75,7 @@ example_test_impl(const void *impl) {
 }
 
 /* choose the best implemenation for the current cpu */
-int
+LIB_PUBLIC int
 example_init(void) {
 	const void *opt = LOCAL_PREFIX(cpu_select)(example_list, sizeof(example_impl_t), example_test_impl);
 	if (opt) {
@@ -87,7 +87,7 @@ example_init(void) {
 }
 
 /* call the optimized implementation */
-int32_t
+LIB_PUBLIC int32_t
 example(const int32_t *arr, size_t count) {
 	return example_opt.example(arr, count);
 }

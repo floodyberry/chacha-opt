@@ -63,17 +63,17 @@ static const secure_compare_extension_t secure_compare_bootup_ext = {
 
 static const secure_compare_extension_t *secure_compare_opt = &secure_compare_bootup_ext;
 
-int
+LIB_PUBLIC int
 secure_compare8(const uint8_t *x, const uint8_t *y) {
 	return secure_compare_opt->secure_compare8(x, y);
 }
 
-int
+LIB_PUBLIC int
 secure_compare16(const uint8_t *x, const uint8_t *y) {
 	return secure_compare_opt->secure_compare16(x, y);
 }
 
-int
+LIB_PUBLIC int
 secure_compare32(const uint8_t *x, const uint8_t *y) {
 	return secure_compare_opt->secure_compare32(x, y);
 }
@@ -114,7 +114,7 @@ secure_compare_test_impl(const void *impl) {
 	return ret;
 }
 
-int
+LIB_PUBLIC int
 secure_compare_init(void) {
 	const void *opt = LOCAL_PREFIX(cpu_select)(secure_compare_list, sizeof(secure_compare_extension_t), secure_compare_test_impl);
 	if (opt) {
