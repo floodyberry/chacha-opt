@@ -11,7 +11,7 @@ Room has been made for other architectures to fit in to the sample framework, bu
 # QUICK OVERVIEW #
 
 * Write once, run everywhere assembler, using GCC and Yasm.
-* Project name is set in [project.def](project.def)
+* Project name is set in [project.def](project.def) and version is set in [project.ver](project.ver)
 * Platform specific code (cpu feature detection, cpu cycles, assembler macros) is in `driver/platform`
 * Optimized implementations go in `extensions/name` and are exposed through `include/name.h`
 * Sample `main.c` and fuzzing / benchmarking support is in [src](src).
@@ -162,11 +162,42 @@ Major architecture flags start from the bottom, while individual features go fro
 
 `test_fn` is a pointer to a function taking a `const void *` which points to an optimized implementation, and returns an `int` which is `0` if the implementation passes all tests.
 
+## LIBRARY SUPPORT ##
+
+Static and shared library support is now mostly done! 
+
+When available, every function/variable is treated as hidden/private by default. Mark a function/variable for export by using `LIB_PUBLIC` for prototypes and the actual instance, e.g.:
+
+    LIB_PUBLIC int some_public_function(void);
+
+    LIB_PUBLIC int some_public_function(void) {
+        return 42;
+    }
+
+If you are using a common name for a function that may clash with another library if hidden/private is not supported, e.g. `cpuid`, wrap any reference to it with `LOCAL_PREFIX` to have the name of the project added as a prefix:
+
+    uint32_t
+    LOCAL_PREFIX(cpuid)(void) {
+        return CPU_GENERIC;
+    }
+    
+    static void
+    some_static_function(void) {
+        uint32_t cpuflags = LOCAL_PREFIX(cpuid)();
+        /* does stuff with cpuflags here */
+    }
+
+### CANNOT FIND -LEXAMPLE ###
+
+If you are getting `/usr/bin/ld: error: cannot find -lexample` when trying to link against your new library, and you have the library in `/usr/local/lib`, you may be running in to [Shared library in /usr/local/lib not found](http://stackoverflow.com/questions/5873516/shared-library-in-usr-local-lib-not-found). The problem is the system is using the gold linker, which for no discernable reason does not check `/usr/local/lib` (what the hell). You will need to uninstall it (`apt-get remove binutils-gold`, etc.), or add `/usr/local/lib` to `LIBRARY_PATH`.
+
 ## BUILDING ##
 
 ### NAME ###
 
 The name of the project is set in [project.def](project.def). This also controls the name of the public include file that will be generated for the project: `include/asmopt_[project name].h`.
+
+The project version is in [project.ver](project.ver).
 
 ### CONFIGURING ###
 
@@ -174,13 +205,21 @@ The name of the project is set in [project.def](project.def). This also controls
  
 #### HELP ####
  * `-h`, `--help`: Prints help
-    
+
+#### INSTALLATION OPTIONS ####
+
+  * `--prefix=PREFIX`: Install architecture-independent files in PREFIX [default: `/usr/local`]
+  * `--exec-prefix=EPREFIX`: Install architecture-dependent files in EPREFIX [default: `PREFIX`]
+  * `--bindir=DIR`: Install binaries in DIR [default: `EPREFIX/bin`]
+  * `--libdir=DIR`: Install libs in DIR [default: `EPREFIX/lib`]
+  * `--includedir=DIR`: Install includes in DIR [default: `PREFIX/include`]
+
 #### CONFIGURATION OPTIONS ####
  * `--debug`: Builds with no optimization and debugging symbols enbaled
  * `--disable-as`: Do not use external assembly
  * `--force-32bits`: Build for 32bits regardless of underlying system
  * `--generic`: Alias for --disable-as, forces a generic build
- * `--pic`: Pass `-fPIC` to the compiler. If you are using `LOAD_VAR_PIC` properly, all assembler will be PIC safe by default
+ * `--pic`: Pass `-fPIC` to the compiler. If you are using `LOAD_VAR_PIC` properly, all assembler will be PIC safe by default. This is required for shared builds
  * `--strict`: Use strict compiler flags for C
  * `--yasm`: Use Yasm to compile external asm
 
@@ -188,18 +227,27 @@ The name of the project is set in [project.def](project.def). This also controls
 
  * `CC`: The C compiler to use [default: gcc]
  * `AR`: The archiver to use [default: ar]
+ * `LD`: The linker to use [default: gcc -o]
  * `RANLIB`: The indexer to use [default: ranlib]
  * `STRIP`: The symbol stripper to use [default: strip]
  * `INSTALL`: The installer to use [default: install]
- * `CFLAGS`: Addition C flags to pass to the compiler
+ * `CFLAGS`: Additional C flags to pass to the compiler
+ * `SOFLAGS`: Additional flags to pass to `LD` when compiling a shared library
 
 Well some aren't used yet, but you know, for the future.
 
 ### COMPILING ###
 
 * `make` or `make lib` compile as a static library
+* `make shared` compile as a shared library (requires --pic except on windows)
 * `make exe` creates a sample executable
 * `make util` creates a fuzzing / benchmarking executable
+
+
+### INSTALLING ###
+
+* `make install-lib` installs as a static library
+* `make install-shared` installs as a shared library
 
 ### VISUAL STUDIO ###
 

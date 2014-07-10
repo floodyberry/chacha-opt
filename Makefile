@@ -97,7 +97,7 @@ install-lib: lib install-generic
 util: $(PROJECTNAME)-util$(EXE)
 	@echo built [$(PROJECTNAME)-util$(EXE)]
 
-ifneq ($(HAVESHARED),)
+ifeq ($(HAVESHARED),yes)
 shared: $(SONAME)
 	@echo built [$(SONAME)]
 
@@ -110,6 +110,12 @@ else ifneq ($(SONAME),)
 	ln -f -s $(SONAME) $(libdir)/lib$(PROJECTNAME).$(SOSUFFIX)
 	$(INSTALL) -m 755 $(SONAME) $(libdir)
 endif
+else
+shared:
+	@echo project must be /configure'd with --pic
+
+install-shared:
+	@echo project must be /configure'd with --pic
 endif # HAVESHARED
 
 uninstall:
@@ -218,7 +224,7 @@ $(PROJECTNAME)$(STATICLIB): $(OBJDRIVER) $(OBJEXT) $(OBJASM)
 $(PROJECTNAME)-util$(EXE): $(OBJDRIVER) $(OBJEXTUTIL) $(OBJASM) $(OBJUTIL)
 	$(CC) $(CFLAGS) -o $@ $(OBJDRIVER) $(OBJEXTUTIL) $(OBJASM) $(OBJUTIL)
 
-ifneq ($(HAVESHARED),)
+ifeq ($(HAVESHARED),yes)
 $(SONAME): $(OBJDRIVER) $(OBJEXT) $(OBJASM) $(OBJSHARED)
 	$(LD)$@ $(OBJDRIVER) $(OBJEXT) $(OBJASM) $(OBJSHARED) $(SOFLAGS) $(LDFLAGS)
 endif
