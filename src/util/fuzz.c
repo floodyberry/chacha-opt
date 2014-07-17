@@ -15,9 +15,15 @@
 	portable random numbers for fuzzing
 */
 
+#if defined(HAVE_INT32)
+typedef uint32_t chacha_int32;
+#else
+typedef unsigned long chacha_int32;
+#endif
+
 /* store a 32 bit unsigned integer as four 8 bit unsigned integers in little endian */
 static void
-store8(uint8_t *p, uint32_t v) {
+store8(unsigned char *p, chacha_int32 v) {
 	p[0] = (v      ) & 0xff;
 	p[1] = (v >>  8) & 0xff;
 	p[2] = (v >> 16) & 0xff;
@@ -25,21 +31,21 @@ store8(uint8_t *p, uint32_t v) {
 }
 
 /* 32 bit left rotate */
-static uint32_t
-rotate32(uint32_t x, int k) {
-	return ((x << k) | (x >> (32 - k)));
+static chacha_int32
+rotate32(chacha_int32 x, int k) {
+	return ((x << k) | (x >> (32 - k))) & 0xffffffffUL;
 }
 
 typedef struct chacha_state_t {
-	uint32_t s[12];
+	chacha_int32 s[12];
 } chacha_state_t;
 
 /* 1 block = 64 bytes */
 static void
-chacha_blocks(chacha_state_t *state, uint8_t *out, size_t blocks) {
-	uint32_t x0,x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13,x14,x15;
-	uint32_t             j4,j5,j6,j7,j8,j9,j10,j11,j12,j13,j14,j15;
-	uint32_t t;
+chacha_blocks(chacha_state_t *state, unsigned char *out, size_t blocks) {
+	chacha_int32 x0,x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13,x14,x15;
+	chacha_int32             j4,j5,j6,j7,j8,j9,j10,j11,j12,j13,j14,j15;
+	chacha_int32 t;
 	size_t i;
 
 	j4 = state->s[0];
@@ -75,10 +81,10 @@ chacha_blocks(chacha_state_t *state, uint8_t *out, size_t blocks) {
 		x15 = j15;
 
 		#define quarter(a,b,c,d) \
-			a = (a + b); t = d^a; d = rotate32(t,16); \
-			c = (c + d); t = b^c; b = rotate32(t,12); \
-			a = (a + b); t = d^a; d = rotate32(t, 8); \
-			c = (c + d); t = b^c; b = rotate32(t, 7);
+			a = (a + b) & 0xffffffffUL; t = d^a; d = rotate32(t,16); \
+			c = (c + d) & 0xffffffffUL; t = b^c; b = rotate32(t,12); \
+			a = (a + b) & 0xffffffffUL; t = d^a; d = rotate32(t, 8); \
+			c = (c + d) & 0xffffffffUL; t = b^c; b = rotate32(t, 7);
 
 		for (i = 0; i < 8; i += 2) {
 			quarter( x0, x4, x8,x12)
@@ -128,7 +134,7 @@ chacha_blocks(chacha_state_t *state, uint8_t *out, size_t blocks) {
 
 typedef struct fuzz_state_t {
 	chacha_state_t rng;
-	uint8_t buffer[64];
+	unsigned char buffer[64];
 	size_t remaining;
 } fuzz_state_t;
 
@@ -177,7 +183,7 @@ fuzz_init(void) {
 /* get len random bytes */
 void
 fuzz_get_bytes(void *out, size_t len) {
-	uint8_t *outb = (uint8_t *)out;
+	unsigned char *outb = (unsigned char *)out;
 
 	while (len) {
 		/* drain the stored buffer first */
@@ -206,14 +212,14 @@ fuzz_get_bytes(void *out, size_t len) {
 
 /* print len bytes from bytes in hex format, xor'd against base if bytes != base */
 void
-fuzz_print_bytes(const char *desc, const uint8_t *bytes, const uint8_t *base, size_t len) {
+fuzz_print_bytes(const char *desc, const unsigned char *bytes, const unsigned char *base, size_t len) {
 	size_t i;
 	printf("%s: ", desc);
 	for (i = 0; i < len; i++) {
 		if (i && ((i % 16) == 0))
 			printf("\n");
 		if (base != bytes) {
-			uint8_t diff = base[i] ^ bytes[i];
+			unsigned char diff = base[i] ^ bytes[i];
 			if (diff)
 				printf("0x%02x,", diff);
 			else
@@ -226,7 +232,7 @@ fuzz_print_bytes(const char *desc, const uint8_t *bytes, const uint8_t *base, si
 }
 
 static void
-fuzz_print_input(const fuzz_variable_t *input_variables, const size_t *random_sizes, const uint8_t *input) {
+fuzz_print_input(const fuzz_variable_t *input_variables, const size_t *random_sizes, const unsigned char *input) {
 	size_t random_size;
 
 	for ( ; ; input_variables++) {
@@ -256,7 +262,7 @@ fuzz_print_input(const fuzz_variable_t *input_variables, const size_t *random_si
 
 
 static void
-fuzz_print_output(const cpu_specific_impl_t *impl, const fuzz_variable_t *output_variables, const size_t *random_sizes, const uint8_t *output, const uint8_t *generic_output) {
+fuzz_print_output(const cpu_specific_impl_t *impl, const fuzz_variable_t *output_variables, const size_t *random_sizes, const unsigned char *output, const unsigned char *generic_output) {
 	size_t random_size;
 
 	printf("IMPLEMENTATION: %s\n", impl->desc);
@@ -295,17 +301,17 @@ fuzz_print_output(const cpu_specific_impl_t *impl, const fuzz_variable_t *output
 void
 fuzz(const void *impls, size_t impl_size, const fuzz_variable_t *input_variables, const fuzz_variable_t *output_variables, impl_fuzz fuzz_fn) {
 	/* allocate data */
-	uint8_t *fuzz_input = NULL, *fuzz_output = NULL;
+	unsigned char *fuzz_input = NULL, *fuzz_output = NULL;
 	const cpu_specific_impl_t **impl_list_alloc = (const cpu_specific_impl_t **)malloc(sizeof(const cpu_specific_impl_t *) * 32), **impl_list;
 	size_t impl_count = 0;
 	size_t random_sizes[4], *random_size;
 
 	/* cpu detection */
-	uint32_t cpu_flags = LOCAL_PREFIX(cpuid)();
+	unsigned long cpu_flags = LOCAL_PREFIX(cpuid)();
 	const char *p = (const char *)impls;
 
 	size_t expected_bytes_out;
-	uint8_t *outp;
+	unsigned char *outp;
 	size_t i;
 
 	/* counter display */
@@ -334,8 +340,8 @@ fuzz(const void *impls, size_t impl_size, const fuzz_variable_t *input_variables
 	impl_list += 1; 
 
 	/* 16k for raw data, 1k for key material and derived data */
-	fuzz_input = (uint8_t *)malloc(16384 + 1024); 
-	fuzz_output = (uint8_t *)malloc((16384 + 1024) * impl_count);
+	fuzz_input = (unsigned char *)malloc(16384 + 1024); 
+	fuzz_output = (unsigned char *)malloc((16384 + 1024) * impl_count);
 
 	/* show list of implementations being fuzzed */
 	printf("fuzzing %s", impl_list[0]->desc);
@@ -352,8 +358,8 @@ fuzz(const void *impls, size_t impl_size, const fuzz_variable_t *input_variables
 
 	start = clock();
 	for (;;) {
-		uint8_t *inp = fuzz_input;
-		uint8_t *generic_out = fuzz_output;
+		unsigned char *inp = fuzz_input;
+		unsigned char *generic_out = fuzz_output;
 
 		/* set up the data for this run */
 		for (i = 0; input_variables[i].type != FUZZ_DONE; i++) {

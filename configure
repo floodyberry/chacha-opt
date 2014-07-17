@@ -156,7 +156,7 @@ test_for_gnu_make() {
 }
 
 # options
-outputheader="include/asmopt_placeholder.h"
+outputheader="driver/asmopt.h"
 outputheaderstub="driver/asmopt_internal.h"
 outputmake="asmopt.mak"
 outputlog="config.log"
@@ -261,8 +261,6 @@ PROJECTVERMAJOR=`cut -d . -f 1 project.ver`
 if [ x"$PROJECTNAME" = "x" ]; then
     fatal_error "Unable to determine project name! Edit project.def to set it"
 fi
-
-outputheader="include/asmopt_${PROJECTNAME}.h"
 
 if [ "$yasm" = "yes" ]; then
     AS="yasm"
@@ -577,7 +575,7 @@ EOF
 
 
 cat >> $outputheaderstub << EOF
-#include "asmopt_${PROJECTNAME}.h"
+#include "asmopt.h"
 
 #define LOCAL_PREFIX3(a,b) a##_##b
 #define LOCAL_PREFIX2(a,b) LOCAL_PREFIX3(a,b)

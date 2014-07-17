@@ -1,5 +1,5 @@
 static int
-secure_compare8_generic(const uint8_t *x, const uint8_t *y) {
+secure_compare8_generic(const unsigned char *x, const unsigned char *y) {
 	int differentbits = 0;
 	#define F(i) differentbits |= (x[i] ^ y[i]);
 	F(0)
@@ -14,7 +14,7 @@ secure_compare8_generic(const uint8_t *x, const uint8_t *y) {
 }
 
 static int
-secure_compare16_generic(const uint8_t *x, const uint8_t *y) {
+secure_compare16_generic(const unsigned char *x, const unsigned char *y) {
 	int differentbits = 0;
 	#define F(i) differentbits |= (x[i] ^ y[i]);
 	F(0)
@@ -37,7 +37,7 @@ secure_compare16_generic(const uint8_t *x, const uint8_t *y) {
 }
 
 static int
-secure_compare32_generic(const uint8_t *x, const uint8_t *y) {
+secure_compare32_generic(const unsigned char *x, const unsigned char *y) {
 	int differentbits = 0;
 	#define F(i) differentbits |= (x[i] ^ y[i]);
 	F(0)

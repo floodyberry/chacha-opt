@@ -11,17 +11,17 @@
 
 
 typedef struct secure_compare_extension_t {
-	uint32_t cpu_flags;
+	unsigned long cpu_flags;
 	const char *desc;
-	int (*secure_compare8)(const uint8_t *x, const uint8_t *y);
-	int (*secure_compare16)(const uint8_t *x, const uint8_t *y);
-	int (*secure_compare32)(const uint8_t *x, const uint8_t *y);
+	int (*secure_compare8)(const unsigned char *x, const unsigned char *y);
+	int (*secure_compare16)(const unsigned char *x, const unsigned char *y);
+	int (*secure_compare32)(const unsigned char *x, const unsigned char *y);
 } secure_compare_extension_t;
 
 #define DECLARE_SECURE_COMPARE_EXTENSION(ext) \
-	int secure_compare8_##ext(const uint8_t *x, const uint8_t *y); \
-	int secure_compare16_##ext(const uint8_t *x, const uint8_t *y); \
-	int secure_compare32_##ext(const uint8_t *x, const uint8_t *y);
+	int secure_compare8_##ext(const unsigned char *x, const unsigned char *y); \
+	int secure_compare16_##ext(const unsigned char *x, const unsigned char *y); \
+	int secure_compare32_##ext(const unsigned char *x, const unsigned char *y);
 
 #if defined(ARCH_X86)
 	#if defined(CPU_32BITS)
@@ -35,7 +35,7 @@ typedef struct secure_compare_extension_t {
 	DECLARE_SECURE_COMPARE_EXTENSION(x86)
 #endif
 
-#include "secure_compare/secure_compare_generic.inc"
+#include "secure_compare/secure_compare_generic.h"
 
 #define ADD_SECURE_COMPARE_EXTENSION(flags, desc, ext) {flags, desc, secure_compare8_##ext, secure_compare16_##ext ,secure_compare32_##ext}
 
@@ -49,9 +49,9 @@ static const secure_compare_extension_t secure_compare_list[] = {
 	ADD_SECURE_COMPARE_EXTENSION(CPUID_GENERIC, "generic", generic)
 };
 
-static int secure_compare8_bootup(const uint8_t *x, const uint8_t *y);
-static int secure_compare16_bootup(const uint8_t *x, const uint8_t *y);
-static int secure_compare32_bootup(const uint8_t *x, const uint8_t *y);
+static int secure_compare8_bootup(const unsigned char *x, const unsigned char *y);
+static int secure_compare16_bootup(const unsigned char *x, const unsigned char *y);
+static int secure_compare32_bootup(const unsigned char *x, const unsigned char *y);
 
 static const secure_compare_extension_t secure_compare_bootup_ext = {
 	CPUID_GENERIC,
@@ -64,33 +64,33 @@ static const secure_compare_extension_t secure_compare_bootup_ext = {
 static const secure_compare_extension_t *secure_compare_opt = &secure_compare_bootup_ext;
 
 LIB_PUBLIC int
-secure_compare8(const uint8_t *x, const uint8_t *y) {
+secure_compare8(const unsigned char *x, const unsigned char *y) {
 	return secure_compare_opt->secure_compare8(x, y);
 }
 
 LIB_PUBLIC int
-secure_compare16(const uint8_t *x, const uint8_t *y) {
+secure_compare16(const unsigned char *x, const unsigned char *y) {
 	return secure_compare_opt->secure_compare16(x, y);
 }
 
 LIB_PUBLIC int
-secure_compare32(const uint8_t *x, const uint8_t *y) {
+secure_compare32(const unsigned char *x, const unsigned char *y) {
 	return secure_compare_opt->secure_compare32(x, y);
 }
 
 static int
 secure_compare_test_impl(const void *impl) {
 	const secure_compare_extension_t *ext = (const secure_compare_extension_t *)impl;
-	uint8_t x[32], y[32];
+	unsigned char x[32], y[32];
 	size_t i, j;
 	int ret = 0;
 
 	/* simple equality test */
 	for (i = 0; i < 32; i++) {
-		uint16_t h = ((uint16_t)i ^ 0xcafe) * 0xbeef;
+		unsigned int h = ((unsigned int)i ^ 0xcafe) * 0xbeef;
 		h ^= h >> 8;
-		x[i] = (uint8_t)h;
-		y[i] = (uint8_t)h;
+		x[i] = (unsigned char)h;
+		y[i] = (unsigned char)h;
 	}
 
 	ret |= (ext->secure_compare8(x, y) != 0);
@@ -126,7 +126,7 @@ secure_compare_init(void) {
 }
 
 static int
-secure_compare8_bootup(const uint8_t *x, const uint8_t *y) {
+secure_compare8_bootup(const unsigned char *x, const unsigned char *y) {
 	int ret = 1;
 	if (secure_compare_init() == 0) {
 		ret = secure_compare_opt->secure_compare8(x, y);
@@ -138,7 +138,7 @@ secure_compare8_bootup(const uint8_t *x, const uint8_t *y) {
 }
 
 static int
-secure_compare16_bootup(const uint8_t *x, const uint8_t *y) {
+secure_compare16_bootup(const unsigned char *x, const unsigned char *y) {
 	int ret = 1;
 	if (secure_compare_init() == 0) {
 		ret = secure_compare_opt->secure_compare16(x, y);
@@ -150,7 +150,7 @@ secure_compare16_bootup(const uint8_t *x, const uint8_t *y) {
 }
 
 static int
-secure_compare32_bootup(const uint8_t *x, const uint8_t *y) {
+secure_compare32_bootup(const unsigned char *x, const unsigned char *y) {
 	int ret = 1;
 	if (secure_compare_init() == 0) {
 		ret = secure_compare_opt->secure_compare32(x, y);
@@ -186,9 +186,9 @@ static const fuzz_variable_t fuzz_outputs[] = {
 
 /* process the input with the given implementation and write it to the output */
 static void
-secure_compare_fuzz_impl(const void *impl, const uint8_t *in, const size_t *random_sizes, uint8_t *out) {
+secure_compare_fuzz_impl(const void *impl, const unsigned char *in, const size_t *random_sizes, unsigned char *out) {
 	const secure_compare_extension_t *ext = (const secure_compare_extension_t *)impl;
-	const uint8_t *x = in, *y = in + 32;
+	const unsigned char *x = in, *y = in + 32;
 	out[0] = ext->secure_compare8(x, x);
 	out[1] = ext->secure_compare8(x, y);
 	out[2] = ext->secure_compare16(x, x);
@@ -205,7 +205,7 @@ secure_compare_fuzz(void) {
 }
 
 
-static uint8_t *bench_arr = NULL;
+static unsigned char *bench_arr = NULL;
 static size_t bench_len = 0;
 static size_t internal_trials = 0;
 static const size_t bench_trials = 10000000;
@@ -237,7 +237,7 @@ secure_compare8_bench_impl(const void *impl) {
 void
 secure_compare_bench(void) {
 	size_t i;
-	bench_arr = (uint8_t *)bench_get_buffer();
+	bench_arr = bench_get_buffer();
 	internal_trials = 1024;
 	bench_len = internal_trials * 32;
 	bench(secure_compare_list, sizeof(secure_compare_extension_t), secure_compare_test_impl, secure_compare32_bench_impl, internal_trials, "compare32", bench_trials / ((bench_len / 100) + 1));

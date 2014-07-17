@@ -5,14 +5,14 @@
 /* int example(const int *arr, size_t count) returns the sum of count ints in arr */
 
 typedef struct example_impl_t {
-	uint32_t cpu_flags;
+	unsigned long cpu_flags;
 	const char *desc;
-	int32_t (*example)(const int32_t *arr, size_t count);
+	unsigned char (*example)(const unsigned char *arr, size_t count);
 } example_impl_t;
 
 /* declare the prototypes of the provided functions */
 #define EXAMPLE_DECLARE(ext) \
-	extern int32_t example_##ext(const int32_t *arr, size_t count);
+	extern unsigned char example_##ext(const unsigned char *arr, size_t count);
 
 #if defined(ARCH_X86)
 	/* 32 bit only implementations */
@@ -60,16 +60,17 @@ static example_impl_t example_opt = {0,0,0};
 static int
 example_test_impl(const void *impl) {
 	const example_impl_t *example_impl = (const example_impl_t *)impl;
-	int32_t arr[50], i, sum;
+	unsigned char arr[50], sum;
+	size_t i;
 	int ret = 0;
 
 	for (i = 0, sum = 0; i < 50; i++) {
-		arr[i] = i;
-		sum += i;
+		arr[i] = (unsigned char )i;
+		sum = (sum + (unsigned char )i) % 256;
 	}
 	for (i = 0; i <= 50; i++) {
 		ret |= (example_impl->example(arr, 50 - i) == sum) ? 0 : 1;
-		sum -= (50 - i - 1);
+		sum = (sum - (50 - i - 1)) % 256;
 	}
 	return ret;
 }
@@ -87,8 +88,8 @@ example_init(void) {
 }
 
 /* call the optimized implementation */
-LIB_PUBLIC int32_t
-example(const int32_t *arr, size_t count) {
+LIB_PUBLIC unsigned char
+example(const unsigned char *arr, size_t count) {
 	return example_opt.example(arr, count);
 }
 
@@ -112,16 +113,16 @@ static const fuzz_variable_t fuzz_outputs[] = {
 
 /* process the input with the given implementation and write it to the output */
 static void
-example_fuzz_impl(const void *impl, const uint8_t *in, const size_t *random_sizes, uint8_t *out) {
+example_fuzz_impl(const void *impl, const unsigned char *in, const size_t *random_sizes, unsigned char *out) {
 	const example_impl_t *example_impl = (const example_impl_t *)impl;
 	size_t int_count;
-	int32_t sum;
+	unsigned char sum;
 
 	/* get count of random array 0 */
-	int_count = random_sizes[0] / sizeof(int32_t);
+	int_count = random_sizes[0];
 
 	/* sum the array */
-	sum = example_impl->example((const int32_t *)in, int_count);
+	sum = example_impl->example((const unsigned char *)in, int_count);
 
 	/* store the result */
 	memcpy(out, &sum, sizeof(sum));
@@ -137,7 +138,7 @@ example_fuzz(void) {
 
 
 
-static int32_t *bench_arr = NULL;
+static unsigned char *bench_arr = NULL;
 static size_t bench_len = 0;
 static const size_t bench_trials = 10000000;
 
@@ -151,7 +152,7 @@ void
 example_bench(void) {
 	static const size_t lengths[] = {16, 256, 4096, 0};
 	size_t i;
-	bench_arr = (int32_t *)bench_get_buffer();
+	bench_arr = bench_get_buffer();
 	memset(bench_arr, 0xf5, 32768);
 	for (i = 0; lengths[i]; i++) {
 		bench_len = lengths[i];

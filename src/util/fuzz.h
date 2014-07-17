@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-typedef void (*impl_fuzz)(const void *impl, const uint8_t *in, const size_t *random_sizes, uint8_t *out);
+typedef void (*impl_fuzz)(const void *impl, const unsigned char *in, const size_t *random_sizes, unsigned char *out);
 
 typedef enum {
 	FUZZ_DONE,
@@ -28,7 +28,7 @@ typedef struct fuzz_variable_t {
 void fuzz_init(void);
 void fuzz_init_deterministic(void);
 void fuzz_get_bytes(void *out, size_t len);
-void fuzz_print_bytes(const char *desc, const uint8_t *bytes, const uint8_t *base, size_t len);
+void fuzz_print_bytes(const char *desc, const unsigned char *bytes, const unsigned char *base, size_t len);
 void fuzz(const void *impls, size_t impl_size, const fuzz_variable_t *input_variables, const fuzz_variable_t *output_variables, impl_fuzz fuzz_fn);
 
 #if defined(__cplusplus)

@@ -3,10 +3,10 @@
 #include "cpuid.h"
 #include "util/bench.h"
 
-/* a 64k, 64 byte aligned buffer to bench with */
-uint8_t *bench_get_buffer(void) {
-	static uint8_t buffer[0x10000 + 0x40 + 0x40];
-	uint8_t *p = buffer;
+/* a 32k, 64 byte aligned buffer to bench with */
+unsigned char *bench_get_buffer(void) {
+	static unsigned char buffer[0x8000 + 0x40 + 0x40];
+	unsigned char *p = buffer;
 	p += 0x3f;
 	p -= (size_t)p & 0x3f;
 	return p;
@@ -14,8 +14,8 @@ uint8_t *bench_get_buffer(void) {
 
 int
 bench(const void *impls, size_t impl_size, impl_test test_fn, impl_bench bench_fn, size_t units_count, const char *units_desc, size_t trials) {
-	uint32_t cpu_flags = LOCAL_PREFIX(cpuid)();
-	const uint8_t *p = (const uint8_t *)impls;
+	unsigned long cpu_flags = LOCAL_PREFIX(cpuid)();
+	const unsigned char *p = (const unsigned char *)impls;
 	int first_item = 1;
 
 	if (trials == 0)

@@ -13,11 +13,11 @@ enum cpuid_flags_generic_t {
 
 #include "cpuid_impl.h"
 
-uint32_t LOCAL_PREFIX(cpuid)(void);
+unsigned long LOCAL_PREFIX(cpuid)(void);
 
 /* runtime dispatching based on current cpu */
 typedef struct cpu_specific_impl_t {
-	uint32_t cpu_flags;
+	unsigned long cpu_flags;
 	const char *desc;
 	/* additional information, pointers to methods, etc... */
 } cpu_specific_impl_t;

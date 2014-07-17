@@ -1,14 +1,14 @@
 #ifndef EXAMPLE_H
 #define EXAMPLE_H
 
-#include "asmopt_example.h"
+#include <stddef.h>
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
-LIB_PUBLIC int32_t example(const int32_t *arr, size_t count);
-LIB_PUBLIC int example_init(void);
+unsigned char example(const unsigned char *arr, size_t count);
+int example_init(void);
 
 #if defined(UTILITIES)
 void example_fuzz(void);

@@ -1,10 +1,10 @@
 #include "cpuid.h"
 #include "cpuid_impl.inc"
 
-static uint32_t cpuid_flags = CPUID_GENERIC;
-static uint32_t cpuid_mask = ~(uint32_t)0;
+static unsigned long cpuid_flags = CPUID_GENERIC;
+static unsigned long cpuid_mask = ~(unsigned long)0;
 
-uint32_t
+unsigned long
 LOCAL_PREFIX(cpuid)(void) {
 	if (cpuid_flags == CPUID_GENERIC)
 		cpuid_flags = cpuid_impl();
@@ -13,8 +13,8 @@ LOCAL_PREFIX(cpuid)(void) {
 
 const void *
 LOCAL_PREFIX(cpu_select)(const void *impls, size_t impl_size, impl_test test_fn) {
-	uint32_t cpu_flags = LOCAL_PREFIX(cpuid)();
-	const uint8_t *p = (const uint8_t *)impls;
+	unsigned long cpu_flags = LOCAL_PREFIX(cpuid)();
+	const unsigned char *p = (const unsigned char *)impls;
 	for (;;) {
 		const cpu_specific_impl_t *impl = (const cpu_specific_impl_t *)p;
 		if (impl->cpu_flags == (impl->cpu_flags & cpu_flags)) {

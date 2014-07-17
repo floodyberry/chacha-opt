@@ -14,47 +14,54 @@ FN example_sse2
 	jz Lexample_sse2_aligned
 
 Lexample_sse2_loop1:
-	addl 0(%edx), %eax
-	addl $4, %edx
+	addb 0(%edx), %al
+	incl %edx
 	decl %ecx
 	jz Lexample_sse2_done
 	testl $0xf, %edx
 	jnz Lexample_sse2_loop1
 
 Lexample_sse2_aligned:
-	cmpl $8, %ecx
-	jb Lexample_sse2_final3
+	cmpl $32, %ecx
+	jb Lexample_sse2_final31
 
 	pushl %ebx
 	pxor %xmm0, %xmm0
 	pxor %xmm1, %xmm1
-Lexample_sse2_loop4:
-	paddd 0(%edx), %xmm0
-	paddd 16(%edx), %xmm1
+Lexample_sse2_loop32:
+	paddb 0(%edx), %xmm0
+	paddb 16(%edx), %xmm1
 	addl $32, %edx
-	subl $8, %ecx
-	cmpl $8, %ecx
-	jae Lexample_sse2_loop4
+	subl $32, %ecx
+	cmpl $32, %ecx
+	jae Lexample_sse2_loop32
 
-	paddd %xmm1, %xmm0
+	paddb %xmm1, %xmm0
 	pshufd $0xee, %xmm0, %xmm1
-	paddd %xmm1, %xmm0
+	paddb %xmm1, %xmm0
 	pshufd $0x55, %xmm0, %xmm1
-	paddd %xmm1, %xmm0
+	paddb %xmm1, %xmm0
 	movd %xmm0, %ebx
-	addl %ebx, %eax
+	addb %bl, %al
+	shr $8, %ebx
+	addb %bl, %al
+	shr $8, %ebx
+	addb %bl, %al
+	shr $8, %ebx
+	addb %bl, %al
 	popl %ebx
 
-Lexample_sse2_final3:
+Lexample_sse2_final31:
 	andl %ecx, %ecx
 	jz Lexample_sse2_done
 
 Lexample_sse2_loop:
-	addl 0(%edx), %eax
-	addl $4, %edx
+	addb 0(%edx), %al
+	incl %edx
 	decl %ecx
 	jnz Lexample_sse2_loop
 
 Lexample_sse2_done:
+	andb $0xff, %al
 	ret
 FN_END example_sse2

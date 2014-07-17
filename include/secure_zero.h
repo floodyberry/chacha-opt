@@ -1,14 +1,14 @@
 #ifndef SECURE_ZERO_H
 #define SECURE_ZERO_H
 
-#include "asmopt_example.h"
+#include <stddef.h>
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
-LIB_PUBLIC void secure_zero(uint8_t *p, size_t len);
-LIB_PUBLIC int secure_zero_init(void);
+void secure_zero(unsigned char *p, size_t len);
+int secure_zero_init(void);
 
 #if defined(UTILITIES)
 void secure_zero_fuzz(void);

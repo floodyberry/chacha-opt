@@ -10,30 +10,46 @@ FN example_x86
 	andl %ecx, %ecx
 	jz Lexample_x86_done
 
-	cmpl $4, %ecx
+	cmpl $8, %ecx
 	jb Lexample_x86_loop
 
 	pushl %ebx
 	pushl %esi
 	pushl %edi
 
+	movl %edx, %edi
+	movl %ecx, %esi
+
 	xorl %ebx, %ebx
-	xorl %esi, %esi
-	xorl %edi, %edi
+	xorl %ecx, %ecx
+	xorl %edx, %edx
 
 Lexample_x86_loop4:
-	addl 0(%edx), %eax
-	addl 4(%edx), %ebx
-	addl 8(%edx), %esi
-	addl 12(%edx), %edi
-	addl $16, %edx
-	subl $4, %ecx
-	cmpl $4, %ecx
+	movl 0(%edi), %ebx
+	movl 4(%edi), %ecx
+	addb %bl, %al
+	addb %cl, %dl
+	shr $8, %ebx
+	shr $8, %ecx
+	addb %bl, %al
+	addb %cl, %dl
+	shr $8, %ebx
+	shr $8, %ecx
+	addb %bl, %al
+	addb %cl, %dl
+	shr $8, %ebx
+	shr $8, %ecx
+	addb %bl, %al
+	addb %cl, %dl
+	addl $8, %edi
+	subl $8, %esi
+	cmpl $8, %esi
 	jae Lexample_x86_loop4
 
-	addl %ebx, %eax
-	addl %edi, %esi
-	addl %esi, %eax
+	addb %dl, %al
+
+	movl %edi, %edx
+	movl %esi, %ecx
 
 	popl %edi
 	popl %esi
@@ -43,12 +59,13 @@ Lexample_x86_loop4:
 	jz Lexample_x86_done
 
 Lexample_x86_loop:
-	addl 0(%edx), %eax
-	addl $4, %edx
+	addb 0(%edx), %al
+	incl %edx
 	decl %ecx
 	jnz Lexample_x86_loop
 
 Lexample_x86_done:
+	andl $0xff, %eax
 	ret
 FN_END example_x86
 

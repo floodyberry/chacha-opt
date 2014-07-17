@@ -5,17 +5,17 @@
 #include "secure_zero.h"
 
 typedef struct secure_zero_extension_t {
-	uint32_t cpu_flags;
+	unsigned long cpu_flags;
 	const char *desc;
-	void (*secure_zero)(uint8_t *p, size_t len);
+	void (*secure_zero)(unsigned char *p, size_t len);
 } secure_zero_extension_t;
 
-#define DECLARE_SECURE_ZERO_EXTENSION(ext) void secure_zero_##ext(uint8_t *p, size_t len);
+#define DECLARE_SECURE_ZERO_EXTENSION(ext) void secure_zero_##ext(unsigned char *p, size_t len);
 
 #if defined(ARCH_X86)
 #endif
 
-#include "secure_zero/secure_zero_generic.inc"
+#include "secure_zero/secure_zero_generic.h"
 
 #define ADD_SECURE_ZERO_EXTENSION(flags, desc, ext) {flags, desc, secure_zero_##ext}
 
@@ -23,7 +23,7 @@ static const secure_zero_extension_t secure_zero_list[] = {
 	ADD_SECURE_ZERO_EXTENSION(CPUID_GENERIC, "generic", generic)
 };
 
-static void secure_zero_bootup(uint8_t *p, size_t len);
+static void secure_zero_bootup(unsigned char *p, size_t len);
 
 static const secure_zero_extension_t secure_zero_bootup_ext = {
 	CPUID_GENERIC,
@@ -34,24 +34,24 @@ static const secure_zero_extension_t secure_zero_bootup_ext = {
 static const secure_zero_extension_t *secure_zero_opt = &secure_zero_bootup_ext;
 
 LIB_PUBLIC void
-secure_zero(uint8_t *p, size_t len) {
+secure_zero(unsigned char *p, size_t len) {
 	secure_zero_opt->secure_zero(p, len);
 }
 
 static int
 secure_zero_test_impl_len(const secure_zero_extension_t *ext, size_t offset, size_t len) {
-	uint8_t arr[136];
+	unsigned char arr[136];
 	size_t i;
 	int ret = 0;
 
 	for (i = 0; i < sizeof(arr); i++)
-		arr[i] = (uint8_t)~i;
+		arr[i] = (unsigned char)~i;
 
 	ext->secure_zero(arr + offset, len);
 
 	/* prefix */
 	for (i = 0; i < offset; i++)
-		if (arr[i] != (uint8_t)~i)
+		if (arr[i] != (unsigned char)~i)
 			ret |= 1;
 
 	/* body */
@@ -61,7 +61,7 @@ secure_zero_test_impl_len(const secure_zero_extension_t *ext, size_t offset, siz
 
 	/* suffix */
 	for (i = len + offset; i < sizeof(arr); i++)
-		if (arr[i] != (uint8_t)~i)
+		if (arr[i] != (unsigned char)~i)
 			ret |= 1;
 
 	return ret;
@@ -92,7 +92,7 @@ secure_zero_init(void) {
 }
 
 static void
-secure_zero_bootup(uint8_t *p, size_t len) {
+secure_zero_bootup(unsigned char *p, size_t len) {
 	if (secure_zero_init() == 0) {
 		secure_zero_opt->secure_zero(p, len);
 	} else {
@@ -122,7 +122,7 @@ static const fuzz_variable_t fuzz_outputs[] = {
 
 /* process the input with the given implementation and write it to the output */
 static void
-secure_zero_fuzz_impl(const void *impl, const uint8_t *in, const size_t *random_sizes, uint8_t *out) {
+secure_zero_fuzz_impl(const void *impl, const unsigned char *in, const size_t *random_sizes, unsigned char *out) {
 	const secure_zero_extension_t *ext = (const secure_zero_extension_t *)impl;
 	size_t bytes;
 
@@ -143,7 +143,7 @@ secure_zero_fuzz(void) {
 }
 
 
-static uint8_t *bench_arr = NULL;
+static unsigned char *bench_arr = NULL;
 static size_t bench_len = 0;
 static const size_t bench_trials = 10000000;
 
@@ -158,7 +158,7 @@ secure_zero_bench(void) {
 	static const size_t lengths[] = {7, 16, 32, 40, 50, 64, 128, 256, 4096, 0};
 	static const char *titles[] = {"aligned", "unaligned"};
 	size_t i, j;
-	bench_arr = (uint8_t *)bench_get_buffer();
+	bench_arr = (unsigned char *)bench_get_buffer();
 	for (i = 0; i < 2; i++) {
 		printf("%s test\n", titles[i]);
 		for (j = 0; lengths[j]; j++) {
