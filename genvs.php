@@ -47,6 +47,7 @@ abstract class gen_vs {
 	protected $projects;
 	protected $sln;
 	protected $project_dir;
+	protected $files;
 
 	public function gen_vs($name) {
 		$this->name = strtolower($name);
@@ -58,6 +59,21 @@ abstract class gen_vs {
 		}
 	}
 	
+	public function build_files() {
+		$this->files = array("driver"=>array(), "ext"=>array(), "util"=>array(), "shared"=>array(), "include"=>array());
+		crawl($this->files["driver"], "driver", array("!\.c$!", "!\.h$!", "!\.inc$!"), false);
+		crawl($this->files["driver"], "driver/x86", array("!\.c$!", "!\.S$!", "!\.h$!", "!\.inc$!"), false);
+		crawl($this->files["ext"], "extensions", array("!\.c$!", "!\.S$!", "!\.inc$!", "!\.h$!"), true);
+		crawl($this->files["include"], "include", array("!\.h$!"), false);
+		crawl($this->files["shared"], "src", array("!^shared\.c$!"), false);
+		crawl($this->files["util"], "src/util", array("!\.c$!", "!\.h$!"), true);
+		crawl($this->files["util"], "src", array("!^util\.c$!"), false);
+
+		$this->projects["lib"]["files"] = array("driver", "ext", "include"); 
+		$this->projects["dll"]["files"] = array("driver", "ext", "include", "shared");
+		$this->projects["util"]["files"] = array("driver", "ext", "include", "util"); 
+	}
+
 	public function write_file($name, $str) {
 		$in = array("%%name%%", "%%NAME%%", "%%projectdir%%");
 		$out = array($this->name, strtoupper($this->name), $this->project_dir);
@@ -73,7 +89,6 @@ abstract class gen_vs {
 };
 
 class vs2010 extends gen_vs {
-	protected $files;
 	protected $fileinfo;
 
 	public function vs2010($name) {
@@ -311,14 +326,7 @@ class vs2010 extends gen_vs {
 	}
 
 	public function make_project() {
-		$this->files = array("driver"=>array(), "ext"=>array(), "util"=>array(), "shared"=>array(), "include"=>array());
-		crawl($this->files["driver"], "driver", array("!\.c$!", "!\.h$!", "!\.inc$!"), false);
-		crawl($this->files["driver"], "driver/x86", array("!\.c$!", "!\.S$!", "!\.h$!", "!\.inc$!"), false);
-		crawl($this->files["ext"], "extensions", array("!\.c$!", "!\.S$!", "!\.inc$!", "!\.h$!"), true);
-		crawl($this->files["include"], "include", array("!\.h$!"), false);
-		crawl($this->files["shared"], "src", array("!^shared\.c$!"), false);
-		crawl($this->files["util"], "src/util", array("!\.c$!", "!\.h$!"), true);
-		crawl($this->files["util"], "src", array("!^util\.c$!"), false);
+		$this->build_files();
 
 		$this->fileinfo = array();
 		foreach($this->files as $handle=>$list) {
@@ -338,10 +346,6 @@ class vs2010 extends gen_vs {
 				$this->fileinfo[$path]["type"] = $type;
 			}
 		}
-		
-		$this->projects["lib"]["files"] = array("driver", "ext", "include"); 
-		$this->projects["dll"]["files"] = array("driver", "ext", "include", "shared");
-		$this->projects["util"]["files"] = array("driver", "ext", "include", "util"); 
 
 		$this->make_vcxproj();
 		$this->make_vcxproj_filters();
