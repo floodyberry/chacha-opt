@@ -3,6 +3,10 @@
 
 #include <stddef.h>
 
+#if !defined(LIB_PUBLIC)
+	#define LIB_PUBLIC
+#endif
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
