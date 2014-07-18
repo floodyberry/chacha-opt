@@ -168,11 +168,19 @@ Static and shared library support is now mostly done!
 
 When available, every function/variable is treated as hidden/private by default. Mark a function/variable for export by using `LIB_PUBLIC` for prototypes and the actual instance, e.g.:
 
-    LIB_PUBLIC int some_public_function(void);
+    LIB_PUBLIC int
+    some_public_function(void);
 
-    LIB_PUBLIC int some_public_function(void) {
+    LIB_PUBLIC int
+    some_public_function(void) {
         return 42;
     }
+
+In each of your public headers, you must add a simple stub to define `LIB_PUBLIC` to blank if it has not already been defined. This is the minor cost of having no external headers required (other than `<stddef.h>` for size_t):
+
+    #if !defined(LIB_PUBLIC)
+        #define LIB_PUBLIC
+    #endif
 
 If you are using a common name for a function that may clash with another library if hidden/private is not supported, e.g. `cpuid`, wrap any reference to it with `LOCAL_PREFIX` to have the name of the project added as a prefix:
 
@@ -195,9 +203,9 @@ If you are getting `/usr/bin/ld: error: cannot find -lexample` when trying to li
 
 ### NAME ###
 
-The name of the project is set in [project.def](project.def). This also controls the name of the public include file that will be generated for the project: `include/asmopt_[project name].h`.
+The name of the project is set in [project.def](project.def). This is used to create project specific function names using `LOCAL_PREFIX`.
 
-The project version is in [project.ver](project.ver).
+The project version is in [project.ver](project.ver). Unused except for shared library names on some *nix's.
 
 ### CONFIGURING ###
 
@@ -218,6 +226,7 @@ The project version is in [project.ver](project.ver).
  * `--debug`: Builds with no optimization and debugging symbols enbaled
  * `--disable-as`: Do not use external assembly
  * `--force-32bits`: Build for 32bits regardless of underlying system
+ * `--force-64bits`: Build for 64bits regardless of underlying system
  * `--generic`: Alias for --disable-as, forces a generic build
  * `--pic`: Pass `-fPIC` to the compiler. If you are using `LOAD_VAR_PIC` properly, all assembler will be PIC safe by default. This is required for shared builds
  * `--strict`: Use strict compiler flags for C
@@ -234,7 +243,7 @@ The project version is in [project.ver](project.ver).
  * `CFLAGS`: Additional C flags to pass to the compiler
  * `SOFLAGS`: Additional flags to pass to `LD` when compiling a shared library
 
-Well some aren't used yet, but you know, for the future.
+Well some may not be used yet, but you know, for the future.
 
 ### COMPILING ###
 
@@ -251,11 +260,13 @@ Well some aren't used yet, but you know, for the future.
 
 ### VISUAL STUDIO ###
 
-Rename `include/asmopt.h.visualstudio.yasm` to `include/asmopt.h`, download at least [Yasm 1.2](http://yasm.tortall.net/) and [follow the Yasm integration steps](http://yasm.tortall.net/Download.html) for your version of Visual Studio. Set the global Yasm parser to "Gas" and add `driver;extensions;include;src;` to the include path for C/C++ and Yasm.
+I've got the Visual Studio project generator working!
 
-If you are setting Yasm flags manually, they are `-r nasm -p gas -f win[32,64]`.
+    php genvs.php
 
-I will look in to a visual studio project generator to simplify things.
+generates a Visual Studio 2010 solution in to `vs2010/`. It only requires that [yasm.exe](http://yasm.tortall.net/Download.html) be somewhere in the system path for Visual Studio to execute. You can place `yasm.exe` in the `vs2010/` directory if you're especially lazy.
+
+The generated solution creates a static library, dynamic library, and utility project for both 32 and 64 bits. Generated files (exe, lib, dll) are currently placed in `asm-opt/bin/[Release|Debug]/[amd64|x86-32bit]/`. This will possibly change as I make the solution generator a little more configurable.
 
 ## EXAMPLE ##
 
