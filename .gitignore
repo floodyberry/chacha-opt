@@ -1,4 +1,5 @@
 asmopt.mak
+bin/*
 build/*
 build_util/*
 config.log
@@ -7,3 +8,7 @@ include/asmopt_*
 example
 example-util
 !example/
+vs2010/ipch/*
+vs2010/*.sdf
+vs2010/*.suo
+vs2010/*.user
