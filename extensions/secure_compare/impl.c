@@ -189,12 +189,13 @@ static void
 secure_compare_fuzz_impl(const void *impl, const unsigned char *in, const size_t *random_sizes, unsigned char *out) {
 	const secure_compare_extension_t *ext = (const secure_compare_extension_t *)impl;
 	const unsigned char *x = in, *y = in + 32;
-	out[0] = ext->secure_compare8(x, x);
-	out[1] = ext->secure_compare8(x, y);
-	out[2] = ext->secure_compare16(x, x);
-	out[3] = ext->secure_compare16(x, y);
-	out[4] = ext->secure_compare32(x, x);
-	out[5] = ext->secure_compare32(x, y);
+	random_sizes;
+	out[0] = (unsigned char)ext->secure_compare8(x, x);
+	out[1] = (unsigned char)ext->secure_compare8(x, y);
+	out[2] = (unsigned char)ext->secure_compare16(x, x);
+	out[3] = (unsigned char)ext->secure_compare16(x, y);
+	out[4] = (unsigned char)ext->secure_compare32(x, x);
+	out[5] = (unsigned char)ext->secure_compare32(x, y);
 }
 
 /* run the fuzzer on secure_compare */
@@ -236,7 +237,6 @@ secure_compare8_bench_impl(const void *impl) {
 
 void
 secure_compare_bench(void) {
-	size_t i;
 	bench_arr = bench_get_buffer();
 	internal_trials = 1024;
 	bench_len = internal_trials * 32;
