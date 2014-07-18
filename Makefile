@@ -63,10 +63,10 @@ OBJSHARED = $(patsubst %.c, $(BUILDDIR)/%.o, $(SRCSHARED))
 .PHONY: default
 .PHONY: exe
 .PHONY: lib
-.PHONE: shared
+.PHONY: shared
 .PHONY: util
 
-.PHONE: install-shared
+.PHONY: install-shared
 .PHONY: install-generic
 .PHONY: install-lib
 .PHONY: uninstall
