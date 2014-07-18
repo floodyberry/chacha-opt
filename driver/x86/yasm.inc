@@ -116,7 +116,7 @@
 		%endmacro
 
 		; FN_EXT name, args, xmmused
-		%macro FN_EXT 1
+		%macro FN_EXT 3
 			win64stubfn %1, %2, %3
 		%endmacro
 
