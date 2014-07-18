@@ -7,8 +7,8 @@
 extern "C" {
 #endif
 
-void secure_zero(unsigned char *p, size_t len);
-int secure_zero_init(void);
+LIB_PUBLIC void secure_zero(unsigned char *p, size_t len);
+LIB_PUBLIC int secure_zero_init(void);
 
 #if defined(UTILITIES)
 void secure_zero_fuzz(void);

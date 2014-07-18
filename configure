@@ -20,6 +20,7 @@ Configuration options:
   --debug                             builds with no optimization and debugging symbols enbaled
   --disable-as                        do not use external assembly
   --force-32bits                      build for 32bits regardless of underlying system
+  --force-64bits                      build for 64bits regardless of underlying system
   --generic                           alias for --disable-as, forces a generic build
   --pic                               pass -fPIC to the compiler, required to build shared library
   --strict                            use strict compiler flags for C
@@ -162,6 +163,7 @@ outputmake="asmopt.mak"
 outputlog="config.log"
 debug="no"
 bits32="no"
+bits64="no"
 strict="no"
 yasm="no"
 pic="no"
@@ -201,6 +203,9 @@ while [ "$1" != "" ]; do
                        ;;
 
         --force-32bits ) bits32="yes"
+                         ;;
+
+        --force-64bits ) bits64="yes"
                          ;;
 
         --pic ) pic="yes"
@@ -333,6 +338,8 @@ if [ "$HAVEAS" = "yes" ] && try_asm "xorl %eax, %eax"; then
     # outbit bits
     if [ "$bits32" = "yes" ]; then
       OBITS="32"
+    elif [ "$bits64" = "yes" ]; then
+      OBITS="64"
     fi
 
     CFLAGS="$CFLAGS -m$OBITS"
@@ -454,14 +461,13 @@ fi
 if try_c_visibility '__attribute__ ((dllexport))'; then
     LIB_EXPORT="__attribute__ ((dllexport))"
     LIB_IMPORT="__attribute__ ((dllimport))"
-    CFLAGS="$CFLAGS -fvisibility=hidden"
+    CFLAGS="$CFLAGS -fvisibility=hidden -DLIB_PUBLIC=\"__attribute__ ((dllexport))\""
 elif try_c_visibility '__attribute__ ((visibility ("default")))'; then
-    LIB_EXPORT='__attribute__ ((visibility ("default")))'
-    LIB_IMPORT='__attribute__ ((visibility ("default")))'
-    CFLAGS="$CFLAGS -fvisibility=hidden"
+    CFLAGS="$CFLAGS -fvisibility=hidden -DLIB_PUBLIC=\"__attribute__ ((visibility (\\\"default\\\")))\""
 else
     LIB_EXPORT=''
     LIB_IMPORT=''
+    CFLAGS="$CFLAGS -DLIB_PUBLIC=\"\" "
 fi
 
 if [ "$pic" = "yes" ]; then
@@ -557,15 +563,6 @@ cat >> $outputheader << EOF
 
 /* stdint doesn't currently detect this, but may in the future */
 DEFINE_INT128
-
-#define LIB_EXPORT $LIB_EXPORT
-#define LIB_IMPORT $LIB_IMPORT
-
-#if !defined(BUILDING_ASMOPT_${PROJECTNAMEUPPER})
-	#define LIB_PUBLIC LIB_IMPORT
-#else
-	#define LIB_PUBLIC LIB_EXPORT
-#endif
 
 #endif /* !defined(BUILDING_ASM) */
 

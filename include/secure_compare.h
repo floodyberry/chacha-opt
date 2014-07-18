@@ -7,10 +7,10 @@
 extern "C" {
 #endif
 
-int secure_compare8(const unsigned char *x, const unsigned char *y);
-int secure_compare16(const unsigned char *x, const unsigned char *y);
-int secure_compare32(const unsigned char *x, const unsigned char *y);
-int secure_compare_init(void);
+LIB_PUBLIC int secure_compare8(const unsigned char *x, const unsigned char *y);
+LIB_PUBLIC int secure_compare16(const unsigned char *x, const unsigned char *y);
+LIB_PUBLIC int secure_compare32(const unsigned char *x, const unsigned char *y);
+LIB_PUBLIC int secure_compare_init(void);
 
 #if defined(UTILITIES)
 void secure_compare_fuzz(void);
