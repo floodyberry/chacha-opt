@@ -112,10 +112,10 @@ else ifneq ($(SONAME),)
 endif
 else
 shared:
-	@echo project must be /configure'd with --pic
+	@echo project must be /configured with --pic
 
 install-shared:
-	@echo project must be /configure'd with --pic
+	@echo project must be /configured with --pic
 endif # HAVESHARED
 
 uninstall:
