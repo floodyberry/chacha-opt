@@ -8,7 +8,7 @@ include/asmopt_*
 example
 example-util
 !example/
-vs2010/ipch/*
-vs2010/*.sdf
-vs2010/*.suo
-vs2010/*.user
+vs201*/ipch/*
+vs201*/*.sdf
+vs201*/*.suo
+vs201*/*.user

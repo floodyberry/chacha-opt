@@ -5,6 +5,11 @@ function get_guid($name) {
 	return "{".substr($hex, 0, 8)."-".substr($hex, 8, 4)."-".substr($hex, 12, 4)."-".substr($hex, 16, 4)."-".substr($hex, 20, 12)."}";
 }
 
+function echoln($str) {
+	echo $str;
+	echo "\n";
+}
+
 function fecholn($f, $str) {
 	fwrite($f, $str);
 	fwrite($f, "\r\n");
@@ -88,16 +93,25 @@ abstract class gen_vs {
 	public abstract function make();
 };
 
+
+/*
+	vs 2010 'tricks'
+	
+	allow a files with the same name, but different paths, to be compiled correctly and not in to a flat directory: set 
+	ObjectFileName path to "$(IntDir)dummy\\%(RelativeDir)/", dummy eats the ../ we used to escape the vs2010 dir.
+	
+	
+*/
+
 class vs2010 extends gen_vs {
 	protected $fileinfo;
 
+	protected $toolset;
+	protected $fileformatversion;
+	protected $vsversion;
+
 	public function vs2010($name) {
 		parent::gen_vs($name);
-
-		$this->project_dir = "vs2010";
-
-		if (!file_exists($this->project_dir))
-			mkdir($this->project_dir, 0755);
 
 		$this->sln = "{$this->name}.sln";
 
@@ -110,12 +124,17 @@ class vs2010 extends gen_vs {
 			"Release|x86-32bit"=>"Release|Win32",
 			"Release|amd64"=>"Release|x64"
 		);
+
+		$this->project_dir = "vs2010";
+		$this->toolset = "v100";
+		$this->fileformatversion = "11.00";
+		$this->vsversion = "2010";
 	}
 
 	function make_sln() {
 		$f = fopen("{$this->project_dir}/".$this->sln, "w+");
-		fecholn($f, "Microsoft Visual Studio Solution File, Format Version 11.00");
-		fecholn($f, "# Visual Studio 2010");
+		fecholn($f, "Microsoft Visual Studio Solution File, Format Version {$this->fileformatversion}");
+		fecholn($f, "# Visual Studio {$this->vsversion}");
 
 		foreach($this->projects as $handle=>$info) {
 			fecholn($f, "Project(\"{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}\") = ".quote($info["name"]).", ".quote($info["vcxproj"]).", ".quote($info["guid"]));
@@ -207,6 +226,7 @@ class vs2010 extends gen_vs {
 				fecholn($f, "<ProjectGuid>{$info['guid']}</ProjectGuid>");
 				fecholn($f, "<Keyword>Win32Proj</Keyword>");
 				fecholn($f, "<RootNamespace>{$this->name}</RootNamespace>");
+				fecholn($f, "<PlatformToolset>{$this->toolset}</PlatformToolset>");
 			fecholn($f, "</PropertyGroup>");
 
 			fecholn($f, "<Import Project=\"$(VCTargetsPath)\Microsoft.Cpp.Default.props\" />");
@@ -253,7 +273,7 @@ class vs2010 extends gen_vs {
 				"EnableCOMDATFolding"=>array("Release"=>"true", "Debug"=>"false"),
 				"OptimizeReferences"=>array("Release"=>"true", "Debug"=>"false"),
 				"SubSystem"=>array("lib"=>"Windows", "dll"=>"Windows", "util"=>"Console"),
-				"PreprocessorDefinitions"=>array("lib"=>"LIB_PUBLIC=;", "dll"=>"BUILDING_DLL;LIB_PUBLIC=__declspec(dllexport)", "util"=>"LIB_PUBLIC=;UTILITIES"),
+				"PreprocessorDefinitions"=>array("lib"=>"", "dll"=>"BUILDING_DLL;LIB_PUBLIC=__declspec(dllexport)", "util"=>"UTILITIES"),
 			);
 			foreach($this->builds as $build) {
 				$fields = explode("|", $build);
@@ -352,14 +372,63 @@ class vs2010 extends gen_vs {
 	}
 	
 	public function make() {
+		if (!file_exists($this->project_dir))
+			mkdir($this->project_dir, 0755);
+
 		$this->make_sln();
 		$this->make_project();
+	}
+}
+
+class vs2012 extends vs2010 {
+	public function vs2012($name) {
+		parent::vs2010($name);
+
+		$this->project_dir = "vs2012";
+		$this->toolset = "v110";
+		$this->fileformatversion = "12.00";
+		$this->vsversion = "2012";
 	}
 }
 
 
 class argument {
 	var $set, $value;
+}
+
+
+class anyargument extends argument {
+	function anyargument($flag) {
+		global $argc, $argv;
+
+		$this->set = false;
+
+		for ($i = 1; $i < $argc; $i++) {
+			if (!preg_match("!--".$flag."=(.*)!", $argv[$i], $m))
+				continue;
+			$this->value = $m[1];
+			$this->set = true;
+			return;
+		}
+	}
+}
+
+class multiargument extends anyargument {
+	function multiargument($flag, $legal_values) {
+		parent::anyargument($flag);
+
+		if (!$this->set)
+			return;
+
+		$map = array();
+		foreach($legal_values as $value)
+			$map[$value] = true;
+
+		if (!isset($map[$this->value])) {
+			usage("{$this->value} is not a valid parameter to --{$flag}!");
+			exit(1);
+		}
+	}
 }
 
 
@@ -380,9 +449,29 @@ class flag extends argument {
 	}
 }
 
-$disable_yasm = new flag("disable-yasm");
+function usage($reason) {
+		echoln("Usage: php genvs.php [flags]");
+		echoln("Flags in parantheses are optional");
+		echoln("");
+		echoln("  --disable-yasm                        do not use yasm");
+		echoln("  (--version=[*vs2012,vs2010])          which project type to generate");
+		echoln("");
+		if ($reason)
+			echoln($reason);
+}
 
-$sln = new vs2010(trim(file_get_contents("project.def")));
+$disable_yasm = new flag("disable-yasm");
+$version = new multiargument("version", array("vs2010", "vs2012"));
+
+$vsversion = ($version->set) ? $version->value : "vs2012";
+$project_name = trim(file_get_contents("project.def"));
+
+
+switch ($vsversion) {
+	case "vs2010": $sln = new vs2010($project_name); break;
+	case "vs2012": $sln = new vs2012($project_name); break;
+}
+
 $sln->make();
 
 
