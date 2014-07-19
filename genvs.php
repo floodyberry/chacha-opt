@@ -5,14 +5,22 @@ function get_guid($name) {
 	return "{".substr($hex, 0, 8)."-".substr($hex, 8, 4)."-".substr($hex, 12, 4)."-".substr($hex, 16, 4)."-".substr($hex, 20, 12)."}";
 }
 
+function addln($str) {
+	return $str."\xd\xa";
+}
+
 function echoln($str) {
 	echo $str;
 	echo "\n";
 }
 
+function fecho($f, $str) {
+	fwrite($f, $str);
+}
+
 function fecholn($f, $str) {
 	fwrite($f, $str);
-	fwrite($f, "\r\n");
+	fwrite($f, "\xd\xa");
 }
 
 function quote($str) {
@@ -133,32 +141,40 @@ class vs2010 extends gen_vs {
 
 	function make_sln() {
 		$f = fopen("{$this->project_dir}/".$this->sln, "w+");
-		fecholn($f, "Microsoft Visual Studio Solution File, Format Version {$this->fileformatversion}");
-		fecholn($f, "# Visual Studio {$this->vsversion}");
+		fecho($f, 
+			addln("Microsoft Visual Studio Solution File, Format Version {$this->fileformatversion}").
+			addln("# Visual Studio {$this->vsversion}")
+		);
 
 		foreach($this->projects as $handle=>$info) {
-			fecholn($f, "Project(\"{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}\") = ".quote($info["name"]).", ".quote($info["vcxproj"]).", ".quote($info["guid"]));
-			fecholn($f, "EndProject");
+			fecho($f, 
+				addln("Project(\"{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}\") = ".quote($info["name"]).", ".quote($info["vcxproj"]).", ".quote($info["guid"])).
+				addln("EndProject")
+			);
 		}
 
 		fecholn($f, "Global");
-			fecholn($f, "GlobalSection(SolutionConfigurationPlatforms) = preSolution");
+			fecholn($f, "	GlobalSection(SolutionConfigurationPlatforms) = preSolution");
 			foreach($this->builds as $label=>$build)
-				fecholn($f, "{$label} = {$label}");
-			fecholn($f, "EndGlobalSection");
+				fecholn($f, "		{$label} = {$label}");
+			fecholn($f, "	EndGlobalSection");
 
-			fecholn($f, "GlobalSection(ProjectConfigurationPlatforms) = postSolution");
+			fecholn($f, "	GlobalSection(ProjectConfigurationPlatforms) = postSolution");
 			foreach($this->projects as $handle=>$info) {
 				foreach($this->builds as $label=>$build) {
-					fecholn($f, "{$info['guid']}.{$label}.ActiveCfg = {$build}");
-					fecholn($f, "{$info['guid']}.{$label}.Build.0 = {$build}");
+					fecho($f,
+						addln("		{$info['guid']}.{$label}.ActiveCfg = {$build}").
+						addln("		{$info['guid']}.{$label}.Build.0 = {$build}")
+					);
 				}
 			}
-			fecholn($f, "EndGlobalSection");
+			fecholn($f, "	EndGlobalSection");
 
-			fecholn($f, "GlobalSection(SolutionProperties) = preSolution");
-			fecholn($f, "HideSolutionNode = FALSE");
-			fecholn($f, "EndGlobalSection");
+			fecho($f, 
+				addln("	GlobalSection(SolutionProperties) = preSolution").
+				addln("		HideSolutionNode = FALSE").
+				addln("	EndGlobalSection")
+			);
 		fecholn($f, "EndGlobal");
 		fclose($f);
 	}
@@ -167,37 +183,46 @@ class vs2010 extends gen_vs {
 		foreach($this->projects as $handle=>$info) {
 			$f = fopen("{$this->project_dir}/".$info["vcxproj"].".filters", "w+");
 
-			fecholn($f, "<?xml version=\"1.0\" encoding=\"utf-8\"?>");
-			fecholn($f, "<Project ToolsVersion=\"4.0\" xmlns=\"http://schemas.microsoft.com/developer/msbuild/2003\">");
-			fecholn($f, "<ItemGroup>");
-				fecholn($f, "<Filter Include=\"Source\"></Filter>");
+			fecholn($f, 
+				"<?xml version=\"1.0\" encoding=\"utf-8\"?>".
+				"<Project ToolsVersion=\"4.0\" xmlns=\"http://schemas.microsoft.com/developer/msbuild/2003\">"
+			);
 
-				$seen = array();
-				foreach($info["files"] as $handle) {
-					foreach($this->files[$handle] as $path) {
-						while (1) {
-							$chop_directory = preg_replace("!^(.*)\\\\.*$!", "$1", $path);
-							if ($chop_directory === $path)
-								break;
-							$seen[$chop_directory] = 1;
-							$path = $chop_directory;
-						}
+			/* list of filters we'll be using */
+			fecho($f, 
+				"<ItemGroup>".
+				"<Filter Include=\"Source\"></Filter>"
+			);
+
+			$seen = array();
+			foreach($info["files"] as $handle) {
+				foreach($this->files[$handle] as $path) {
+					while (1) {
+						$chop_directory = preg_replace("!^(.*)\\\\.*$!", "$1", $path);
+						if ($chop_directory === $path)
+							break;
+						$seen[$chop_directory] = 1;
+						$path = $chop_directory;
 					}
 				}
+			}
 
-				foreach($seen as $basepath=>$dummy)
-					fecholn($f, "<Filter Include=\"Source\\{$basepath}\"></Filter>");
+			foreach($seen as $basepath=>$dummy)
+				fecho($f, "<Filter Include=\"Source\\{$basepath}\"></Filter>");
 			fecholn($f, "</ItemGroup>");
+			/* list of filters we'll be using */
 
+			/* list of files with their filters */
 			foreach($info["files"] as $handle) {
-				fecholn($f, "<ItemGroup>");
+				fecho($f, "<ItemGroup>");
 				foreach($this->files[$handle] as $path) {
 					$type = $this->fileinfo[$path]["type"];
 					$folder = $this->fileinfo[$path]["basepath"];
-					fecholn($f, "<{$type} Include=\"..\\{$path}\"><Filter>Source\\{$folder}</Filter></{$type}>");
+					fecho($f, "<{$type} Include=\"..\\{$path}\"><Filter>Source\\{$folder}</Filter></{$type}>");
 				}
 				fecholn($f, "</ItemGroup>");
 			}
+			/* list of files with their filters */
 
 			fecholn($f, "</Project>");
 
@@ -209,61 +234,80 @@ class vs2010 extends gen_vs {
 		foreach($this->projects as $handle=>$info) {
 			$f = fopen("{$this->project_dir}/".$info["vcxproj"], "w+");
 
-			fecholn($f, "<?xml version=\"1.0\" encoding=\"utf-8\"?>");
-			fecholn($f, "<Project DefaultTargets=\"Build\" ToolsVersion=\"4.0\" xmlns=\"http://schemas.microsoft.com/developer/msbuild/2003\">");
+			fecholn($f, 
+				"<?xml version=\"1.0\" encoding=\"utf-8\"?>".
+				"<Project DefaultTargets=\"Build\" ToolsVersion=\"4.0\" xmlns=\"http://schemas.microsoft.com/developer/msbuild/2003\">"
+			);
 
+			/* build configurations */
 			fecholn($f, "<ItemGroup Label=\"ProjectConfigurations\">");
 			foreach($this->builds as $build) {
 				$fields = explode("|", $build);
-				fecholn($f, "<ProjectConfiguration Include=".quote($build).">");
-					fecholn($f, "<Configuration>{$fields[0]}</Configuration>");
-					fecholn($f, "<Platform>{$fields[1]}</Platform>");
-				fecholn($f, "</ProjectConfiguration>");
+				fecholn($f,
+					"<ProjectConfiguration Include=".quote($build).">".
+					"<Configuration>{$fields[0]}</Configuration>".
+					"<Platform>{$fields[1]}</Platform>".
+					"</ProjectConfiguration>"
+				);
 			}
 			fecholn($f, "</ItemGroup>");
+			/* build configurations */
 
-			fecholn($f, "<PropertyGroup Label=\"Globals\">");
-				fecholn($f, "<ProjectGuid>{$info['guid']}</ProjectGuid>");
-				fecholn($f, "<Keyword>Win32Proj</Keyword>");
-				fecholn($f, "<RootNamespace>{$this->name}</RootNamespace>");
-				fecholn($f, "<PlatformToolset>{$this->toolset}</PlatformToolset>");
-			fecholn($f, "</PropertyGroup>");
 
+			/* properties for this project */
+			fecholn($f, 
+				"<PropertyGroup Label=\"Globals\">".
+				"<ProjectGuid>{$info['guid']}</ProjectGuid>".
+				"<Keyword>Win32Proj</Keyword>".
+				"<RootNamespace>{$this->name}</RootNamespace>".
+				"<PlatformToolset>{$this->toolset}</PlatformToolset>".
+				"</PropertyGroup>"
+			);
+
+			/* some project configuration options */
 			fecholn($f, "<Import Project=\"$(VCTargetsPath)\Microsoft.Cpp.Default.props\" />");
 			foreach($this->builds as $build) {
 				$fields = explode("|", $build);
 				$configurationmap = array("lib"=>"StaticLibrary", "dll"=>"DynamicLibrary", "util"=>"Application");
 				$debuglibmap = array("Release"=>"false", "Debug"=>"true");
-				fecholn($f, "<PropertyGroup Condition=\"'$(Configuration)|$(Platform)'=='{$build}'\" Label=\"Configuration\">");
-					fecholn($f, "<ConfigurationType>{$configurationmap[$handle]}</ConfigurationType>");
-					fecholn($f, "<CharacterSet>MultiByte</CharacterSet>");
-					fecholn($f, "<UseDebugLibraries>{$debuglibmap[$fields[0]]}</UseDebugLibraries>");
-				fecholn($f, "</PropertyGroup>");
+				fecholn($f,
+					"<PropertyGroup Condition=\"'$(Configuration)|$(Platform)'=='{$build}'\" Label=\"Configuration\">".
+					"<ConfigurationType>{$configurationmap[$handle]}</ConfigurationType>".
+					"<CharacterSet>MultiByte</CharacterSet>".
+					"<UseDebugLibraries>{$debuglibmap[$fields[0]]}</UseDebugLibraries>".
+					"</PropertyGroup>"
+				);
 			}
+			/* some project configuration options */
 
 			fecholn($f, "<Import Project=\"$(VCTargetsPath)\Microsoft.Cpp.props\" />");
 
-			fecholn($f, "<ImportGroup Label=\"PropertySheets\">");
-				fecholn($f, "<Import Project=\"$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props\" Condition=\"exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')\" Label=\"LocalAppDataPlatform\" />");
-			fecholn($f, "</ImportGroup>");
+			fecholn($f, 
+				"<ImportGroup Label=\"PropertySheets\">".
+				"<Import Project=\"$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props\" Condition=\"exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')\" Label=\"LocalAppDataPlatform\" />".
+				"</ImportGroup>"
+			);
 
 			fecholn($f, "<PropertyGroup Label=\"UserMacros\" />");
 
+			/* target and directories */
 			foreach($this->builds as $label=>$build) {
 				$fields = explode("|", $label);
-				fecholn($f, "<PropertyGroup Condition=\"'$(Configuration)|$(Platform)'=='{$build}'\">");
-					fecholn($f, "<OutDir>$(SolutionDir)..\\bin\\{$fields[0]}\\{$fields[1]}\\</OutDir>");
-					fecholn($f, "<IntDir>$(SolutionDir)..\\build\\{$handle}\\{$fields[0]}\\{$fields[1]}\\</IntDir>");
-					if ($handle == "util") {
-						fecholn($f, "<TargetName>{$this->name}</TargetName>");
-						fecholn($f, "<TargetExt>.exe</TargetExt>");
-					} else {
-						fecholn($f, "<TargetName>lib{$this->name}</TargetName>");
-						fecholn($f, "<TargetExt>.{$handle}</TargetExt>");
-					}
-				fecholn($f, "</PropertyGroup>");
+				$target_name = $this->name;
+				$target_ext = ($handle == "util") ? "exe" : $handle;
+				fecholn($f, 
+					"<PropertyGroup Condition=\"'$(Configuration)|$(Platform)'=='{$build}'\">".
+					"<OutDir>$(SolutionDir)..\\bin\\{$fields[0]}\\{$fields[1]}\\</OutDir>".
+					"<IntDir>$(SolutionDir)..\\build\\{$handle}\\{$fields[0]}\\{$fields[1]}\\</IntDir>".
+					"<TargetName>{$target_name}</TargetName>".
+					"<TargetExt>.{$target_ext}</TargetExt>".
+					"</PropertyGroup>"
+				);
 			}
+			/* target and directories */
 
+
+			/* compiler and linker */
 			$settingsmap = array(
 				"Optimization"=>array("Release"=>"MaxSpeed", "Debug"=>"Disabled"),
 				"IntrinsicFunctions"=>array("Release"=>"true", "Debug"=>"false"),
@@ -278,46 +322,54 @@ class vs2010 extends gen_vs {
 			foreach($this->builds as $build) {
 				$fields = explode("|", $build);
 				fecholn($f, "<ItemDefinitionGroup Condition=\"'$(Configuration)|$(Platform)'=='{$build}'\">");
-					fecholn($f, "<ClCompile>");
-						/* static options */
-						fecholn($f, "<PrecompiledHeader />");
-						fecholn($f, "<WarningLevel>Level4</WarningLevel>");
-						fecholn($f, "<WholeProgramOptimization>false</WholeProgramOptimization>");
-						fecholn($f, "<AdditionalIncludeDirectories>.\\;..\\driver;..\\driver\\x86;..\\include;..\\extensions;..\\src;</AdditionalIncludeDirectories>");
-						fecholn($f, "<ObjectFileName>$(IntDir)dummy\\%(RelativeDir)/</ObjectFileName>");
+				/* compiler */
+				fecholn($f, 
+					"<ClCompile>".
+					/* static options */
+					"<PrecompiledHeader />".
+					"<WarningLevel>Level4</WarningLevel>".
+					"<WholeProgramOptimization>false</WholeProgramOptimization>".
+					"<AdditionalIncludeDirectories>.\\;..\\driver;..\\driver\\x86;..\\include;..\\extensions;..\\src;</AdditionalIncludeDirectories>".
+					"<ObjectFileName>$(IntDir)dummy\\%(RelativeDir)/</ObjectFileName>".
+					/* custom options */
+					"<BufferSecurityCheck>{$settingsmap['BufferSecurityCheck'][$fields[0]]}</BufferSecurityCheck>".
+					"<Optimization>{$settingsmap['Optimization'][$fields[0]]}</Optimization>".
+					"<IntrinsicFunctions>{$settingsmap['IntrinsicFunctions'][$fields[0]]}</IntrinsicFunctions>".
+					"<InlineFunctionExpansion>{$settingsmap['InlineFunctionExpansion'][$fields[0]]}</InlineFunctionExpansion>".
+					"<FavorSizeOrSpeed>{$settingsmap['FavorSizeOrSpeed'][$fields[0]]}</FavorSizeOrSpeed>".
+					"<BufferSecurityCheck>{$settingsmap['BufferSecurityCheck'][$fields[0]]}</BufferSecurityCheck>".
+					"<PreprocessorDefinitions>{$settingsmap['PreprocessorDefinitions'][$handle]};%(PreprocessorDefinitions)</PreprocessorDefinitions>".
+					"</ClCompile>"
+				);
+				/* linker */
+				fecholn($f,
+					"<Link>".
+					"<GenerateDebugInformation>true</GenerateDebugInformation>".
+					"<SubSystem>{$settingsmap['SubSystem'][$handle]}</SubSystem>".
+					"<EnableCOMDATFolding>{$settingsmap['EnableCOMDATFolding'][$fields[0]]}</EnableCOMDATFolding>".
+					"<OptimizeReferences>{$settingsmap['OptimizeReferences'][$fields[0]]}</OptimizeReferences>".
+					"</Link>"
+				);
 
-						/* custom options */
-						fecholn($f, "<BufferSecurityCheck>{$settingsmap['BufferSecurityCheck'][$fields[0]]}</BufferSecurityCheck>");
-						fecholn($f, "<Optimization>{$settingsmap['Optimization'][$fields[0]]}</Optimization>");
-						fecholn($f, "<IntrinsicFunctions>{$settingsmap['IntrinsicFunctions'][$fields[0]]}</IntrinsicFunctions>");
-						fecholn($f, "<InlineFunctionExpansion>{$settingsmap['InlineFunctionExpansion'][$fields[0]]}</InlineFunctionExpansion>");
-						fecholn($f, "<FavorSizeOrSpeed>{$settingsmap['FavorSizeOrSpeed'][$fields[0]]}</FavorSizeOrSpeed>");
-						fecholn($f, "<BufferSecurityCheck>{$settingsmap['BufferSecurityCheck'][$fields[0]]}</BufferSecurityCheck>");
-						fecholn($f, "<PreprocessorDefinitions>{$settingsmap['PreprocessorDefinitions'][$handle]};%(PreprocessorDefinitions)</PreprocessorDefinitions>");
-					fecholn($f, "</ClCompile>");
-					fecholn($f, "<Link>");
-						fecholn($f, "<GenerateDebugInformation>true</GenerateDebugInformation>");
-						fecholn($f, "<SubSystem>{$settingsmap['SubSystem'][$handle]}</SubSystem>");
-						fecholn($f, "<EnableCOMDATFolding>{$settingsmap['EnableCOMDATFolding'][$fields[0]]}</EnableCOMDATFolding>");
-						fecholn($f, "<OptimizeReferences>{$settingsmap['OptimizeReferences'][$fields[0]]}</OptimizeReferences>");
-					fecholn($f, "</Link>");
-
-					switch ($handle) {
-						case "lib":
-							fecholn($f, "<Lib>");
-								fecholn($f, "<LinkTimeCodeGeneration>false</LinkTimeCodeGeneration>");
-							fecholn($f, "</Lib>");
-							break;
-
-						case "dll":
-							break;
-						case "util":
-							break;
-					}
+				switch ($handle) {
+					case "lib":
+						fecholn($f,
+							"<Lib>".
+							"<LinkTimeCodeGeneration>false</LinkTimeCodeGeneration>".
+							"</Lib>"
+						);
+						break;
+					case "dll":
+						break;
+					case "util":
+						break;
+				}
 				fecholn($f, "</ItemDefinitionGroup>");
 			}
 			fecholn($f, "<Import Project=\"$(VCTargetsPath)\Microsoft.Cpp.targets\" />");
+			/* compiler and linker */
 
+			/* list of files */
 			foreach($info["files"] as $handle) {
 				fecholn($f, "<ItemGroup>");
 				foreach($this->files[$handle] as $path) {
@@ -326,18 +378,21 @@ class vs2010 extends gen_vs {
 					$cleanpath = str_replace("../", "", $path);
 					$basename = preg_replace("!(.*)\..*$!", "$1", $this->fileinfo[$path]["basename"]);
 					if ($type == "CustomBuild") {
-						fecholn($f, "<{$type} Include=\"..\\{$path}\">");
-							fecholn($f, "<Message>yasm [{$cleanpath}]</Message>");
-							fecholn($f, "<Command Condition=\"'$(Platform)'=='Win32'\">yasm -r nasm -p gas -I./ -I../driver -I../driver/x86 -I../extensions -I../include -o $(IntDir)\\{$folder}\\{$basename}.obj -f win32 ..\\{$path}</Command>");
-							fecholn($f, "<Command Condition=\"'$(Platform)'=='x64'\">yasm -r nasm -p gas -I./ -I../driver -I../driver/x86 -I../extensions -I../include -o $(IntDir)\\{$folder}\\{$basename}.obj -f win64 ..\\{$path}</Command>");
-							fecholn($f, "<Outputs>$(IntDir)\\{$folder}\\{$basename}.obj</Outputs>");
-						fecholn($f, "</{$type}>");
+						fecholn($f, 
+							"<{$type} Include=\"..\\{$path}\">".
+							"<Message>yasm [{$cleanpath}]</Message>".
+							"<Command Condition=\"'$(Platform)'=='Win32'\">yasm -r nasm -p gas -I./ -I../driver -I../driver/x86 -I../extensions -I../include -o $(IntDir)\\{$folder}\\{$basename}.obj -f win32 ..\\{$path}</Command>".
+							"<Command Condition=\"'$(Platform)'=='x64'\">yasm -r nasm -p gas -I./ -I../driver -I../driver/x86 -I../extensions -I../include -o $(IntDir)\\{$folder}\\{$basename}.obj -f win64 ..\\{$path}</Command>".
+							"<Outputs>$(IntDir)\\{$folder}\\{$basename}.obj</Outputs>".
+							"</{$type}>"
+						);
 					} else {
 						fecholn($f, "<{$type} Include=\"..\\{$path}\"></{$type}>");
 					}
 				}
 				fecholn($f, "</ItemGroup>");
 			}
+			/* list of files */
 
 			fecholn($f, "</Project>");
 
