@@ -115,6 +115,7 @@ class vs2010 extends gen_vs {
 	protected $fileinfo;
 
 	protected $toolset;
+	protected $toolsversion;
 	protected $fileformatversion;
 	protected $vsversion;
 
@@ -136,14 +137,15 @@ class vs2010 extends gen_vs {
 		$this->project_dir = "vs2010";
 		$this->toolset = "v100";
 		$this->fileformatversion = "11.00";
-		$this->vsversion = "2010";
+		$this->vsversion = "# Visual Studio 2010";
+		$this->toolsversion = "4.0";
 	}
 
 	function make_sln() {
 		$f = fopen("{$this->project_dir}/".$this->sln, "w+");
 		fecho($f, 
 			addln("Microsoft Visual Studio Solution File, Format Version {$this->fileformatversion}").
-			addln("# Visual Studio {$this->vsversion}")
+			addln("{$this->vsversion}")
 		);
 
 		foreach($this->projects as $handle=>$info) {
@@ -185,7 +187,7 @@ class vs2010 extends gen_vs {
 
 			fecholn($f, 
 				"<?xml version=\"1.0\" encoding=\"utf-8\"?>".
-				"<Project ToolsVersion=\"4.0\" xmlns=\"http://schemas.microsoft.com/developer/msbuild/2003\">"
+				"<Project ToolsVersion=".quote($this->toolsversion)." xmlns=\"http://schemas.microsoft.com/developer/msbuild/2003\">"
 			);
 
 			/* list of filters we'll be using */
@@ -236,7 +238,7 @@ class vs2010 extends gen_vs {
 
 			fecholn($f, 
 				"<?xml version=\"1.0\" encoding=\"utf-8\"?>".
-				"<Project DefaultTargets=\"Build\" ToolsVersion=\"4.0\" xmlns=\"http://schemas.microsoft.com/developer/msbuild/2003\">"
+				"<Project DefaultTargets=\"Build\" ToolsVersion=".quote($this->toolsversion)." xmlns=\"http://schemas.microsoft.com/developer/msbuild/2003\">"
 			);
 
 			/* build configurations */
@@ -442,7 +444,19 @@ class vs2012 extends vs2010 {
 		$this->project_dir = "vs2012";
 		$this->toolset = "v110";
 		$this->fileformatversion = "12.00";
-		$this->vsversion = "2012";
+		$this->vsversion = "# Visual Studio 2012";
+	}
+}
+
+class vs2013 extends vs2012 {
+	public function vs2013($name) {
+		parent::vs2012($name);
+
+		$this->project_dir = "vs2013";
+		$this->toolset = "v120";
+		$this->fileformatversion = "12.00";
+		$this->vsversion = "# Visual Studio 2013";
+		$this->toolsversion = "12.0";
 	}
 }
 
@@ -509,14 +523,14 @@ function usage($reason) {
 		echoln("Flags in parantheses are optional");
 		echoln("");
 		echoln("  --disable-yasm                        do not use yasm");
-		echoln("  (--version=[*vs2012,vs2010])          which project type to generate");
+		echoln("  (--version=[vs2013,*vs2012,vs2010])          which project type to generate");
 		echoln("");
 		if ($reason)
 			echoln($reason);
 }
 
 $disable_yasm = new flag("disable-yasm");
-$version = new multiargument("version", array("vs2010", "vs2012"));
+$version = new multiargument("version", array("vs2010", "vs2012", "vs2013"));
 
 $vsversion = ($version->set) ? $version->value : "vs2012";
 $project_name = trim(file_get_contents("project.def"));
@@ -525,6 +539,7 @@ $project_name = trim(file_get_contents("project.def"));
 switch ($vsversion) {
 	case "vs2010": $sln = new vs2010($project_name); break;
 	case "vs2012": $sln = new vs2012($project_name); break;
+	case "vs2013": $sln = new vs2013($project_name); break;
 }
 
 $sln->make();
