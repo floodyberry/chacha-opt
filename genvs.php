@@ -527,7 +527,7 @@ class flag extends argument {
 	}
 }
 
-function usage($reason) {
+function usage($reason = "") {
 		echoln("Usage: php genvs.php [flags]");
 		echoln("Flags in parantheses are optional");
 		echoln("");
@@ -538,8 +538,15 @@ function usage($reason) {
 			echoln($reason);
 }
 
+$help = new flag("help");
 $disable_yasm = new flag("disable-yasm");
 $version = new multiargument("version", array("vs2010", "*vs2012", "vs2013"));
+
+
+if ($help->set) {
+	usage();
+	exit(0);
+}
 
 $project_name = trim(file_get_contents("project.def"));
 
