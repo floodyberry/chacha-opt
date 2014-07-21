@@ -490,7 +490,7 @@ class multiargument extends anyargument {
 		parent::anyargument($flag);
 
 		$map = array();
-		$default = "";
+		$default = false;
 		foreach($legal_values as $value) {
 			if (substr($value, 0, 1) == "*")
 				$default = substr($value, 1);
@@ -498,6 +498,10 @@ class multiargument extends anyargument {
 		}
 
 		if (!$this->set) {
+			if ($default === false) {
+				usage("value not specified for --{$flag}!");
+				exit(1);
+			}
 			$this->value = $default;
 			return;
 		}
@@ -531,8 +535,8 @@ function usage($reason = "") {
 		echoln("Usage: php genvs.php [flags]");
 		echoln("Flags in parantheses are optional");
 		echoln("");
-		echoln("  --disable-yasm                               do not use yasm");
-		echoln("  (--version=[vs2013,*vs2012,vs2010])          which project type to generate");
+		echoln("   --version=[vs2013,vs2012,vs2010]              which project type to generate");
+		echoln("  (--disable-yasm)                               do not use yasm");
 		echoln("");
 		if ($reason)
 			echoln($reason);
@@ -540,7 +544,7 @@ function usage($reason = "") {
 
 $help = new flag("help");
 $disable_yasm = new flag("disable-yasm");
-$version = new multiargument("version", array("vs2010", "*vs2012", "vs2013"));
+$version = new multiargument("version", array("vs2010", "vs2012", "vs2013"));
 
 
 if ($help->set) {
