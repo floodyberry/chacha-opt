@@ -260,13 +260,21 @@ Well some may not be used yet, but you know, for the future.
 
 ### VISUAL STUDIO ###
 
-I've got the Visual Studio project generator working!
+I've got the Visual Studio project generator working! It generates a Visual Studio [2010,2012,2013] solution with projects for a static library, dynamic library, and utility project for both 32 and 64 bits. Generated files (exe, lib, dll) are currently placed in `asm-opt/bin/[Release|Debug]/[amd64|x86-32bit]/`.
 
-    php genvs.php
+It only requires that [yasm.exe](http://yasm.tortall.net/Download.html) be somewhere in the system path for Visual Studio to execute. You can place `yasm.exe` in the `vs2010/` directory if you're especially lazy.
 
-generates a Visual Studio 2010 solution in to `vs2010/`. It only requires that [yasm.exe](http://yasm.tortall.net/Download.html) be somewhere in the system path for Visual Studio to execute. You can place `yasm.exe` in the `vs2010/` directory if you're especially lazy.
+    php genvs.php [options]
 
-The generated solution creates a static library, dynamic library, and utility project for both 32 and 64 bits. Generated files (exe, lib, dll) are currently placed in `asm-opt/bin/[Release|Debug]/[amd64|x86-32bit]/`. This will possibly change as I make the solution generator a little more configurable.
+#### OPTIONS ####
+
+##### REQUIRED #####
+
+* `--version=VERSION`: Select the Visual Studio version to generate a solution for. [`vs2010`, `vs2012`, `vs2013`]
+
+##### OPTIONAL #####
+
+* `--disable-yasm`: Compile without Yasm support, i.e. with only reference versions
 
 ## EXAMPLE ##
 
