@@ -65,13 +65,13 @@ abstract class gen_vs {
 	public function gen_vs($name) {
 		$this->name = strtolower($name);
 		$this->projects = array();
-		
+
 		foreach(array("lib", "dll", "util") as $type) {
 			$name = "{$this->name}_{$type}";
 			$this->projects[$type] = array("name"=>$name, "guid"=>get_guid($name));
 		}
 	}
-	
+
 	public function build_files() {
 		$this->files = array("driver"=>array(), "ext"=>array(), "util"=>array(), "shared"=>array(), "include"=>array());
 		crawl($this->files["driver"], "driver", array("!\.c$!", "!\.h$!", "!\.inc$!"), false);
@@ -82,13 +82,13 @@ abstract class gen_vs {
 		crawl($this->files["util"], "src/util", array("!\.c$!", "!\.h$!"), true);
 		crawl($this->files["util"], "src", array("!^util\.c$!"), false);
 
-		$this->projects["lib"]["files"] = array("driver", "ext", "include"); 
+		$this->projects["lib"]["files"] = array("driver", "ext", "include");
 		$this->projects["dll"]["files"] = array("driver", "ext", "include", "shared");
-		$this->projects["util"]["files"] = array("driver", "ext", "include", "util"); 
+		$this->projects["util"]["files"] = array("driver", "ext", "include", "util");
 	}
 
 	public function write_file($name, $str) {
-		$in = array("%%name%%", "%%NAME%%", "%%projectdir%%");
+		$in = array("%%name", "%%NAME", "%%projectdir");
 		$out = array($this->name, strtoupper($this->name), $this->project_dir);
 		$name = str_replace($in, $out, $name);
 		$str = str_replace($in, $out, $str);
@@ -104,11 +104,11 @@ abstract class gen_vs {
 
 /*
 	vs 2010 'tricks'
-	
-	allow a files with the same name, but different paths, to be compiled correctly and not in to a flat directory: set 
+
+	allow a files with the same name, but different paths, to be compiled correctly and not in to a flat directory: set
 	ObjectFileName path to "$(IntDir)dummy\\%(RelativeDir)/", dummy eats the ../ we used to escape the vs2010 dir.
-	
-	
+
+
 */
 
 class vs2010 extends gen_vs {
@@ -143,13 +143,13 @@ class vs2010 extends gen_vs {
 
 	function make_sln() {
 		$f = fopen("{$this->project_dir}/".$this->sln, "w+");
-		fecho($f, 
+		fecho($f,
 			addln("Microsoft Visual Studio Solution File, Format Version {$this->fileformatversion}").
 			addln("{$this->vsversion}")
 		);
 
 		foreach($this->projects as $handle=>$info) {
-			fecho($f, 
+			fecho($f,
 				addln("Project(\"{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}\") = ".quote($info["name"]).", ".quote($info["vcxproj"]).", ".quote($info["guid"])).
 				addln("EndProject")
 			);
@@ -172,7 +172,7 @@ class vs2010 extends gen_vs {
 			}
 			fecholn($f, "	EndGlobalSection");
 
-			fecho($f, 
+			fecho($f,
 				addln("	GlobalSection(SolutionProperties) = preSolution").
 				addln("		HideSolutionNode = FALSE").
 				addln("	EndGlobalSection")
@@ -180,18 +180,18 @@ class vs2010 extends gen_vs {
 		fecholn($f, "EndGlobal");
 		fclose($f);
 	}
-	
+
 	public function make_vcxproj_filters() {
 		foreach($this->projects as $handle=>$info) {
 			$f = fopen("{$this->project_dir}/".$info["vcxproj"].".filters", "w+");
 
-			fecholn($f, 
+			fecholn($f,
 				"<?xml version=\"1.0\" encoding=\"utf-8\"?>".
 				"<Project ToolsVersion=".quote($this->toolsversion)." xmlns=\"http://schemas.microsoft.com/developer/msbuild/2003\">"
 			);
 
 			/* list of filters we'll be using */
-			fecho($f, 
+			fecho($f,
 				"<ItemGroup>".
 				"<Filter Include=\"Source\"></Filter>"
 			);
@@ -236,7 +236,7 @@ class vs2010 extends gen_vs {
 		foreach($this->projects as $handle=>$info) {
 			$f = fopen("{$this->project_dir}/".$info["vcxproj"], "w+");
 
-			fecholn($f, 
+			fecholn($f,
 				"<?xml version=\"1.0\" encoding=\"utf-8\"?>".
 				"<Project DefaultTargets=\"Build\" ToolsVersion=".quote($this->toolsversion)." xmlns=\"http://schemas.microsoft.com/developer/msbuild/2003\">"
 			);
@@ -257,7 +257,7 @@ class vs2010 extends gen_vs {
 
 
 			/* properties for this project */
-			fecholn($f, 
+			fecholn($f,
 				"<PropertyGroup Label=\"Globals\">".
 				"<ProjectGuid>{$info['guid']}</ProjectGuid>".
 				"<Keyword>Win32Proj</Keyword>".
@@ -284,7 +284,7 @@ class vs2010 extends gen_vs {
 
 			fecholn($f, "<Import Project=\"$(VCTargetsPath)\Microsoft.Cpp.props\" />");
 
-			fecholn($f, 
+			fecholn($f,
 				"<ImportGroup Label=\"PropertySheets\">".
 				"<Import Project=\"$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props\" Condition=\"exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')\" Label=\"LocalAppDataPlatform\" />".
 				"</ImportGroup>"
@@ -297,7 +297,7 @@ class vs2010 extends gen_vs {
 				$fields = explode("|", $label);
 				$target_name = $this->name;
 				$target_ext = ($handle == "util") ? "exe" : $handle;
-				fecholn($f, 
+				fecholn($f,
 					"<PropertyGroup Condition=\"'$(Configuration)|$(Platform)'=='{$build}'\">".
 					"<OutDir>$(SolutionDir)..\\bin\\{$fields[0]}\\{$fields[1]}\\</OutDir>".
 					"<IntDir>$(SolutionDir)..\\build\\{$handle}\\{$fields[0]}\\{$fields[1]}\\</IntDir>".
@@ -325,7 +325,7 @@ class vs2010 extends gen_vs {
 				$fields = explode("|", $build);
 				fecholn($f, "<ItemDefinitionGroup Condition=\"'$(Configuration)|$(Platform)'=='{$build}'\">");
 				/* compiler */
-				fecholn($f, 
+				fecholn($f,
 					"<ClCompile>".
 					/* static options */
 					"<PrecompiledHeader />".
@@ -344,14 +344,6 @@ class vs2010 extends gen_vs {
 					"</ClCompile>"
 				);
 				/* linker */
-				fecholn($f,
-					"<Link>".
-					"<GenerateDebugInformation>true</GenerateDebugInformation>".
-					"<SubSystem>{$settingsmap['SubSystem'][$handle]}</SubSystem>".
-					"<EnableCOMDATFolding>{$settingsmap['EnableCOMDATFolding'][$fields[0]]}</EnableCOMDATFolding>".
-					"<OptimizeReferences>{$settingsmap['OptimizeReferences'][$fields[0]]}</OptimizeReferences>".
-					"</Link>"
-				);
 
 				switch ($handle) {
 					case "lib":
@@ -361,9 +353,19 @@ class vs2010 extends gen_vs {
 							"</Lib>"
 						);
 						break;
+
 					case "dll":
-						break;
 					case "util":
+						fecholn($f,
+							"<Link>".
+							"<GenerateDebugInformation>true</GenerateDebugInformation>".
+							"<SubSystem>{$settingsmap['SubSystem'][$handle]}</SubSystem>".
+							"<EnableCOMDATFolding>{$settingsmap['EnableCOMDATFolding'][$fields[0]]}</EnableCOMDATFolding>".
+							"<OptimizeReferences>{$settingsmap['OptimizeReferences'][$fields[0]]}</OptimizeReferences>".
+							"<ImportLibrary>$(OutDir){$this->name}.dll.lib</ImportLibrary>".
+							"<ProgramDatabaseFile>$(TargetDir)$(TargetName)$(TargetExt).pdb</ProgramDatabaseFile>".
+							"</Link>"
+						);
 						break;
 				}
 				fecholn($f, "</ItemDefinitionGroup>");
@@ -380,7 +382,7 @@ class vs2010 extends gen_vs {
 					$cleanpath = str_replace("../", "", $path);
 					$basename = preg_replace("!(.*)\..*$!", "$1", $this->fileinfo[$path]["basename"]);
 					if ($type == "CustomBuild") {
-						fecholn($f, 
+						fecholn($f,
 							"<{$type} Include=\"..\\{$path}\">".
 							"<Message>yasm [{$cleanpath}]</Message>".
 							"<Command Condition=\"'$(Platform)'=='Win32'\">yasm -r nasm -p gas -I./ -I../driver -I../driver/x86 -I../extensions -I../include -o $(IntDir)\\{$folder}\\{$basename}.obj -f win32 ..\\{$path}</Command>".
@@ -427,7 +429,7 @@ class vs2010 extends gen_vs {
 		$this->make_vcxproj();
 		$this->make_vcxproj_filters();
 	}
-	
+
 	public function make() {
 		if (!file_exists($this->project_dir))
 			mkdir($this->project_dir, 0755);
@@ -482,16 +484,23 @@ class anyargument extends argument {
 	}
 }
 
+/* prefix an argument with a * to indicate default */
 class multiargument extends anyargument {
 	function multiargument($flag, $legal_values) {
 		parent::anyargument($flag);
 
-		if (!$this->set)
-			return;
-
 		$map = array();
-		foreach($legal_values as $value)
+		$default = "";
+		foreach($legal_values as $value) {
+			if (substr($value, 0, 1) == "*")
+				$default = substr($value, 1);
 			$map[$value] = true;
+		}
+
+		if (!$this->set) {
+			$this->value = $default;
+			return;
+		}
 
 		if (!isset($map[$this->value])) {
 			usage("{$this->value} is not a valid parameter to --{$flag}!");
@@ -522,7 +531,7 @@ function usage($reason) {
 		echoln("Usage: php genvs.php [flags]");
 		echoln("Flags in parantheses are optional");
 		echoln("");
-		echoln("  --disable-yasm                        do not use yasm");
+		echoln("  --disable-yasm                               do not use yasm");
 		echoln("  (--version=[vs2013,*vs2012,vs2010])          which project type to generate");
 		echoln("");
 		if ($reason)
@@ -530,13 +539,11 @@ function usage($reason) {
 }
 
 $disable_yasm = new flag("disable-yasm");
-$version = new multiargument("version", array("vs2010", "vs2012", "vs2013"));
+$version = new multiargument("version", array("vs2010", "*vs2012", "vs2013"));
 
-$vsversion = ($version->set) ? $version->value : "vs2012";
 $project_name = trim(file_get_contents("project.def"));
 
-
-switch ($vsversion) {
+switch ($version->value) {
 	case "vs2010": $sln = new vs2010($project_name); break;
 	case "vs2012": $sln = new vs2012($project_name); break;
 	case "vs2013": $sln = new vs2013($project_name); break;
@@ -615,18 +622,18 @@ $asmopt_internal = <<<EOS
 #define LOCAL_PREFIX3(a,b) a##_##b
 #define LOCAL_PREFIX2(a,b) LOCAL_PREFIX3(a,b)
 #define LOCAL_PREFIX(n) LOCAL_PREFIX2(PROJECT_NAME,n)
-#define PROJECT_NAME %%name%%
+#define PROJECT_NAME %%name
 
 /* yasm */
 #if (0)
-%define PROJECT_NAME %%name%%
+%define PROJECT_NAME %%name
 #endif
 
 #endif /* ASMOPT_INTERNAL_H */
 
 EOS;
 
-$sln->write_file("%%projectdir%%/asmopt.h", $asmopt_h);
-$sln->write_file("%%projectdir%%/asmopt_internal.h", $asmopt_internal);
+$sln->write_file("%%projectdir/asmopt.h", $asmopt_h);
+$sln->write_file("%%projectdir/asmopt_internal.h", $asmopt_internal);
 
 ?>
