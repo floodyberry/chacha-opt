@@ -9,6 +9,7 @@ include asmopt.mak
 #
 
 BASEDIR = .
+BINDIR = bin
 BUILDDIR = build
 BUILDDIRUTIL = build_util
 INCLUDE = $(addprefix -I$(BASEDIR)/,driver extensions include src $(addsuffix $(ARCH)/,driver/))
@@ -61,6 +62,7 @@ OBJSHARED = $(patsubst %.c, $(BUILDDIR)/%.o, $(SRCSHARED))
 #
 .PHONY: all
 .PHONY: default
+.PHONY: makebin
 .PHONY: exe
 .PHONY: lib
 .PHONY: shared
@@ -79,33 +81,36 @@ all: default
 
 default: lib
 
-exe: $(PROJECTNAME)$(EXE)
-	@echo built [$(PROJECTNAME)$(EXE)]
+makebin:
+	@mkdir -p $(BINDIR)
+
+exe: makebin $(BINDIR)/$(PROJECTNAME)$(EXE)
+	@echo built [$(BINDIR)/$(PROJECTNAME)$(EXE)]
 
 install-generic:
 	$(INSTALL) -d $(includedir)/lib$(PROJECTNAME)
 	$(INSTALL) -d $(libdir)
 	$(INSTALL) -m 644 include/*.h $(includedir)/lib$(PROJECTNAME)
 
-lib: $(PROJECTNAME)$(STATICLIB)
-	@echo built [$(PROJECTNAME)$(STATICLIB)]
+lib: makebin $(BINDIR)/$(PROJECTNAME)$(STATICLIB)
+	@echo built [$(BINDIR)/$(PROJECTNAME)$(STATICLIB)]
 
 install-lib: lib install-generic
-	$(INSTALL) -m 644 $(PROJECTNAME)$(STATICLIB) $(libdir)
+	$(INSTALL) -m 644 $(BINDIR)/$(PROJECTNAME)$(STATICLIB) $(libdir)
 	$(if $(RANLIB), $(RANLIB) $(libdir)/$(PROJECTNAME)$(STATICLIB))
 
-util: $(PROJECTNAME)-util$(EXE)
-	@echo built [$(PROJECTNAME)-util$(EXE)]
+util: $(BINDIR)/$(PROJECTNAME)-util$(EXE)
+	@echo built [$(BINDIR)/$(PROJECTNAME)-util$(EXE)]
 
 ifeq ($(HAVESHARED),yes)
-shared: $(SONAME)
-	@echo built [$(SONAME)]
+shared: makebin $(BINDIR)/$(SONAME)
+	@echo built [$(BINDIR)/$(SONAME)]
 
 install-shared: shared install-generic
 ifneq ($(SOIMPORT),)
 	$(INSTALL) -d $(bindir)
-	$(INSTALL) -m 755 $(SONAME) $(bindir)
-	$(INSTALL) -m 644 $(SOIMPORT) $(libdir)
+	$(INSTALL) -m 755 $(BINDIR)/$(SONAME) $(bindir)
+	$(INSTALL) -m 644 $(BINDIR)/$(SOIMPORT) $(libdir)
 else ifneq ($(SONAME),)
 	ln -f -s $(SONAME) $(libdir)/lib$(PROJECTNAME).$(SOSUFFIX)
 	$(INSTALL) -m 755 $(SONAME) $(libdir)
@@ -120,6 +125,7 @@ endif # HAVESHARED
 
 uninstall:
 	rm -rf $(includedir)/lib$(PROJECTNAME)
+	rm -f $(libdir)/$(PROJECTNAME)$(STATICLIB)
 ifneq ($(SOIMPORT),)
 	rm -f $(bindir)/$(SONAME) $(libdir)/lib$(SOIMPORT)
 else ifneq ($(SONAME),)
@@ -130,13 +136,7 @@ clean:
 	@echo cleaning project [$(PROJECTNAME)]
 	@rm -rf $(BUILDDIR)/*
 	@rm -rf $(BUILDDIRUTIL)/*
-	@rm -f $(PROJECTNAME)$(EXE)
-	@rm -f $(PROJECTNAME)$(STATICLIB)
-ifneq ($(SOIMPORT),)
-	@rm -f $(SOIMPORT)
-endif
-	@rm -f $(SONAME)
-	@rm -f $(PROJECTNAME)-util$(EXE)
+	@rm -rf $(BINDIR)/*
 
 distclean: clean
 	@rm asmopt.mak
@@ -213,18 +213,18 @@ $(BUILDDIRUTIL)/%.o: %.c
 ##########################
 # final build targets
 #
-$(PROJECTNAME)$(EXE): $(OBJDRIVER) $(OBJEXT) $(OBJASM) $(OBJMAIN)
+$(BINDIR)/$(PROJECTNAME)$(EXE): $(OBJDRIVER) $(OBJEXT) $(OBJASM) $(OBJMAIN)
 	$(CC) $(CFLAGS) -o $@ $(OBJDRIVER) $(OBJEXT) $(OBJASM) $(OBJMAIN)
 
-$(PROJECTNAME)$(STATICLIB): $(OBJDRIVER) $(OBJEXT) $(OBJASM)
+$(BINDIR)/$(PROJECTNAME)$(STATICLIB): $(OBJDRIVER) $(OBJEXT) $(OBJASM)
 	rm -f $(PROJECTNAME)$(STATICLIB)
 	$(AR)$@ $(OBJDRIVER) $(OBJEXT) $(OBJASM)
 	$(if $(RANLIB), $(RANLIB) $@)
 
-$(PROJECTNAME)-util$(EXE): $(OBJDRIVER) $(OBJEXTUTIL) $(OBJASM) $(OBJUTIL)
+$(BINDIR)/$(PROJECTNAME)-util$(EXE): $(OBJDRIVER) $(OBJEXTUTIL) $(OBJASM) $(OBJUTIL)
 	$(CC) $(CFLAGS) -o $@ $(OBJDRIVER) $(OBJEXTUTIL) $(OBJASM) $(OBJUTIL)
 
 ifeq ($(HAVESHARED),yes)
-$(SONAME): $(OBJDRIVER) $(OBJEXT) $(OBJASM) $(OBJSHARED)
+$(BINDIR)/$(SONAME): $(OBJDRIVER) $(OBJEXT) $(OBJASM) $(OBJSHARED)
 	$(LD)$@ $(OBJDRIVER) $(OBJEXT) $(OBJASM) $(OBJSHARED) $(SOFLAGS) $(LDFLAGS)
 endif
