@@ -157,8 +157,8 @@ test_for_gnu_make() {
 }
 
 # options
-outputheader="driver/asmopt.h"
-outputheaderstub="driver/asmopt_internal.h"
+outputheader="src/driver/asmopt.h"
+outputheaderstub="src/driver/asmopt_internal.h"
 outputmake="asmopt.mak"
 outputlog="config.log"
 debug="no"

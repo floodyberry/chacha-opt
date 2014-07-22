@@ -38,7 +38,7 @@ typedef struct example_impl_t {
 
 /* the "always runs" version */
 #define EXAMPLE_GENERIC {CPUID_GENERIC, "generic", example_generic}
-#include "example_generic.h"
+#include "example/example_generic.h"
 
 /* list implemenations from most optimized to least, with generic as the last entry */
 static const example_impl_t example_list[] = {

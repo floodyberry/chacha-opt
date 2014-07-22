@@ -12,7 +12,7 @@ BASEDIR = .
 BINDIR = bin
 BUILDDIR = build
 BUILDDIRUTIL = build_util
-INCLUDE = $(addprefix -I$(BASEDIR)/,driver extensions include src $(addsuffix $(ARCH)/,driver/))
+INCLUDE = $(addprefix -I$(BASEDIR)/,src src/extensions src/driver $(addsuffix $(ARCH)/,src/driver/) include)
 CINCLUDE = $(INCLUDE)
 ASMINCLUDE = $(INCLUDE)
 
@@ -27,8 +27,8 @@ endif
 #
 rwildcard = $(foreach d, $(wildcard $(1)*), $(call rwildcard, $(d)/, $(2)) $(filter $(subst *, %, $(2)), $(d)))
 
-SRCDRIVER = $(call rwildcard, driver/, *.c)
-SRCEXT = $(call rwildcard, extensions/, *.c)
+SRCDRIVER = $(call rwildcard, src/driver/, *.c)
+SRCEXT = $(call rwildcard, src/extensions/, *.c)
 SRCASM =
 SRCMAIN = src/main.c
 SRCUTIL = src/util.c
@@ -39,10 +39,10 @@ SRCUTIL += $(call rwildcard, src/util/, *.c)
 ifeq ($(HAVEAS),yes)
 
 # grab all the assembler files
-SRCASM = $(call rwildcard, extensions/, *.S)
+SRCASM = $(call rwildcard, src/extensions/, *.S)
 
 # add asm for the appropriate arch
-SRCASM += $(call rwildcard, $(addsuffix $(ARCH),driver/), *.S)
+SRCASM += $(call rwildcard, $(addsuffix $(ARCH),src/driver/), *.S)
 
 endif
 

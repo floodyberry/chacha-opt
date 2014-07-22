@@ -1,4 +1,5 @@
 #include "cpuid.h"
+
 #include "cpuid_impl.inc"
 
 static unsigned long cpuid_flags = CPUID_GENERIC;

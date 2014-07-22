@@ -74,9 +74,9 @@ abstract class gen_vs {
 
 	public function build_files() {
 		$this->files = array("driver"=>array(), "ext"=>array(), "util"=>array(), "shared"=>array(), "include"=>array());
-		crawl($this->files["driver"], "driver", array("!\.c$!", "!\.h$!", "!\.inc$!"), false);
-		crawl($this->files["driver"], "driver/x86", array("!\.c$!", "!\.S$!", "!\.h$!", "!\.inc$!"), false);
-		crawl($this->files["ext"], "extensions", array("!\.c$!", "!\.S$!", "!\.inc$!", "!\.h$!"), true);
+		crawl($this->files["driver"], "src/driver", array("!\.c$!", "!\.h$!", "!\.inc$!"), false);
+		crawl($this->files["driver"], "src/driver/x86", array("!\.c$!", "!\.S$!", "!\.h$!", "!\.inc$!"), false);
+		crawl($this->files["ext"], "src/extensions", array("!\.c$!", "!\.S$!", "!\.inc$!", "!\.h$!"), true);
 		crawl($this->files["include"], "include", array("!\.h$!"), false);
 		crawl($this->files["shared"], "src", array("!^shared\.c$!"), false);
 		crawl($this->files["util"], "src/util", array("!\.c$!", "!\.h$!"), true);
@@ -331,7 +331,7 @@ class vs2010 extends gen_vs {
 					"<PrecompiledHeader />".
 					"<WarningLevel>Level4</WarningLevel>".
 					"<WholeProgramOptimization>false</WholeProgramOptimization>".
-					"<AdditionalIncludeDirectories>.\\;..\\driver;..\\driver\\x86;..\\include;..\\extensions;..\\src;</AdditionalIncludeDirectories>".
+					"<AdditionalIncludeDirectories>.\\;..\\src\\driver;..\\src\\driver\\x86;..\\include;..\\src\\extensions;..\\src;</AdditionalIncludeDirectories>".
 					"<ObjectFileName>$(IntDir)dummy\\%(RelativeDir)/</ObjectFileName>".
 					/* custom options */
 					"<BufferSecurityCheck>{$settingsmap['BufferSecurityCheck'][$fields[0]]}</BufferSecurityCheck>".
@@ -385,8 +385,8 @@ class vs2010 extends gen_vs {
 						fecholn($f,
 							"<{$type} Include=\"..\\{$path}\">".
 							"<Message>yasm [{$cleanpath}]</Message>".
-							"<Command Condition=\"'$(Platform)'=='Win32'\">yasm -r nasm -p gas -I./ -I../driver -I../driver/x86 -I../extensions -I../include -o $(IntDir)\\{$folder}\\{$basename}.obj -f win32 ..\\{$path}</Command>".
-							"<Command Condition=\"'$(Platform)'=='x64'\">yasm -r nasm -p gas -I./ -I../driver -I../driver/x86 -I../extensions -I../include -o $(IntDir)\\{$folder}\\{$basename}.obj -f win64 ..\\{$path}</Command>".
+							"<Command Condition=\"'$(Platform)'=='Win32'\">yasm -r nasm -p gas -I./ -I../src -I../src/driver -I../src/driver/x86 -I../src/extensions -I../include -o $(IntDir)\\{$folder}\\{$basename}.obj -f win32 ..\\{$path}</Command>".
+							"<Command Condition=\"'$(Platform)'=='x64'\">yasm -r nasm -p gas -I./ -I../src -I../src/driver -I../src/driver/x86 -I../src/extensions -I../include -o $(IntDir)\\{$folder}\\{$basename}.obj -f win64 ..\\{$path}</Command>".
 							"<Outputs>$(IntDir)\\{$folder}\\{$basename}.obj</Outputs>".
 							"</{$type}>"
 						);
