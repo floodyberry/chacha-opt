@@ -99,7 +99,7 @@ install-lib: lib install-generic
 	$(INSTALL) -m 644 $(BINDIR)/$(PROJECTNAME)$(STATICLIB) $(libdir)
 	$(if $(RANLIB), $(RANLIB) $(libdir)/$(PROJECTNAME)$(STATICLIB))
 
-util: $(BINDIR)/$(PROJECTNAME)-util$(EXE)
+util: makebin $(BINDIR)/$(PROJECTNAME)-util$(EXE)
 	@echo built [$(BINDIR)/$(PROJECTNAME)-util$(EXE)]
 
 ifeq ($(HAVESHARED),yes)
