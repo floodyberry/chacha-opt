@@ -15,6 +15,7 @@ unsigned char *bench_get_buffer(void) {
 int
 bench(const void *impls, size_t impl_size, impl_test test_fn, impl_bench bench_fn, size_t units_count, const char *units_desc, size_t trials) {
 	unsigned long cpu_flags = LOCAL_PREFIX(cpuid)();
+	const char *cpu_units = LOCAL_PREFIX(cpucycles_units)();
 	const unsigned char *p = (const unsigned char *)impls;
 	int first_item = 1;
 
@@ -48,7 +49,7 @@ bench(const void *impls, size_t impl_size, impl_test test_fn, impl_bench bench_f
 				first_item = 0;
 			}
 
-			printf("  %12s, %8.2f cycles/%s\n", impl->desc, tbest, units_desc);
+			printf("  %12s, %8.2f %s/%s\n", impl->desc, tbest, cpu_units, units_desc);
 		}
 
 		if (impl->cpu_flags == CPUID_GENERIC)

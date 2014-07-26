@@ -13,3 +13,13 @@ cpucycles_impl(void) {
 	return cludge++;
 #endif
 }
+
+static const char *
+cpucycles_units_impl(void) {
+#if defined(HAVE_GETTIMEOFDAY)
+	return "us";
+#else
+	return "cludges";
+#endif
+}
+

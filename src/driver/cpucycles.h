@@ -12,6 +12,7 @@ typedef unsigned long cycles_t;
 #endif
 
 cycles_t LOCAL_PREFIX(cpucycles)(void);
+const char *LOCAL_PREFIX(cpucycles_units)(void);
 
 #endif /* CPUCYCLES_H */
 

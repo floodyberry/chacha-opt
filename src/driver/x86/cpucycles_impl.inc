@@ -28,3 +28,16 @@ cpucycles_select(void) {
 	cpucycles_impl = (LOCAL_PREFIX(cpuid)() & CPUID_RDTSC) ? LOCAL_PREFIX(cpucycles_x86) : cpucycles_x86_cludge;
 	return cpucycles_impl();
 }
+
+static const char *
+cpucycles_units_impl(void) {
+	if ((LOCAL_PREFIX(cpuid)() & CPUID_RDTSC))
+		return "cycles";
+	else
+#if defined(HAVE_GETTIMEOFDAY)
+		return "us";
+#else
+		return "cludges";
+#endif
+}
+
