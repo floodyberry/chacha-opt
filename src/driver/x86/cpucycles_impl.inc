@@ -12,7 +12,7 @@ static cycles_t
 cpucycles_x86_cludge(void) {
 	struct timeval t;
 	gettimeofday(&t, NULL);
-	return ((cycles_t)t.tv_usec * 1000000) + (cycles_t)t.tv_sec;
+	return ((cycles_t)t.tv_sec * 1000000) + (cycles_t)t.tv_usec;
 }
 #else
 /* what can a 386/486 use for this otherwise? */

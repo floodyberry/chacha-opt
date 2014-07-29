@@ -7,7 +7,7 @@ cpucycles_impl(void) {
 #if defined(HAVE_GETTIMEOFDAY)
 	struct timeval t;
 	gettimeofday(&t, NULL);
-	return ((cycles_t)t.tv_usec * 1000000) + (cycles_t)t.tv_sec;
+	return ((cycles_t)t.tv_sec * 1000000) + (cycles_t)t.tv_usec;
 #else
 	static cycles_t cludge = 0;
 	return cludge++;
