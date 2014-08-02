@@ -145,7 +145,6 @@ secure_zero_fuzz(void) {
 
 static unsigned char *bench_arr = NULL;
 static size_t bench_len = 0;
-static const size_t bench_trials = 10000000;
 
 static void
 secure_zero_bench_impl(const void *impl) {
@@ -163,7 +162,7 @@ secure_zero_bench(void) {
 		printf("%s test\n", titles[i]);
 		for (j = 0; lengths[j]; j++) {
 			bench_len = lengths[j];
-			bench(secure_zero_list, sizeof(secure_zero_extension_t), secure_zero_test_impl, secure_zero_bench_impl, bench_len, "byte", bench_trials / ((bench_len / 100) + 1));
+			bench(secure_zero_list, sizeof(secure_zero_extension_t), secure_zero_test_impl, secure_zero_bench_impl, bench_len, "byte");
 		}
 		bench_arr++;
 	}

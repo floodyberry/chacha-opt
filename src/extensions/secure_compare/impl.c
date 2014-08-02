@@ -35,17 +35,33 @@ typedef struct secure_compare_extension_t {
 	DECLARE_SECURE_COMPARE_EXTENSION(x86)
 #endif
 
+#if defined(ARCH_ARM)
+	#if defined(CPU_32BITS)
+		#if defined(HAVE_ARMv7)
+			#define SECURE_COMPARE_ARMv7
+			DECLARE_SECURE_COMPARE_EXTENSION(armv7)
+		#endif
+	#endif
+#endif
+
 #include "secure_compare/secure_compare_generic.h"
 
 #define ADD_SECURE_COMPARE_EXTENSION(flags, desc, ext) {flags, desc, secure_compare8_##ext, secure_compare16_##ext ,secure_compare32_##ext}
 
 static const secure_compare_extension_t secure_compare_list[] = {
+/* x86 */
 #if defined(SECURE_COMPARE_SSE2)
 	ADD_SECURE_COMPARE_EXTENSION(CPUID_SSE2, "sse2", sse2),
 #endif
 #if defined(SECURE_COMPARE_X86)
 	ADD_SECURE_COMPARE_EXTENSION(CPUID_X86, "x86", x86),
 #endif
+
+/* arm */
+#if defined(SECURE_COMPARE_ARMv7)
+	ADD_SECURE_COMPARE_EXTENSION(CPUID_ARMv7, "armv7", armv7),
+#endif
+
 	ADD_SECURE_COMPARE_EXTENSION(CPUID_GENERIC, "generic", generic)
 };
 
@@ -208,41 +224,31 @@ secure_compare_fuzz(void) {
 
 static unsigned char *bench_arr = NULL;
 static size_t bench_len = 0;
-static size_t internal_trials = 0;
-static const size_t bench_trials = 10000000;
 
 static void
 secure_compare32_bench_impl(const void *impl) {
 	const secure_compare_extension_t *ext = (const secure_compare_extension_t *)impl;
-	size_t i;
-	for (i = 0; i < 1024; i++)
-		ext->secure_compare32(bench_arr, bench_arr + 384);
+	ext->secure_compare32(bench_arr, bench_arr + 384);
 }
 
 static void
 secure_compare16_bench_impl(const void *impl) {
 	const secure_compare_extension_t *ext = (const secure_compare_extension_t *)impl;
-	size_t i;
-	for (i = 0; i < 1024; i++)
-		ext->secure_compare16(bench_arr, bench_arr + 384);
+	ext->secure_compare16(bench_arr, bench_arr + 384);
 }
 
 static void
 secure_compare8_bench_impl(const void *impl) {
 	const secure_compare_extension_t *ext = (const secure_compare_extension_t *)impl;
-	size_t i;
-	for (i = 0; i < 1024; i++)
-		ext->secure_compare8(bench_arr, bench_arr + 384);
+	ext->secure_compare8(bench_arr, bench_arr + 384);
 }
 
 void
 secure_compare_bench(void) {
 	bench_arr = bench_get_buffer();
-	internal_trials = 1024;
-	bench_len = internal_trials * 32;
-	bench(secure_compare_list, sizeof(secure_compare_extension_t), secure_compare_test_impl, secure_compare32_bench_impl, internal_trials, "compare32", bench_trials / ((bench_len / 100) + 1));
-	bench(secure_compare_list, sizeof(secure_compare_extension_t), secure_compare_test_impl, secure_compare16_bench_impl, internal_trials, "compare16", bench_trials / ((bench_len / 100) + 1));
-	bench(secure_compare_list, sizeof(secure_compare_extension_t), secure_compare_test_impl, secure_compare8_bench_impl, internal_trials, "compare8", bench_trials / ((bench_len / 100) + 1));
+	bench(secure_compare_list, sizeof(secure_compare_extension_t), secure_compare_test_impl, secure_compare32_bench_impl, 32, "byte");
+	bench(secure_compare_list, sizeof(secure_compare_extension_t), secure_compare_test_impl, secure_compare16_bench_impl, 16, "byte");
+	bench(secure_compare_list, sizeof(secure_compare_extension_t), secure_compare_test_impl, secure_compare8_bench_impl, 8, "byte");
 }
 
 

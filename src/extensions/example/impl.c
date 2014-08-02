@@ -36,12 +36,22 @@ typedef struct example_impl_t {
 	#endif
 #endif
 
+#if defined(ARCH_ARM)
+	#if defined(CPU_32BITS)
+		#if defined(HAVE_NEON)
+			EXAMPLE_DECLARE(neon)
+			#define EXAMPLE_NEON {CPUID_NEON, "neon", example_neon}
+		#endif
+	#endif
+#endif
+
 /* the "always runs" version */
 #define EXAMPLE_GENERIC {CPUID_GENERIC, "generic", example_generic}
 #include "example/example_generic.h"
 
 /* list implemenations from most optimized to least, with generic as the last entry */
 static const example_impl_t example_list[] = {
+	/* x86 */
 	#if defined(EXAMPLE_AVX)
 		EXAMPLE_AVX,
 	#endif
@@ -51,6 +61,12 @@ static const example_impl_t example_list[] = {
 	#if defined(EXAMPLE_X86)
 		EXAMPLE_X86,
 	#endif
+
+	/* arm */
+	#if defined(EXAMPLE_NEON)
+		EXAMPLE_NEON,
+	#endif
+
 	EXAMPLE_GENERIC
 };
 
@@ -140,7 +156,6 @@ example_fuzz(void) {
 
 static unsigned char *bench_arr = NULL;
 static size_t bench_len = 0;
-static const size_t bench_trials = 10000000;
 
 static void
 example_bench_impl(const void *impl) {
@@ -156,7 +171,7 @@ example_bench(void) {
 	memset(bench_arr, 0xf5, 32768);
 	for (i = 0; lengths[i]; i++) {
 		bench_len = lengths[i];
-		bench(example_list, sizeof(example_impl_t), example_test_impl, example_bench_impl, bench_len, "byte", bench_trials / ((bench_len / 100) + 1));
+		bench(example_list, sizeof(example_impl_t), example_test_impl, example_bench_impl, bench_len, "byte");
 	}
 }
 

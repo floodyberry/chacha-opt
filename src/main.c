@@ -51,6 +51,65 @@ print_cpuflags(void) {
 		printf(" aes");
 	printf("\n");
 }
+#elif defined(ARCH_ARM)
+static void
+print_cpuflags(void) {
+	unsigned long cpuflags = LOCAL_PREFIX(cpuid)();
+
+	printf("cpu: ARM\n");
+
+	if (cpuflags & (CPUID_ARMv6 | CPUID_ARMv7 | CPUID_ARMv8)) {
+		printf("cpu compatible-ish with:\n");
+		if (cpuflags & CPUID_ARMv6)
+			printf(" ARMv6");
+		if (cpuflags & CPUID_ARMv7)
+			printf(" ARMv7");
+		if (cpuflags & CPUID_ARMv8)
+			printf(" ARMv8");
+		printf("\n");
+	}
+
+	printf("cpu extensions:\n");
+	if (cpuflags & CPUID_NEON)
+		printf(" neon");
+	if (cpuflags & CPUID_ASIMD)
+		printf(" asimd");
+	if (cpuflags & CPUID_IWMMXT)
+		printf(" iwmmxt");
+
+	if (cpuflags & CPUID_TLS)
+		printf(" tls");
+	if (cpuflags & CPUID_CRC32)
+		printf(" crc32");
+
+	if (cpuflags & CPUID_IDIVT)
+		printf(" idivt");
+	if (cpuflags & CPUID_IDIVA)
+		printf(" idiva");
+
+	if (cpuflags & CPUID_VFP3)
+		printf(" vfp3");
+	if (cpuflags & CPUID_VFP4)
+		printf(" vfp4");
+	if (cpuflags & CPUID_VFP3D16)
+		printf(" vfp3d16");
+
+	printf("\n");
+
+	if (cpuflags & (CPUID_AES | CPUID_PMULL | CPUID_SHA1 | CPUID_SHA2)) {
+		printf("crypto extensions: ");
+
+		if (cpuflags & CPUID_AES)
+			printf(" aes");
+		if (cpuflags & CPUID_PMULL)
+			printf(" pmull");
+		if (cpuflags & CPUID_SHA1)
+			printf(" sha1");
+		if (cpuflags & CPUID_SHA2)
+			printf(" sha2");
+		printf("\n");
+	}
+}
 #else
 static void
 print_cpuflags(void) {
@@ -60,11 +119,11 @@ print_cpuflags(void) {
 
 static void
 try_example(void) {
-	int32_t arr[127];
-	int32_t i;
+	unsigned char arr[127];
+	size_t i;
 	for (i = 0; i < 127; i++)
-		arr[i] = (i + 93);
-	printf("sum of (93..219) = %d (check vs http://www.wolframalpha.com/input/?i=sum+of+93+to+219)\n", example(arr, 127));
+		arr[i] = (unsigned char)(i + 93);
+	printf("sum of (93..219) %% 256 = %d (check vs http://www.wolframalpha.com/input/?i=sum+of+93+to+219+mod+256)\n", example(arr, 127));
 }
 
 int main(void) {
