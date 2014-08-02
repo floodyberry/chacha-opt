@@ -10,3 +10,7 @@ INCLUDE_IF_X86_64BIT "secure_compare/secure_compare_x86-64.inc"
 
 INCLUDE_IF_SSE2_32BIT "secure_compare/secure_compare_sse2-32.inc"
 INCLUDE_IF_X86_32BIT "secure_compare/secure_compare_x86-32.inc"
+
+#if defined(HAVE_ARMv7)
+#include "secure_compare/secure_compare_armv7-32.inc"
+#endif

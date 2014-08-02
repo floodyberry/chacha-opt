@@ -7,6 +7,10 @@
 	#include "x86/gcc.inc"
 #endif
 
+#if (defined(__arm__  ) || defined(__aarch64__))
+	#include "arm/gcc.inc"
+#endif
+
 .macro INCLUDE_IF_X86_32BIT file
 #if (IS_X86_32)
 	.include INCLUDE_FILE_PARM

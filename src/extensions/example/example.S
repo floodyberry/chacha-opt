@@ -11,3 +11,7 @@ INCLUDE_IF_SSE2_64BIT "example/example_sse2-64.inc"
 
 INCLUDE_IF_SSE2_32BIT "example/example_sse2-32.inc"
 INCLUDE_IF_X86_32BIT "example/example_x86-32.inc"
+
+#if (defined(HAVE_NEON) && defined(CPU_32BITS))
+#include "example/example_neon-32.inc"
+#endif

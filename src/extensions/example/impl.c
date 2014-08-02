@@ -76,17 +76,20 @@ static example_impl_t example_opt = {0,0,0};
 static int
 example_test_impl(const void *impl) {
 	const example_impl_t *example_impl = (const example_impl_t *)impl;
-	unsigned char arr[50], sum;
-	size_t i;
+	unsigned char arr[50+15], sum;
+	size_t i, align;
 	int ret = 0;
 
-	for (i = 0, sum = 0; i < 50; i++) {
-		arr[i] = (unsigned char )i;
-		sum = (sum + (unsigned char )i) % 256;
-	}
-	for (i = 0; i <= 50; i++) {
-		ret |= (example_impl->example(arr, 50 - i) == sum) ? 0 : 1;
-		sum = (sum - (50 - i - 1)) % 256;
+	/* test all alignments */
+	for (align = 0; align < 16; align++) {
+		for (i = 0, sum = 0; i < 50; i++) {
+			arr[align + i] = (unsigned char )i;
+			sum = (sum + (unsigned char )i) % 256;
+		}
+		for (i = 0; i <= 50; i++) {
+			ret |= (example_impl->example(arr + align, 50 - i) == sum) ? 0 : 1;
+			sum = (sum - (50 - i - 1)) % 256;
+		}
 	}
 	return ret;
 }

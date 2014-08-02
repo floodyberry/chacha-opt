@@ -44,7 +44,7 @@ fatal_error() {
 }
 
 try_asm() {
-    printf "%s\n%s\n" ".text" "$1" | $AS $ASFLAGSTEST -o test.o - >test.log 2>&1
+    printf "%s\n%s\n" "$asmheader" "$1" | $AS $ASFLAGSTEST -o test.o - >test.log 2>&1
     res=$?
     cat test.log >> $outputlog
     return $res
@@ -58,10 +58,10 @@ test_for_asm_instruction_set() {
 }
 
 test_for_asm_macro_parameter_convention() {
-    echo "checking for $2.." >>$outputlog
-    prog=$(printf "%s\n%s\n%s\n%s\n" ".macro TEST1 op" "$1 %eax, %eax" ".endm" "TEST1 xorl")
+    echo "checking for $4.." >>$outputlog
+    prog=$(printf "%s\n%s\n%s\n%s\n" ".macro TEST1 op" "$1 $3, $3" ".endm" "TEST1 $2")
     if try_asm "$prog"; then
-        echo "#define $2" >> $outputheader
+        echo "#define $4" >> $outputheader
     fi
 }
 
@@ -161,6 +161,7 @@ outputheader="src/driver/asmopt.h"
 outputheaderstub="src/driver/asmopt_internal.h"
 outputmake="asmopt.mak"
 outputlog="config.log"
+asmheader=".text"
 debug="no"
 bits32="no"
 bits64="no"
@@ -331,8 +332,8 @@ if [ "$HAVEAS" = "yes" ] && try_asm "xorl %eax, %eax"; then
 
     # OSX as uses a different macro paramter convention
     if [ "$AS" != "yasm" ]; then
-        test_for_asm_macro_parameter_convention "\op" HAVE_SLASHMACRO
-        test_for_asm_macro_parameter_convention "\$0" HAVE_DOLLARMACRO
+        test_for_asm_macro_parameter_convention "\op" "xorl" "%eax" HAVE_SLASHMACRO
+        test_for_asm_macro_parameter_convention "\$0" "xorl" "%eax" HAVE_DOLLARMACRO
     fi
 
     # outbit bits
@@ -362,6 +363,66 @@ if [ "$HAVEAS" = "yes" ] && try_asm "xorl %eax, %eax"; then
 
     printf "#define CPU_%sBITS\n" "$OBITS" >> $outputheader
     foundas="yes"
+elif [ "$HAVEAS" = "yes" ] && try_asm "and r0, r0, r0"; then
+    echo "#define ARCH_ARM" >> $outputheader
+    ARCH="arm"
+    foundas="yes"
+
+    if does_c_define_exist "__arm__"; then
+       OBITS="32"
+    elif does_c_define_exist "__aarch64__"; then
+       OBITS="64"
+    else
+       fatal_error "[ARM] Unable to determine output bits!"
+    fi
+
+    test_for_asm_macro_parameter_convention "\op" "tst" "r0" HAVE_SLASHMACRO
+    test_for_asm_macro_parameter_convention "\$0" "tst" "r0" HAVE_DOLLARMACRO
+
+    if [ "$OBITS" = "32" ]; then
+        asmheader=$(printf ".arch armv6\n.text")
+        test_for_asm_instruction_set "uqadd8 r3,r3,r3" HAVE_ARMv6
+        asmheader=$(printf ".arch armv7-a\n.text")
+        test_for_asm_instruction_set "pli [r0]" HAVE_ARMv7
+
+        asmheader=$(printf ".arch armv7-a\n.fpu neon\n.text")
+        test_for_asm_instruction_set "veor d0,d0,d0" HAVE_NEON
+        asmheader=$(printf ".arch armv7-a\n.fpu vfpv3\n.text")
+        test_for_asm_instruction_set "fcpyd d3,d22" HAVE_VFP3
+        asmheader=$(printf ".arch armv7-a\n.fpu vfpv3-d16\n.text")
+        test_for_asm_instruction_set "fcpyd d3,d4" HAVE_VFP3D16
+        asmheader=$(printf ".arch armv7-a\n.fpu neon-vfpv4\n.text")
+        test_for_asm_instruction_set "vfma.f32 q1, q2, q3" HAVE_VFP4
+
+        asmheader=$(printf ".arch armv7-a\n.arch_extension iwmmxt\n.text")
+        test_for_asm_instruction_set "wzeroge wr7" HAVE_IWMMXT
+        asmheader=$(printf ".arch armv7-a\n.arch_extension idiv\n.text")
+        test_for_asm_instruction_set "udiv r0, r1, r2" HAVE_IDIVA
+        asmheader=$(printf ".arch armv7-a\n.arch_extension idiv\n.text\n.thumb\n.thumb_func")
+        test_for_asm_instruction_set "udiv r0, r1, r2" HAVE_IDIVT
+    elif [ "$OBITS" = "64" ]; then
+        asmheader=$(printf ".arch armv8-a\n.text")
+        test_for_asm_instruction_set "hlt" HAVE_ARMv8
+
+        asmheader=$(printf ".arch armv8-a\n.fpu neon-fp-armv8\n.text")
+        test_for_asm_instruction_set "vvselge.f32 s4, s1, s23" HAVE_VFP4
+        asmheader=$(printf ".arch armv8-a\n.fpu neon-fp-armv8\n.text")
+        test_for_asm_instruction_set "vcvta.u32.f32 s2, s3" HAVE_ASIMD
+
+        asmheader=$(printf ".arch armv8-a\n.arch_extension crypto\n.text")
+        test_for_asm_instruction_set "aese.8 q0, q0" HAVE_AES
+
+        asmheader=$(printf ".arch armv8-a\n.arch_extension crypto\n.text")
+        test_for_asm_instruction_set "sha1p.32 q0,q0,q0" HAVE_SHA1
+        asmheader=$(printf ".arch armv8-a\n.arch_extension crypto\n.text")
+        test_for_asm_instruction_set "sha256h.32 q0, q0, q0" HAVE_SHA256
+        asmheader=$(printf ".arch armv8-a\n.arch_extension crypto\n.text")
+        test_for_asm_instruction_set "vmull.p64	q0, d0, d0" HAVE_PMULL
+        asmheader=$(printf ".arch armv8-a\n.arch_extension crc\n.text")
+        test_for_asm_instruction_set "crc32b r0, r1, r2" HAVE_CRC32
+    fi
+
+    printf "#define CPU_%sBITS\n" "$OBITS" >> $outputheader
 fi
 
 if [ "$HAVEAS" = "yes" ]; then

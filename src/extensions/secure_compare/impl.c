@@ -205,7 +205,7 @@ static void
 secure_compare_fuzz_impl(const void *impl, const unsigned char *in, const size_t *random_sizes, unsigned char *out) {
 	const secure_compare_extension_t *ext = (const secure_compare_extension_t *)impl;
 	const unsigned char *x = in, *y = in + 32;
-	random_sizes;
+	(void)random_sizes;
 	out[0] = (unsigned char)ext->secure_compare8(x, x);
 	out[1] = (unsigned char)ext->secure_compare8(x, y);
 	out[2] = (unsigned char)ext->secure_compare16(x, x);
@@ -223,7 +223,6 @@ secure_compare_fuzz(void) {
 
 
 static unsigned char *bench_arr = NULL;
-static size_t bench_len = 0;
 
 static void
 secure_compare32_bench_impl(const void *impl) {

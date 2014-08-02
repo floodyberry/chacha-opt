@@ -21,11 +21,9 @@ static size_t global_dummy = 0;
 
 static void
 bench_gather_global_stats(void) {
-	unsigned long cpu_flags = LOCAL_PREFIX(cpuid)();
 	const char *cpu_units = LOCAL_PREFIX(cpucycles_units)();
-	size_t i;
 	clock_t start;
-	size_t dummy;
+	size_t dummy = 55;
 
 	start = clock();
 	do {

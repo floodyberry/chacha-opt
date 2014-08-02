@@ -22,4 +22,3 @@ cpucycles_units_impl(void) {
 		return "cludges";
 #endif
 }
-
