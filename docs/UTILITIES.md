@@ -23,7 +23,6 @@ An extension must tell the fuzzer what inputs it will need, and the output it wi
 
     typedef enum {
         FUZZ_DONE,
-        FUZZ_INT32,
         FUZZ_ARRAY,
         FUZZ_RANDOM_LENGTH_ARRAY0,
         FUZZ_RANDOM_LENGTH_ARRAY1,
@@ -38,7 +37,6 @@ An extension must tell the fuzzer what inputs it will need, and the output it wi
     } fuzz_variable_t;
 
 * `FUZZ_DONE` indicates the end of the list, `size` is ignored
-* `FUZZ_INT32` specifies a 32 bit signed integer (I expect this to only be useful to the example extension), `size` is ignored
 * `FUZZ_ARRAY` specifies an array of `size` 8 bit unsigned integers
 * `FUZZ_RANDOM_LENGTH_ARRAY[0-3]` specifies an of [0-`size`) 8 bit unsigned integers, where the size is determined randomly at run-time. This _may_ be specified for output as well as input, and the size in the output must match the input size. How to determine the sizes in the next section.
 
@@ -50,32 +48,29 @@ The declaration for our example extension is:
     };
     
     static const fuzz_variable_t fuzz_outputs[] = {
-        {"sum", FUZZ_INT32, 1},
+        {"sum", FUZZ_ARRAY, 1},
         {0, FUZZ_DONE, 0}
     };
 
 Input is a random length array up to 16384 bytes.
 
-The output is a signed 32 bit integer.
+The output is 1 8 bit unsigned integer.
 
 #### 3. FUZZ FUNCTION ####
 
 Last is the function which processes the input and generates output for each implementation. 
 
-`typedef void (*impl_fuzz)(const void *impl, const uint8_t *in, const size_t *random_sizes, uint8_t *out);`
+`typedef void (*impl_fuzz)(const void *impl, const unsigned char *in, const size_t *random_sizes, unsigned char *out);`
 
     /* process the input with the given implementation and write it to the output */
     static void
-    example_fuzz_impl(const void *impl, const uint8_t *in, const size_t *random_sizes, uint8_t *out) {
+    example_fuzz_impl(const void *impl, const unsigned char *in, const size_t *random_sizes, unsigned char *out) {
         const example_impl_t *example_impl = (const example_impl_t *)impl;
         size_t int_count;
-        int32_t sum;
-        
-        /* get count of random array 0 */
-        int_count = random_sizes[0] / sizeof(int32_t);
+        unsigned char sum;
         
         /* sum the array */
-        sum = example_impl->example((const int32_t *)in, int_count);
+        sum = example_impl->example(in, random_sizes[0]);
         
         /* store the result */
         memcpy(out, &sum, sizeof(sum));
@@ -114,11 +109,15 @@ Basic benchmarking is now in! Optimizing implementations is pointless if you can
 
     typedef void (*impl_bench)(const void *impl);
 
-    void bench(const void *impls, size_t impl_size, impl_test test_fn, impl_bench bench_fn, size_t units_count, const char *units_desc, size_t trials);
+    void bench(const void *impls, size_t impl_size, impl_test test_fn, impl_bench bench_fn, size_t units_count, const char *units_desc);
 
-`bench` calls `test_fn` for each available implementation, and if that succeeds, `bench_fn` `trials` times, and reports the best time for each divided by units_count. The strategy is to call bench once per specific combination of parameters and methods, e.g. call bench once for encrypting 16 bytes, once for 256, or once for signing a message, once for verifying a message, etc. `units_desc` is the type of unit being measured, e.g. "byte", "signature", "keypair generation".
+`bench` calls `test_fn` for each available implementation, and if that succeeds, it proceeds with the benchmark.
 
-    uint8_t *bench_get_buffer(void);
+** NEW ** It is no longer necessary to specify how many trials to use. Internally, the benchmark code computes the smallest measurable duration between two consecutive calls to the timing function, and approximately how many `cycles_t` are accumulated during 1 second.. It then determines how many calls to `bench_fn` will last at least 25 times the smallest measurable duration, and stores it at the batch size. Finally, it computes how many times to call the batch size to last approximately 1 second. No more going crazy trying to figure out how to time on significantly slower machines or trying to batch things up to cover the variability of timers!
+
+The basic strategy for benchmarking is to call bench once per specific combination of parameters and methods, e.g. call bench once for encrypting 16 bytes, once for 256, or once for signing a message, once for verifying a message, etc. `units_count` is the number of raw units being operated on, e.g. `32` for `secure_compare32`. `units_desc` is the type of raw unit being operated on, e.g. "byte", "signature", "keypair generation".
+
+    unsigned char *bench_get_buffer(void);
 
 `bench_get_buffer` returns a 64 byte aligned 32768 byte scratch buffer the benchmarked function can do whatever it likes with. 
 
@@ -126,7 +125,6 @@ Basic benchmarking is now in! Optimizing implementations is pointless if you can
 
     static int32_t *bench_arr = NULL;
     static size_t bench_len = 0;
-    static const size_t bench_trials = 1000000;
 
     static void
     example_bench_impl(const void *impl) {
@@ -142,11 +140,11 @@ Basic benchmarking is now in! Optimizing implementations is pointless if you can
         memset(bench_arr, 0xf5, 32768);
         for (i = 0; lengths[i]; i++) {
             bench_len = lengths[i];
-            bench(example_list, sizeof(example_impl_t), example_bench_impl, bench_len, "byte", bench_trials / ((bench_len / 100) + 1));
+            bench(example_list, sizeof(example_impl_t), example_bench_impl, bench_len, "byte");
         }
     }
 
-Static variables are used to keep track of what the current settings are. The bench scratch buffer is used for the input data, although its contents are not important. One call is made to `bench` for each length, and the number of trials is (magically) adjusted per length to keep bench time from growing too much with length.
+Static variables are used to keep track of what the current settings are. The bench scratch buffer is used for the input data, although its contents are not important. One call is made to `bench` for each length to benchmark.
 
 #### BUILDING ####
 

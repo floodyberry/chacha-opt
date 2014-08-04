@@ -6,15 +6,16 @@ I decided the only way was to switch to an external assembler. [Yasm](http://yas
 
 Note that this is _not_ for coding entire programs in assembler, general purpose assembler with macros, interacting with external C/assembler, etc. It is for self-contained, instruction set specific kernels which can be CPU-dispatched at runtime, e.g. crypto routines.
 
-Room has been made for other architectures to fit in to the sample framework, but until I uh, run in to other architectures, nothing is actually done for them yet!
+x86 is fully supported, and the first pass at ARM support is now in!
 
 # QUICK OVERVIEW #
 
 * Write once, run everywhere assembler, using GCC and Yasm.
 * Project name is set in [project.def](project.def) and version is set in [project.ver](project.ver)
-* Platform specific code (cpu feature detection, cpu cycles, assembler macros) is in `driver/platform`
+* Platform specific code (cpu feature detection, cpu cycles, assembler macros) is in `src/driver/platform`
 * Optimized implementations go in `extensions/name` and are exposed through `include/name.h`
 * Sample `main.c` and fuzzing / benchmarking support is in [src](src).
+* Platforms supported are x86, ARM.
 
 # HOW IT WORKS #
 
@@ -76,6 +77,9 @@ Extension based includes are available for all combinations of [X86, MMX, SSE, S
 
    Include `file` if the assembler supports EXT instructions and is in XXBIT mode. e.g. `INCLUDE_IF_AVX2_32BIT`, `INCLUDE_IF_X86_32BIT`, `INCLUDE_IF_SSE4_1_64BIT`, etc.
 
+#### INCLUDING ON NON-X86 PLATFORMS ####
+
+For the moment, non-x86 platforms are gcc only, so you may use standard #if defined / #include / #endif in your .S file. This has the added bonus of allowing included files to be tracked by gcc's makefile dependency generation.
 
 ### FUNCTION SUPPORT ###
 
@@ -90,7 +94,7 @@ Extension based includes are available for all combinations of [X86, MMX, SSE, S
    Declares a function named `name`
 * `FN_EXT` name, args, xmmused
 
-   Declares a function named `name`, which takes `args` args and uses `xmmused` xmm registers. This is only intended for 64 bit functions because arguments need to be translated for Win64 and xmm6..15 have to be preserved if they are used. args can be 0 to 6, more than 6 arguments are currently not handled.
+   Declares a function named `name`, which takes `args` args and uses `xmmused` xmm registers. This is only available for x86-64 because arguments need to be translated for Win64 and xmm6..15 have to be preserved if they are used. args can be 0 to 6, more than 6 arguments are currently not handled.
 * `FN_END` name
 
    Declares the end of function `name`. Currently only used when compiling to ELF object format to tag the type and size of the function.
@@ -108,7 +112,7 @@ Extension based includes are available for all combinations of [X86, MMX, SSE, S
 
 ## CPUID ##
 
-CPUID implementations are in `driver/arch/` and exposed through [cpuid.c](driver/cpuid.c) with `uint32_t cpuid(void)`.
+CPUID implementations are in `driver/arch/` and exposed through [cpuid.c](driver/cpuid.c) with `unsigned long cpuid(void)`.
 
 The [x86 cpuid](driver/x86/cpuid_x86.S) detects everything from MMX up to (theoretically, based on Intel's programming reference) AVX-512. The implementation "cheats" by having the bootstrap provide `CPUID_PROLOGUE` and `CPUID_EPILOGUE` so a single implementation can be used for both x86 and x86-64.
 
@@ -147,7 +151,7 @@ Major architecture flags start from the bottom, while individual features go fro
 ### IMPLEMENTATION SELECTION BY CPUID ###
 
     typedef struct cpu_specific_impl_t {
-        uint32_t cpu_flags;
+        unsigned long cpu_flags;
         const char *desc;
         /* additional information, pointers to methods, etc... */
     } cpu_specific_impl_t;
@@ -156,7 +160,7 @@ Major architecture flags start from the bottom, while individual features go fro
 
 `cpu_select` returns a pointer to the first implementation that will run on the current CPU and passes the provided test. If no implementations passes, NULL is returned.
 
-`impls` is a pointer to an array of structs where each struct represents an optimized implementation with the first field being an `uint32_t` that holds the required cpu flags (see `cpu_specific_impl_t`), and the second being a pointer to an arbitrary string describing the implementation, e.g. "x86", "avx2-popcnt", etc. The structs must be ordered from most the optimized implementation to the least.
+`impls` is a pointer to an array of structs where each struct represents an optimized implementation with the first field being an `unsigned long` that holds the required cpu flags (see `cpu_specific_impl_t`), and the second being a pointer to an arbitrary string describing the implementation, e.g. "x86", "avx2-popcnt", etc. The structs must be ordered from most the optimized implementation to the least.
 
 `impl_size` is the size of each struct.
 
@@ -184,14 +188,14 @@ In each of your public headers, you must add a simple stub to define `LIB_PUBLIC
 
 If you are using a common name for a function that may clash with another library if hidden/private is not supported, e.g. `cpuid`, wrap any reference to it with `LOCAL_PREFIX` to have the name of the project added as a prefix:
 
-    uint32_t
+    unsigned long
     LOCAL_PREFIX(cpuid)(void) {
         return CPU_GENERIC;
     }
     
     static void
     some_static_function(void) {
-        uint32_t cpuflags = LOCAL_PREFIX(cpuid)();
+        unsigned long cpuflags = LOCAL_PREFIX(cpuid)();
         /* does stuff with cpuflags here */
     }
 
