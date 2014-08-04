@@ -125,7 +125,7 @@ static const fuzz_variable_t fuzz_inputs[] = {
 };
 
 static const fuzz_variable_t fuzz_outputs[] = {
-	{"sum", FUZZ_INT32, 1},
+	{"sum", FUZZ_ARRAY, 1},
 	{0, FUZZ_DONE, 0}
 };
 
@@ -134,14 +134,10 @@ static const fuzz_variable_t fuzz_outputs[] = {
 static void
 example_fuzz_impl(const void *impl, const unsigned char *in, const size_t *random_sizes, unsigned char *out) {
 	const example_impl_t *example_impl = (const example_impl_t *)impl;
-	size_t int_count;
 	unsigned char sum;
 
-	/* get count of random array 0 */
-	int_count = random_sizes[0];
-
 	/* sum the array */
-	sum = example_impl->example((const unsigned char *)in, int_count);
+	sum = example_impl->example((const unsigned char *)in, random_sizes[0]);
 
 	/* store the result */
 	memcpy(out, &sum, sizeof(sum));

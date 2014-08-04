@@ -11,7 +11,6 @@ typedef void (*impl_fuzz)(const void *impl, const unsigned char *in, const size_
 
 typedef enum {
 	FUZZ_DONE,
-	FUZZ_INT32,
 	FUZZ_ARRAY,
 	FUZZ_RANDOM_LENGTH_ARRAY0,
 	FUZZ_RANDOM_LENGTH_ARRAY1,

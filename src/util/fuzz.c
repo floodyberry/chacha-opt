@@ -240,9 +240,6 @@ fuzz_print_input(const fuzz_variable_t *input_variables, const size_t *random_si
 			case FUZZ_DONE:
 				return;
 
-			case FUZZ_INT32:
-				break;
-
 			case FUZZ_ARRAY:
 				fuzz_print_bytes(input_variables->desc, input, input, input_variables->size);
 				input += input_variables->size;
@@ -271,12 +268,6 @@ fuzz_print_output(const cpu_specific_impl_t *impl, const fuzz_variable_t *output
 		switch (output_variables->type) {
 			case FUZZ_DONE:
 				return;
-
-			case FUZZ_INT32:
-				fuzz_print_bytes(output_variables->desc, output, generic_output, sizeof(int32_t));
-				output += sizeof(int32_t);
-				generic_output += sizeof(int32_t);
-				break;
 
 			case FUZZ_ARRAY:
 				fuzz_print_bytes(output_variables->desc, output, generic_output, output_variables->size);
@@ -367,9 +358,6 @@ fuzz(const void *impls, size_t impl_size, const fuzz_variable_t *input_variables
 				case FUZZ_DONE:
 					break;
 
-				case FUZZ_INT32:
-					break;
-
 				case FUZZ_ARRAY:
 					fuzz_get_bytes(inp, input_variables[i].size);
 					inp += input_variables[i].size;
@@ -392,10 +380,6 @@ fuzz(const void *impls, size_t impl_size, const fuzz_variable_t *input_variables
 		for (i = 0; output_variables[i].type != FUZZ_DONE; i++) {
 			switch (output_variables[i].type) {
 				case FUZZ_DONE:
-					break;
-
-				case FUZZ_INT32:
-					expected_bytes_out += sizeof(int32_t);
 					break;
 
 				case FUZZ_ARRAY:
