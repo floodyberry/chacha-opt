@@ -22,34 +22,47 @@ static size_t global_dummy = 0;
 static void
 bench_gather_global_stats(void) {
 	const char *cpu_units = LOCAL_PREFIX(cpucycles_units)();
-	clock_t start;
+	size_t delay = 0;
 	size_t dummy = 55;
+	clock_t start;
+	cycles_t delta;
+	size_t j;
 
+	/* find the smallest one and run with that, this isn't an exact science */
+	do {
+		delta = LOCAL_PREFIX(cpucycles)();
+		for (j = 0; j < delay; j++) {
+			dummy ^= (dummy << 1) + j;
+			dummy += (dummy >> 3);
+		}
+		delta = LOCAL_PREFIX(cpucycles)() - delta;
+		delay++;
+	} while (!delta);
+
+	/* run until at least one second has passed AND smallest_timeslice has been set */
 	start = clock();
 	do {
-		size_t delay = 0;
-		cycles_t delta;
-		size_t j;
+		delta = LOCAL_PREFIX(cpucycles)();
+		for (j = 0; j < delay; j++) {
+			dummy ^= (dummy << 1) + j;
+			dummy += (dummy >> 3);
+		}
+		delta = LOCAL_PREFIX(cpucycles)() - delta;
 
-		do {
-			delta = LOCAL_PREFIX(cpucycles)();
-			for (j = 0; j < delay; j++)
-				dummy ^= (dummy << 1) + j;
-			delta = LOCAL_PREFIX(cpucycles)() - delta;
-			delay++;
-		} while (!delta);
-
-		if (delta < smallest_timeslice)
+		/* 2 is as good as 1 cycle_t, and should avoid some burps that gettimeofday has with erroneously reporting 1 cycle_t */
+		if ((delta > 1) && (delta < smallest_timeslice))
 			smallest_timeslice = delta;
-	} while ((clock() - start) < CLOCKS_PER_SEC);
+	} while (((clock() - start) < CLOCKS_PER_SEC) && (smallest_timeslice == ~(cycles_t)0));
 
-	/* 1/4 of a second back of the hand calculation for cycles_t per second */
+	/* 1/2 of a second back of the hand calculation for cycles_t per second */
 	cycles_per_second = LOCAL_PREFIX(cpucycles)();
 	start = clock();
-	while ((clock() - start) < (CLOCKS_PER_SEC / 4)) {
+	while ((clock() - start) < (CLOCKS_PER_SEC / 2)) {
+		dummy ^= (dummy << 1) + 19;
+		dummy += (dummy >> 3);
 	}
 	cycles_per_second = LOCAL_PREFIX(cpucycles)() - cycles_per_second;
-	cycles_per_second <<= 2;
+	cycles_per_second <<= 1;
 
 
 	printf("time granularity: %.0f %s, %.0f %s/second\n\n", (double)smallest_timeslice, cpu_units, (double)cycles_per_second, cpu_units);
@@ -116,6 +129,8 @@ bench(const void *impls, size_t impl_size, impl_test test_fn, impl_bench bench_f
 				}
 				batch_size = (batch_size == 1) ? 2 : ((batch_size * 1.25) + 1);
 			}
+
+			
 
 			/* measure! */
 			for (i = 0; i < trials; i++) {

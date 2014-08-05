@@ -9,7 +9,7 @@ static cpucycles_x86_fn cpucycles_impl = cpucycles_select;
 #include <sys/time.h>
 
 static cycles_t
-cpucycles_x86_cludge(void) {
+cpucycles_x86_fallback(void) {
 	struct timeval t;
 	gettimeofday(&t, NULL);
 	return ((cycles_t)t.tv_sec * 1000000) + (cycles_t)t.tv_usec;
@@ -17,15 +17,16 @@ cpucycles_x86_cludge(void) {
 #else
 /* what can a 386/486 use for this otherwise? */
 static cycles_t
-cpucycles_x86_cludge(void) {
-	static cycles_t cludge = 0;
-	return cludge++;
+cpucycles_x86_fallback(void) {
+	printf("no suitable timing mechanism found\n");
+	exit(1);
+	return 0;
 }
 #endif
 
 static cycles_t
 cpucycles_select(void) {
-	cpucycles_impl = (LOCAL_PREFIX(cpuid)() & CPUID_RDTSC) ? LOCAL_PREFIX(cpucycles_x86) : cpucycles_x86_cludge;
+	cpucycles_impl = (LOCAL_PREFIX(cpuid)() & CPUID_RDTSC) ? LOCAL_PREFIX(cpucycles_x86) : cpucycles_x86_fallback;
 	return cpucycles_impl();
 }
 
@@ -37,7 +38,7 @@ cpucycles_units_impl(void) {
 #if defined(HAVE_GETTIMEOFDAY)
 		return "us";
 #else
-		return "cludges";
+		return "";
 #endif
 }
 
