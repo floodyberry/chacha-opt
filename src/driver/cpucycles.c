@@ -1,5 +1,8 @@
+#include <stdlib.h>
+#include <stdio.h>
 #include "cpuid.h"
 #include "cpucycles.h"
+
 
 #include "cpucycles_impl.inc"
 

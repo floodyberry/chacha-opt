@@ -127,7 +127,7 @@ bench(const void *impls, size_t impl_size, impl_test test_fn, impl_bench bench_f
 						trials = 1;
 					break;
 				}
-				batch_size = (batch_size == 1) ? 2 : ((batch_size * 1.25) + 1);
+				batch_size = (batch_size == 1) ? 2 : (((batch_size * 4) / 3)  + 1);
 			}
 
 			

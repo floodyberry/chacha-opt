@@ -20,7 +20,6 @@ static cycles_t
 cpucycles_x86_fallback(void) {
 	printf("no suitable timing mechanism found\n");
 	exit(1);
-	return 0;
 }
 #endif
 
