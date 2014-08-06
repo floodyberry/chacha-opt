@@ -563,6 +563,8 @@ switch ($version->value) {
 $sln->make();
 
 
+/* build src/driver/asmopt.h and src/driver/asmopt_internal.h */
+
 if ($disable_yasm->set) {
 	$yasm = "";
 } else {
@@ -646,5 +648,32 @@ EOS;
 
 $sln->write_file("%%projectdir/asmopt.h", $asmopt_h);
 $sln->write_file("%%projectdir/asmopt_internal.h", $asmopt_internal);
+
+
+
+/* build src/util_implemntations.h */
+
+$impls = array();
+crawl($impls, "include", array("!\.h$!"), false);
+
+$impl_includes = "";
+$impl_declares = "";
+for ($i = 0; $i < count($impls); $i++) {
+	$path = $impls[$i];
+	$basename = preg_replace("!^.*\\\\(.*)\.h$!", "$1", $path);
+	$impl_includes .= addln("#include \"{$basename}.h\"");
+	$impl_declares .= ($i < (count($impls) - 1)) ? addln("\tmake_impl({$basename}),") : "\tmake_impl({$basename})";
+}
+
+$util_implementations = <<<EOS
+{$impl_includes}
+
+static const implementation_t implementations[] = {
+{$impl_declares}
+};
+
+EOS;
+
+$sln->write_file("%%projectdir/util_implementations.h", $util_implementations);
 
 ?>

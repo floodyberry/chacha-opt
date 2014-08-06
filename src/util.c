@@ -1,8 +1,5 @@
 #include <stdio.h>
 #include <string.h>
-#include "example.h"
-#include "secure_zero.h"
-#include "secure_compare.h"
 
 /* includes, and implementations, implementations_count */
 typedef struct implementation_t {
@@ -14,11 +11,7 @@ typedef struct implementation_t {
 
 #define make_impl(name) {#name, name##_init, name##_fuzz, name##_bench}
 
-static const implementation_t implementations[] = {
-	make_impl(example),
-	make_impl(secure_compare),
-	make_impl(secure_zero)
-};
+#include "util_implementations.h"
 
 static size_t implementations_count = (sizeof(implementations) / sizeof(implementation_t));
 

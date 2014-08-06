@@ -159,6 +159,7 @@ test_for_gnu_make() {
 # options
 outputheader="src/driver/asmopt.h"
 outputheaderstub="src/driver/asmopt_internal.h"
+outpututilimpls="src/util_implementations.h"
 outputmake="asmopt.mak"
 outputlog="config.log"
 asmheader=".text"
@@ -646,6 +647,20 @@ cat >> $outputheaderstub << EOF
 #endif
 
 #endif /* ASMOPT_INTERNAL_H */
+
+EOF
+
+# build util_implementations.h
+
+util_includes=`ls include/*.h | sed "s/include\/\(.*\)\.h/#include \"\1.h\"/"`
+util_impls=`ls include/*.h | sed "s/include\/\(.*\)\.h/\tmake_impl(\1),/"`
+
+cat > $outpututilimpls << EOF
+$util_includes
+
+static const implementation_t implementations[] = {
+$util_impls
+};
 
 EOF
 
