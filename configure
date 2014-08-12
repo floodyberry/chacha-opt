@@ -157,11 +157,13 @@ test_for_gnu_make() {
 }
 
 # options
-outputheader="src/driver/asmopt.h"
-outputheaderstub="src/driver/asmopt_internal.h"
-outpututilimpls="src/util_implementations.h"
+outputheader="framework/include/asmopt.h"
+outputheaderstub="framework/include/asmopt_internal.h"
+outpututilimpls="framework/include/util_implementations.h"
 outputmake="asmopt.mak"
 outputlog="config.log"
+inputprojectname="app/project.def"
+inputprojectver="app/project.ver"
 asmheader=".text"
 debug="no"
 bits32="no"
@@ -261,12 +263,16 @@ ARCH="generic"
 OFORMAT="generic"
 EXE=""
 STATICLIB=".lib"
-PROJECTNAME=`tr -d '\n' <project.def | tr '[:upper:]' '[:lower:]'`
-PROJECTNAMEUPPER=`tr -d '\n' <project.def | tr '[:lower:]' '[:upper:]'`
-PROJECTVERMAJOR=`cut -d . -f 1 project.ver`
+PROJECTNAME=`tr -d '\n' <$inputprojectname | tr '[:upper:]' '[:lower:]'`
+PROJECTNAMEUPPER=`tr -d '\n' <$inputprojectname | tr '[:lower:]' '[:upper:]'`
+PROJECTVERMAJOR=`cut -d . -f 1 $inputprojectver`
 
 if [ x"$PROJECTNAME" = "x" ]; then
-    fatal_error "Unable to determine project name! Edit project.def to set it"
+    fatal_error "Unable to determine project name! Edit $inputprojectname to set it"
+fi
+
+if [ x"$PROJECTVERMAJOR" = "x" ]; then
+    fatal_error "Unable to determine project name! Edit $inputprojectver to set it"
 fi
 
 if [ "$yasm" = "yes" ]; then
@@ -576,6 +582,16 @@ else
     SOFLAGS="-shared -Wl,-soname,\$(SONAME) $SOFLAGS"
 fi
 
+if [ `uname` = "SunOS" ]; then
+    if test -x /usr/ucb/install; then
+        INSTALL=/usr/ucb/install
+    elif test -x /usr/bin/ginstall; then
+        INSTALL=/usr/bin/ginstall
+    elif test -x /usr/gnu/bin/install ; then
+        INSTALL=/usr/gnu/bin/install
+    fi
+fi
+
 CFLAGS="$CFLAGS -DBUILDING_ASMOPT_${PROJECTNAMEUPPER}"
 
 cat > $outputmake << EOF
@@ -652,8 +668,8 @@ EOF
 
 # build util_implementations.h
 
-util_includes=`ls include/*.h | sed "s/include\/\(.*\)\.h/#include \"\1.h\"/"`
-util_impls=`ls include/*.h | sed "s/include\/\(.*\)\.h/\tmake_impl(\1),/"`
+util_includes=`ls app/include/*.h | sed "s/app\/include\/\(.*\)\.h/#include \"\1.h\"/"`
+util_impls=`ls app/include/*.h | sed "s/app\/include\/\(.*\)\.h/make_impl(\1),/"`
 
 cat > $outpututilimpls << EOF
 $util_includes

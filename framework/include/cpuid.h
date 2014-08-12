@@ -11,7 +11,7 @@ enum cpuid_flags_generic_t {
 	CPUID_GENERIC = (0)
 };
 
-#include "cpuid_impl.h"
+#include "cpuid_flags.inc"
 
 unsigned long LOCAL_PREFIX(cpuid)(void);
 

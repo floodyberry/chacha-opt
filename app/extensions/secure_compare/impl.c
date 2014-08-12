@@ -180,8 +180,8 @@ secure_compare32_bootup(const unsigned char *x, const unsigned char *y) {
 
 #if defined(UTILITIES)
 
-#include "util/bench.h"
-#include "util/fuzz.h"
+#include "bench.h"
+#include "fuzz.h"
 
 static const fuzz_variable_t fuzz_inputs[] = {
 	{"input32x", FUZZ_ARRAY, 32},

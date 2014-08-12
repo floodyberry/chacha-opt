@@ -2,7 +2,7 @@
 #include <time.h>
 #include "cpucycles.h"
 #include "cpuid.h"
-#include "util/bench.h"
+#include "bench.h"
 
 /* a 32k, 64 byte aligned buffer to bench with */
 unsigned char *

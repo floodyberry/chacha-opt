@@ -11,17 +11,18 @@ x86 is fully supported, and the first pass at ARM support is now in!
 # QUICK OVERVIEW #
 
 * Write once, run everywhere assembler, using GCC and Yasm.
-* Project name is set in [project.def](project.def) and version is set in [project.ver](project.ver)
-* Platform specific code (cpu feature detection, cpu cycles, assembler macros) is in `src/driver/platform`
-* Optimized implementations go in `extensions/name` and are exposed through `include/name.h`
-* Sample `main.c` and fuzzing / benchmarking support is in [src](src).
+* Project name is set in [app/project.def](app/project.def) and version is set in [app/project.ver](app/project.ver)
+* Platform specific code (cpu feature detection, cpu cycles, assembler macros) is in `framework/driver/platform`
+* Optimized implementations go in `app/extensions/name` and are exposed through `app/include/name.h`
+* Fuzzing / benchmarking support is in [framework/](framework/).
+* Sample [app/main.c](app/main.c) provided showing use of cpuid and calling the example extension.
 * Platforms supported are x86, ARM.
 
 # HOW IT WORKS #
 
 I really wanted to avoid this, but before anything is done, a configuration script must be run to determine compiler capabilities, instruction sets supported, and so on. This is both for the assembler to know what it can assemble, and for the C code which will use the assembler to know which versions it can use.
 
-gcc and Yasm each have their own bootstrap file ([gcc\_driver.inc](driver/gcc_driver.inc) and [yasm\_driver.inc](driver/yasm_driver.inc)) which handles determining platform, compiler, and setting up the macros needed. The initial file that includes the bootstrap code must have an `.S` extension to allow the C preprocessor to run for gcc compatible implementations. The C preprocessor macros are however only used to set up the GNU assembler macros which will be used by the assembler files; this is because there is no way to include a file from a macro with the C preprocessor.
+gcc and Yasm each have their own bootstrap file ([gcc\_driver.inc](framework/driver/gcc_driver.inc) and [yasm\_driver.inc](framework/driver/yasm_driver.inc)) which handles determining platform, compiler, and setting up the macros needed. The initial file that includes the bootstrap code must have an `.S` extension to allow the C preprocessor to run for gcc compatible implementations. The C preprocessor macros are however only used to set up the GNU assembler macros which will be used by the assembler files; this is because there is no way to include a file from a macro with the C preprocessor.
 
 ## BOOTSTRAPPING ##
 
@@ -112,9 +113,9 @@ For the moment, non-x86 platforms are gcc only, so you may use standard #if defi
 
 ## CPUID ##
 
-CPUID implementations are in `driver/arch/` and exposed through [cpuid.c](driver/cpuid.c) with `unsigned long cpuid(void)`.
+CPUID implementations are in `framework/driver/arch/` and exposed through [cpuid.c](framework/driver/cpuid.c) with `unsigned long cpuid(void)`.
 
-The [x86 cpuid](driver/x86/cpuid_x86.S) detects everything from MMX up to (theoretically, based on Intel's programming reference) AVX-512. The implementation "cheats" by having the bootstrap provide `CPUID_PROLOGUE` and `CPUID_EPILOGUE` so a single implementation can be used for both x86 and x86-64.
+The [x86 cpuid](framework/driver/x86/cpuid_x86.S) detects everything from MMX up to (theoretically, based on Intel's programming reference) AVX-512. The implementation "cheats" by having the bootstrap provide `CPUID_PROLOGUE` and `CPUID_EPILOGUE` so a single implementation can be used for both x86 and x86-64.
 
 Also provided are example runtime dispatching functions to test and select the optimal version based on the current CPU.
 
@@ -207,9 +208,9 @@ If you are getting `/usr/bin/ld: error: cannot find -lexample` when trying to li
 
 ### NAME ###
 
-The name of the project is set in [project.def](project.def). This is used to create project specific function names using `LOCAL_PREFIX`.
+The name of the project is set in [app/project.def](app/project.def). This is used to create project specific function names using `LOCAL_PREFIX`.
 
-The project version is in [project.ver](project.ver). Unused except for shared library names on some *nix's.
+The project version is in [app/project.ver](app/project.ver). Unused at the moment except for shared library names on some *nix's.
 
 ### CONFIGURING ###
 
@@ -266,7 +267,7 @@ Well some may not be used yet, but you know, for the future.
 
 I've got the Visual Studio project generator working! It generates a Visual Studio [2010,2012,2013] solution with projects for a static library, dynamic library, and utility project for both 32 and 64 bits. Generated files (exe, lib, dll) are currently placed in `asm-opt/bin/[Release|Debug]/[amd64|x86-32bit]/`.
 
-It only requires that [yasm.exe](http://yasm.tortall.net/Download.html) be somewhere in the system path for Visual Studio to execute. You can place `yasm.exe` in the `vs2010/` directory if you're especially lazy.
+It only requires that [yasm.exe](http://yasm.tortall.net/Download.html) be somewhere in the system path for Visual Studio to execute. You can place `yasm.exe` in the visual studio directory if you're especially lazy.
 
     php genvs.php [options]
 

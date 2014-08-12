@@ -5,7 +5,7 @@ Extension agnostic utilities are provided for
 
 ## FUZZING ##
 
-Abstract fuzzing is provided through [fuzz.h](src/util/fuzz.h) and [fuzz.c](src/util/fuzz.c). Extending an example to support fuzzing requires 1 simple function to be passed to the fuzzer, which then handles the work of selecting available implementations, producing random numbers, producing the input, collecting the output, comparing the output, detecting and displaying mismatches, and displaying the progress using a simple counter so you can tell progress is being made.
+Abstract fuzzing is provided through [fuzz.h](framework/include/fuzz.h) and [fuzz.c](framework/fuzz.c). Extending an implementation to support fuzzing requires 1 simple function to be passed to the fuzzer, which then handles the work of selecting available implementations, producing random numbers, producing the input, collecting the output, comparing the output, detecting and displaying mismatches, and displaying the progress using a simple counter so you can tell progress is being made.
 
 ### EXAMPLE ###
 
@@ -38,7 +38,7 @@ An extension must tell the fuzzer what inputs it will need, and the output it wi
 
 * `FUZZ_DONE` indicates the end of the list, `size` is ignored
 * `FUZZ_ARRAY` specifies an array of `size` 8 bit unsigned integers
-* `FUZZ_RANDOM_LENGTH_ARRAY[0-3]` specifies an of [0-`size`) 8 bit unsigned integers, where the size is determined randomly at run-time. This _may_ be specified for output as well as input, and the size in the output must match the input size. How to determine the sizes in the next section.
+* `FUZZ_RANDOM_LENGTH_ARRAY[0-3]` specifies an array of [0-`size`) 8 bit unsigned integers, where the size is determined randomly at run-time. This can be specified for output as well as input, and the size in the output must match the input size. How to determine the sizes in the next section.
 
 The declaration for our example extension is:
 

@@ -31,12 +31,23 @@ function fixslash($str) {
 	return str_replace("/", "\\", $str);
 }
 
+function my_file_get_contents($path) {
+	if (!file_exists($path)) {
+		echoln("unable to open {$path}!\n");
+		exit(1);
+	}
+	return file_get_contents($path);
+}
+
+$crawl_ignore = array("asmopt.h"=>1, "asmopt_internal.h"=>1, "util_implementations.h"=>1);
+
 function crawl(&$list, $dir, $grab, $recurse) {
+	global $crawl_ignore;
 	$dh = opendir($dir);
 	if ($dh) {
 		while (($file = readdir($dh)) !== false) {
 			$path = $dir."/".$file;
-			if (($file == ".") | $file == "..")
+			if (($file == ".") || ($file == "..") || isset($crawl_ignore[$file]))
 				continue;
 			if (is_dir($path)) {
 				if ($recurse)
@@ -61,6 +72,7 @@ abstract class gen_vs {
 	protected $sln;
 	protected $project_dir;
 	protected $files;
+	protected $include_dirs;
 
 	public function gen_vs($name) {
 		$this->name = strtolower($name);
@@ -70,17 +82,19 @@ abstract class gen_vs {
 			$name = "{$this->name}_{$type}";
 			$this->projects[$type] = array("name"=>$name, "guid"=>get_guid($name));
 		}
+
+		$this->include_dirs = array("./", "../app/include", "../app/extensions", "../framework/include", "../framework/driver", "../framework/driver/x86");
 	}
 
 	public function build_files() {
 		$this->files = array("driver"=>array(), "ext"=>array(), "util"=>array(), "shared"=>array(), "include"=>array());
-		crawl($this->files["driver"], "src/driver", array("!\.c$!", "!\.h$!", "!\.inc$!"), false);
-		crawl($this->files["driver"], "src/driver/x86", array("!\.c$!", "!\.S$!", "!\.h$!", "!\.inc$!"), false);
-		crawl($this->files["ext"], "src/extensions", array("!\.c$!", "!\.S$!", "!\.inc$!", "!\.h$!"), true);
-		crawl($this->files["include"], "include", array("!\.h$!"), false);
-		crawl($this->files["shared"], "src", array("!^shared\.c$!"), false);
-		crawl($this->files["util"], "src/util", array("!\.c$!", "!\.h$!"), true);
-		crawl($this->files["util"], "src", array("!^util\.c$!"), false);
+		crawl($this->files["driver"], "framework/driver", array("!\.c$!", "!\.h$!", "!\.inc$!"), false);
+		crawl($this->files["driver"], "framework/driver/x86", array("!\.c$!", "!\.S$!", "!\.h$!", "!\.inc$!"), false);
+		crawl($this->files["ext"], "app/extensions", array("!\.c$!", "!\.S$!", "!\.inc$!", "!\.h$!"), true);
+		crawl($this->files["include"], "app/include", array("!\.h$!"), false);
+		crawl($this->files["include"], "framework/include", array("!\.h$!"), false);
+		crawl($this->files["shared"], "framework", array("!main_shared\.c$!"), false);
+		crawl($this->files["util"], "framework", array("!main_util\.c$!", "!fuzz\.c$!", "!bench\.c$!"), true);
 
 		$this->projects["lib"]["files"] = array("driver", "ext", "include");
 		$this->projects["dll"]["files"] = array("driver", "ext", "include", "shared");
@@ -321,6 +335,11 @@ class vs2010 extends gen_vs {
 				"SubSystem"=>array("lib"=>"Windows", "dll"=>"Windows", "util"=>"Console"),
 				"PreprocessorDefinitions"=>array("lib"=>"", "dll"=>"BUILDING_DLL;LIB_PUBLIC=__declspec(dllexport)", "util"=>"UTILITIES"),
 			);
+
+			$includes = "";
+			foreach($this->include_dirs as $dir)
+				$includes .= str_replace("/", "\\", $dir).";";
+
 			foreach($this->builds as $build) {
 				$fields = explode("|", $build);
 				fecholn($f, "<ItemDefinitionGroup Condition=\"'$(Configuration)|$(Platform)'=='{$build}'\">");
@@ -331,7 +350,7 @@ class vs2010 extends gen_vs {
 					"<PrecompiledHeader />".
 					"<WarningLevel>Level4</WarningLevel>".
 					"<WholeProgramOptimization>false</WholeProgramOptimization>".
-					"<AdditionalIncludeDirectories>.\\;..\\src\\driver;..\\src\\driver\\x86;..\\include;..\\src\\extensions;..\\src;</AdditionalIncludeDirectories>".
+					"<AdditionalIncludeDirectories>{$includes}</AdditionalIncludeDirectories>".
 					"<ObjectFileName>$(IntDir)dummy\\%(RelativeDir)/</ObjectFileName>".
 					/* custom options */
 					"<BufferSecurityCheck>{$settingsmap['BufferSecurityCheck'][$fields[0]]}</BufferSecurityCheck>".
@@ -374,6 +393,10 @@ class vs2010 extends gen_vs {
 			/* compiler and linker */
 
 			/* list of files */
+			$yasm_includes = "";
+			foreach($this->include_dirs as $dir)
+				$yasm_includes .= "-I{$dir} ";
+
 			foreach($info["files"] as $handle) {
 				fecholn($f, "<ItemGroup>");
 				foreach($this->files[$handle] as $path) {
@@ -385,8 +408,8 @@ class vs2010 extends gen_vs {
 						fecholn($f,
 							"<{$type} Include=\"..\\{$path}\">".
 							"<Message>yasm [{$cleanpath}]</Message>".
-							"<Command Condition=\"'$(Platform)'=='Win32'\">yasm -r nasm -p gas -I./ -I../src -I../src/driver -I../src/driver/x86 -I../src/extensions -I../include -o $(IntDir)\\{$folder}\\{$basename}.obj -f win32 ..\\{$path}</Command>".
-							"<Command Condition=\"'$(Platform)'=='x64'\">yasm -r nasm -p gas -I./ -I../src -I../src/driver -I../src/driver/x86 -I../src/extensions -I../include -o $(IntDir)\\{$folder}\\{$basename}.obj -f win64 ..\\{$path}</Command>".
+							"<Command Condition=\"'$(Platform)'=='Win32'\">yasm -r nasm -p gas {$yasm_includes} -o $(IntDir)\\{$folder}\\{$basename}.obj -f win32 ..\\{$path}</Command>".
+							"<Command Condition=\"'$(Platform)'=='x64'\">yasm -r nasm -p gas {$yasm_includes} -o $(IntDir)\\{$folder}\\{$basename}.obj -f win64 ..\\{$path}</Command>".
 							"<Outputs>$(IntDir)\\{$folder}\\{$basename}.obj</Outputs>".
 							"</{$type}>"
 						);
@@ -552,7 +575,7 @@ if ($help->set) {
 	exit(0);
 }
 
-$project_name = trim(file_get_contents("project.def"));
+$project_name = trim(my_file_get_contents("app/project.def"));
 
 switch ($version->value) {
 	case "vs2010": $sln = new vs2010($project_name); break;
@@ -563,7 +586,7 @@ switch ($version->value) {
 $sln->make();
 
 
-/* build src/driver/asmopt.h and src/driver/asmopt_internal.h */
+/* build framework/include/asmopt.h and framework/include/asmopt_internal.h */
 
 if ($disable_yasm->set) {
 	$yasm = "";
@@ -651,10 +674,10 @@ $sln->write_file("%%projectdir/asmopt_internal.h", $asmopt_internal);
 
 
 
-/* build src/util_implemntations.h */
+/* build framework/include/util_implemntations.h */
 
 $impls = array();
-crawl($impls, "include", array("!\.h$!"), false);
+crawl($impls, "app/include", array("!\.h$!"), false);
 
 $impl_includes = "";
 $impl_declares = "";

@@ -116,8 +116,8 @@ example(const unsigned char *arr, size_t count) {
 
 #include <stdio.h>
 #include <string.h>
-#include "util/fuzz.h"
-#include "util/bench.h"
+#include "fuzz.h"
+#include "bench.h"
 
 static const fuzz_variable_t fuzz_inputs[] = {
 	{"input", FUZZ_RANDOM_LENGTH_ARRAY0, 16384},

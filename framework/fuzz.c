@@ -8,7 +8,7 @@
 #include <string.h>
 #include <time.h>
 #include "cpuid.h"
-#include "util/fuzz.h"
+#include "fuzz.h"
 
 /*
 	Chacha/8 rng with no addition of state words post-mixing, no security at all, but good 

@@ -12,7 +12,7 @@ BASEDIR = .
 BINDIR = bin
 BUILDDIR = build
 BUILDDIRUTIL = build_util
-INCLUDE = $(addprefix -I$(BASEDIR)/,src src/extensions src/driver $(addsuffix $(ARCH)/,src/driver/) include)
+INCLUDE = $(addprefix -I$(BASEDIR)/,app/extensions app/include framework/include framework/driver framework/driver/$(ARCH))
 CINCLUDE = $(INCLUDE)
 ASMINCLUDE = $(INCLUDE)
 
@@ -27,22 +27,22 @@ endif
 #
 rwildcard = $(foreach d, $(wildcard $(1)*), $(call rwildcard, $(d)/, $(2)) $(filter $(subst *, %, $(2)), $(d)))
 
-SRCDRIVER = $(call rwildcard, src/driver/, *.c)
-SRCEXT = $(call rwildcard, src/extensions/, *.c)
+SRCDRIVER = $(wildcard framework/driver/*.c)
+SRCEXT = $(call rwildcard, app/extensions/, *.c)
 SRCASM =
-SRCMAIN = src/main.c
-SRCUTIL = src/util.c
-SRCSHARED = src/shared.c
-SRCUTIL += $(call rwildcard, src/util/, *.c)
+SRCMAIN = app/main.c
+SRCUTIL = framework/main_util.c framework/bench.c framework/fuzz.c
+SRCSHARED = framework/main_shared.c
+
 
 # do we have an assembler?
 ifeq ($(HAVEAS),yes)
 
 # grab all the assembler files
-SRCASM = $(call rwildcard, src/extensions/, *.S)
+SRCASM = $(call rwildcard, app/extensions/, *.S)
 
 # add asm for the appropriate arch
-SRCASM += $(call rwildcard, $(addsuffix $(ARCH),src/driver/), *.S)
+SRCASM += $(call rwildcard, $(addsuffix $(ARCH),framework/driver/), *.S)
 
 endif
 
@@ -90,7 +90,7 @@ exe: makebin $(BINDIR)/$(PROJECTNAME)$(EXE)
 install-generic:
 	$(INSTALL) -d $(includedir)/lib$(PROJECTNAME)
 	$(INSTALL) -d $(libdir)
-	$(INSTALL) -m 644 include/*.h $(includedir)/lib$(PROJECTNAME)
+	$(INSTALL) -m 644 app/include/*.h $(includedir)/lib$(PROJECTNAME)
 
 lib: makebin $(BINDIR)/$(PROJECTNAME)$(STATICLIB)
 	@echo built [$(BINDIR)/$(PROJECTNAME)$(STATICLIB)]
@@ -112,8 +112,8 @@ ifneq ($(SOIMPORT),)
 	$(INSTALL) -m 755 $(BINDIR)/$(SONAME) $(bindir)
 	$(INSTALL) -m 644 $(BINDIR)/$(SOIMPORT) $(libdir)
 else ifneq ($(SONAME),)
-	ln -f -s $(SONAME) $(libdir)/lib$(PROJECTNAME).$(SOSUFFIX)
-	$(INSTALL) -m 755 $(SONAME) $(libdir)
+	$(INSTALL) -m 755 $(BINDIR)/$(SONAME) $(libdir)
+	ln -f -s $(libdir)/$(SONAME) $(libdir)/lib$(PROJECTNAME).$(SOSUFFIX)
 endif
 else
 shared:

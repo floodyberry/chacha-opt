@@ -106,8 +106,8 @@ secure_zero_bootup(unsigned char *p, size_t len) {
 
 #if defined(UTILITIES)
 
-#include "util/bench.h"
-#include "util/fuzz.h"
+#include "bench.h"
+#include "fuzz.h"
 
 static const fuzz_variable_t fuzz_inputs[] = {
 	{"input", FUZZ_RANDOM_LENGTH_ARRAY0, 16384},
