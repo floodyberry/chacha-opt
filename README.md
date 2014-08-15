@@ -11,11 +11,11 @@ x86 is fully supported, and the first pass at ARM support is now in!
 # QUICK OVERVIEW #
 
 * Write once, run everywhere assembler, using GCC and Yasm.
-* Project name is set in [app/project.def](app/project.def) and version is set in [app/project.ver](app/project.ver)
+* Project name is set in `appdir/project.def` and version is set in `appdir/project.ver`
 * Platform specific code (cpu feature detection, cpu cycles, assembler macros) is in `framework/driver/platform`
-* Optimized implementations go in `app/extensions/name` and are exposed through `app/include/name.h`
+* Optimized implementations go in `appdir/extensions/name` and are exposed through `appdir/include/name.h`
 * Fuzzing / benchmarking support is in [framework/](framework/).
-* Sample [app/main.c](app/main.c) provided showing use of cpuid and calling the example extension.
+* Sample [app-example/main.c](app-example/main.c) provided showing use of cpuid and calling the example extension.
 * Platforms supported are x86, ARM.
 
 # HOW IT WORKS #
@@ -200,17 +200,17 @@ If you are using a common name for a function that may clash with another librar
         /* does stuff with cpuflags here */
     }
 
-### CANNOT FIND -LEXAMPLE ###
+### CANNOT FIND -LYOURLIB ###
 
-If you are getting `/usr/bin/ld: error: cannot find -lexample` when trying to link against your new library, and you have the library in `/usr/local/lib`, you may be running in to [Shared library in /usr/local/lib not found](http://stackoverflow.com/questions/5873516/shared-library-in-usr-local-lib-not-found). The problem is the system is using the gold linker, which for no discernable reason does not check `/usr/local/lib` (what the hell). You will need to uninstall it (`apt-get remove binutils-gold`, etc.), or add `/usr/local/lib` to `LIBRARY_PATH`.
+If you are getting `/usr/bin/ld: error: cannot find -lyourlib` when trying to link against your new library, and you have the library in `/usr/local/lib`, you may be running in to [Shared library in /usr/local/lib not found](http://stackoverflow.com/questions/5873516/shared-library-in-usr-local-lib-not-found). The problem is the system is using the gold linker, which for no discernable reason does not check `/usr/local/lib` (what the hell). You will need to uninstall it (`apt-get remove binutils-gold`, etc.), or add `/usr/local/lib` to `LIBRARY_PATH`.
 
 ## BUILDING ##
 
 ### NAME ###
 
-The name of the project is set in [app/project.def](app/project.def). This is used to create project specific function names using `LOCAL_PREFIX`.
+The name of the project is set in `appname/project.def`. This is used to create project specific function names using `LOCAL_PREFIX`.
 
-The project version is in [app/project.ver](app/project.ver). Unused at the moment except for shared library names on some *nix's.
+The project version is in `appname/project.ver`. Unused at the moment except for shared library names on some *nix's.
 
 ### CONFIGURING ###
 
@@ -228,8 +228,11 @@ The project version is in [app/project.ver](app/project.ver). Unused at the mome
   * `--includedir=DIR`: Install includes in DIR [default: `PREFIX/include`]
 
 #### CONFIGURATION OPTIONS ####
+
+ * `--appdir=DIR`: Read per-project files (extensions/, project.def and project.ver) from DIR [default: `app`]
  * `--debug`: Builds with no optimization and debugging symbols enbaled
  * `--disable-as`: Do not use external assembly
+ * `--example`: Equivalent to `--appdir=app-example`
  * `--force-32bits`: Build for 32bits regardless of underlying system
  * `--force-64bits`: Build for 64bits regardless of underlying system
  * `--generic`: Alias for --disable-as, forces a generic build

@@ -17,10 +17,12 @@ Installation options:
   --includedir=DIR                    install includes in DIR [PREFIX/include]
 
 Configuration options:
+  --appdir=DIR                        read per-project files (extensions/, project.def/ver) from DIR [app]
   --debug                             builds with no optimization and debugging symbols enbaled
   --disable-as                        do not use external assembly
-  --force-32bits                      build for 32bits regardless of underlying system
-  --force-64bits                      build for 64bits regardless of underlying system
+  --example                           equivalent to --appdir=app-
+  --force-32bits                      (try to) build for 32bits regardless of underlying system
+  --force-64bits                      (try to) build for 64bits regardless of underlying system
   --generic                           alias for --disable-as, forces a generic build
   --pic                               pass -fPIC to the compiler, required to build shared library
   --strict                            use strict compiler flags for C
@@ -162,8 +164,8 @@ outputheaderstub="framework/include/asmopt_internal.h"
 outpututilimpls="framework/include/util_implementations.h"
 outputmake="asmopt.mak"
 outputlog="config.log"
-inputprojectname="app/project.def"
-inputprojectver="app/project.ver"
+inputprojectname="project.def"
+inputprojectver="project.ver"
 asmheader=".text"
 debug="no"
 bits32="no"
@@ -172,6 +174,7 @@ strict="no"
 yasm="no"
 pic="no"
 
+appdir="app"
 prefix="/usr/local"
 exec_prefix=""
 bindir=""
@@ -182,6 +185,12 @@ includedir=""
 while [ "$1" != "" ]; do
     arg="${1#*=}"
     case $1 in
+        --appdir=* ) appdir="$arg"
+                     ;;
+
+        --example ) appdir="app-example"
+                    ;;
+
         --prefix=* ) prefix="$arg"
                      ;;
 
@@ -263,16 +272,20 @@ ARCH="generic"
 OFORMAT="generic"
 EXE=""
 STATICLIB=".lib"
-PROJECTNAME=`tr -d '\n' <$inputprojectname | tr '[:upper:]' '[:lower:]'`
-PROJECTNAMEUPPER=`tr -d '\n' <$inputprojectname | tr '[:lower:]' '[:upper:]'`
-PROJECTVERMAJOR=`cut -d . -f 1 $inputprojectver`
+
+[ -e $appdir/$inputprojectname ] || fatal_error "Unable to find $appdir/$inputprojectname!"
+[ -e $appdir/$inputprojectver ] || fatal_error "Unable to find $appdir/$inputprojectver!"
+
+PROJECTNAME=`tr -d '\n' <$appdir/$inputprojectname 2>$outputlog | tr '[:upper:]' '[:lower:]'`
+PROJECTNAMEUPPER=`tr -d '\n' <$appdir/$inputprojectname 2>$outputlog | tr '[:lower:]' '[:upper:]'`
+PROJECTVERMAJOR=`cut -d . -f 1 $appdir/$inputprojectver` 2>$outputlog
 
 if [ x"$PROJECTNAME" = "x" ]; then
-    fatal_error "Unable to determine project name! Edit $inputprojectname to set it"
+    fatal_error "Unable to determine project name! Edit $appdir/$inputprojectname to set it"
 fi
 
 if [ x"$PROJECTVERMAJOR" = "x" ]; then
-    fatal_error "Unable to determine project name! Edit $inputprojectver to set it"
+    fatal_error "Unable to determine project name! Edit $appdir/$inputprojectver to set it"
 fi
 
 if [ "$yasm" = "yes" ]; then
@@ -620,6 +633,7 @@ exec_prefix=$exec_prefix
 bindir=$bindir
 libdir=$libdir
 includedir=$includedir
+appdir=$appdir
 EOF
 
 cat >> $outputheader << EOF
@@ -668,8 +682,8 @@ EOF
 
 # build util_implementations.h
 
-util_includes=`ls app/include/*.h | sed "s/app\/include\/\(.*\)\.h/#include \"\1.h\"/"`
-util_impls=`ls app/include/*.h | sed "s/app\/include\/\(.*\)\.h/make_impl(\1),/"`
+util_includes=`ls $appdir/include/*.h | sed "s/$appdir\/include\/\(.*\)\.h/#include \"\1.h\"/"`
+util_impls=`ls $appdir/include/*.h | sed "s/$appdir\/include\/\(.*\)\.h/make_impl(\1),/"`
 
 cat > $outpututilimpls << EOF
 $util_includes

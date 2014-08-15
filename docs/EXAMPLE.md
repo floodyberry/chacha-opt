@@ -1,10 +1,10 @@
-An [example](app/extensions/example/) is provided demonstrating how to implement, select, and call an optimized function. The example algorithm being implemented is summing up the ~~~little-endian~~~ 32-bit signed integers in a given array and returning the result. 
+An [example](app-example/extensions/example/) is provided demonstrating how to implement, select, and call an optimized function. The example algorithm being implemented is summing up the ~~~little-endian~~~ 32-bit signed integers in a given array and returning the result. 
 
 ### PUTTING IT TOGETHER ###
 
 #### ASSEMBLER ####
 
-[example.S](app/extensions/example/example.S) includes the bootstrap header and aggregates all the implementations in to a single file:
+[example.S](app-example/extensions/example/example.S) includes the bootstrap header and aggregates all the implementations in to a single file:
 
     #if defined(__GNUC__)
     #include "gcc_driver.inc"
@@ -20,7 +20,7 @@ An [example](app/extensions/example/) is provided demonstrating how to implement
     INCLUDE_IF_SSE2_32BIT "example/example_sse2-32.inc"
     INCLUDE_IF_X86_32BIT "example/example_x86-32.inc"
 
-with an assembler implementation, [example_x86-32.inc](app/extensions/example/example_x86-32.inc), looking (something like) like:
+with an assembler implementation, [example_x86-32.inc](app-example/extensions/example/example_x86-32.inc), looking (something like) like:
 
     SECTION_TEXT
     
@@ -46,7 +46,7 @@ Suggested function naming is name_extension, e.g. `example_x86`, `aes_avx2`, `cu
 
 #### C ####
 
-The C code "glue" is [impl.c](app/extensions/example/impl.c), which starts by declaring an implementation struct holding the cpu flags for the implementation and its methods. Note that an optimized implementation may have multiple methods, such as a signing function which would have separate functions for key generation, signing, and verifying:
+The C code "glue" is [impl.c](app-example/extensions/example/impl.c), which starts by declaring an implementation struct holding the cpu flags for the implementation and its methods. Note that an optimized implementation may have multiple methods, such as a signing function which would have separate functions for key generation, signing, and verifying:
 
     typedef struct example_impl_t {
         uint32_t cpu_flags;

@@ -12,7 +12,7 @@ BASEDIR = .
 BINDIR = bin
 BUILDDIR = build
 BUILDDIRUTIL = build_util
-INCLUDE = $(addprefix -I$(BASEDIR)/,app/extensions app/include framework/include framework/driver framework/driver/$(ARCH))
+INCLUDE = $(addprefix -I$(BASEDIR)/,$(appdir)/extensions $(appdir)/include framework/include framework/driver framework/driver/$(ARCH))
 CINCLUDE = $(INCLUDE)
 ASMINCLUDE = $(INCLUDE)
 
@@ -28,9 +28,9 @@ endif
 rwildcard = $(foreach d, $(wildcard $(1)*), $(call rwildcard, $(d)/, $(2)) $(filter $(subst *, %, $(2)), $(d)))
 
 SRCDRIVER = $(wildcard framework/driver/*.c)
-SRCEXT = $(call rwildcard, app/extensions/, *.c)
+SRCEXT = $(call rwildcard, $(appdir)/extensions/, *.c)
 SRCASM =
-SRCMAIN = app/main.c
+SRCMAIN = $(appdir)/main.c
 SRCUTIL = framework/main_util.c framework/bench.c framework/fuzz.c
 SRCSHARED = framework/main_shared.c
 
@@ -39,7 +39,7 @@ SRCSHARED = framework/main_shared.c
 ifeq ($(HAVEAS),yes)
 
 # grab all the assembler files
-SRCASM = $(call rwildcard, app/extensions/, *.S)
+SRCASM = $(call rwildcard, $(appdir)/extensions/, *.S)
 
 # add asm for the appropriate arch
 SRCASM += $(call rwildcard, $(addsuffix $(ARCH),framework/driver/), *.S)
@@ -90,7 +90,7 @@ exe: makebin $(BINDIR)/$(PROJECTNAME)$(EXE)
 install-generic:
 	$(INSTALL) -d $(includedir)/lib$(PROJECTNAME)
 	$(INSTALL) -d $(libdir)
-	$(INSTALL) -m 644 app/include/*.h $(includedir)/lib$(PROJECTNAME)
+	$(INSTALL) -m 644 $(appdir)/include/*.h $(includedir)/lib$(PROJECTNAME)
 
 lib: makebin $(BINDIR)/$(PROJECTNAME)$(STATICLIB)
 	@echo built [$(BINDIR)/$(PROJECTNAME)$(STATICLIB)]
