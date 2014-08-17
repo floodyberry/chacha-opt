@@ -127,8 +127,8 @@ try_example(void) {
 }
 
 int main(void) {
-	if (example_init() != 0) {
-		printf("example failed to initialize\n");
+	if (example_startup() != 0) {
+		printf("example failed to startup\n");
 		return 1;
 	}
 	print_cpuflags();

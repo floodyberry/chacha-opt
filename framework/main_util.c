@@ -4,12 +4,12 @@
 /* includes, and implementations, implementations_count */
 typedef struct implementation_t {
 	const char *name;
-	int (*init)(void);
+	int (*startup)(void);
 	void (*fuzz)(void);
 	void (*bench)(void);
 } implementation_t;
 
-#define make_impl(name) {#name, name##_init, name##_fuzz, name##_bench}
+#define make_impl(name) {#name, name##_startup, name##_fuzz, name##_bench}
 
 #include "util_implementations.h"
 
@@ -57,8 +57,8 @@ int main(int argc, const char *argv[]) {
 		action_arg = 2;
 	}
 
-	if (sel->init() != 0) {
-		printf("%s failed to initialize\n", sel->name);
+	if (sel->startup() != 0) {
+		printf("%s failed to startup\n", sel->name);
 		return 1;
 	}
 

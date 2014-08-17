@@ -130,7 +130,7 @@ and one to call `cpu_select` and set up `example_opt`:
 
     /* choose the best implemenation for the current cpu */
     int
-    example_init(void) {
+    example_startup(void) {
         const void *opt = cpu_select(example_list, sizeof(example_impl_t), example_test_impl);
         if (opt) {
             example_opt = *(const example_impl_t *)opt;

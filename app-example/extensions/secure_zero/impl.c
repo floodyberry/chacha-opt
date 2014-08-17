@@ -81,7 +81,7 @@ secure_zero_test_impl(const void *impl) {
 }
 
 LIB_PUBLIC int
-secure_zero_init(void) {
+secure_zero_startup(void) {
 	const void *opt = LOCAL_PREFIX(cpu_select)(secure_zero_list, sizeof(secure_zero_extension_t), secure_zero_test_impl);
 	if (opt) {
 		secure_zero_opt = (const secure_zero_extension_t *)opt;
@@ -93,10 +93,10 @@ secure_zero_init(void) {
 
 static void
 secure_zero_bootup(unsigned char *p, size_t len) {
-	if (secure_zero_init() == 0) {
+	if (secure_zero_startup() == 0) {
 		secure_zero_opt->secure_zero(p, len);
 	} else {
-		fprintf(stderr, "secure_zero failed to initialize\n");
+		fprintf(stderr, "secure_zero failed to startup\n");
 		exit(1);
 	}
 }

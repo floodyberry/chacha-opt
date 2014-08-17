@@ -96,7 +96,7 @@ example_test_impl(const void *impl) {
 
 /* choose the best implemenation for the current cpu */
 LIB_PUBLIC int
-example_init(void) {
+example_startup(void) {
 	const void *opt = LOCAL_PREFIX(cpu_select)(example_list, sizeof(example_impl_t), example_test_impl);
 	if (opt) {
 		example_opt = *(const example_impl_t *)opt;

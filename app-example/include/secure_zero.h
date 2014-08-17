@@ -12,7 +12,7 @@ extern "C" {
 #endif
 
 LIB_PUBLIC void secure_zero(unsigned char *p, size_t len);
-LIB_PUBLIC int secure_zero_init(void);
+LIB_PUBLIC int secure_zero_startup(void);
 
 #if defined(UTILITIES)
 void secure_zero_fuzz(void);

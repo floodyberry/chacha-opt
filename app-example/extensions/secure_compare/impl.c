@@ -131,7 +131,7 @@ secure_compare_test_impl(const void *impl) {
 }
 
 LIB_PUBLIC int
-secure_compare_init(void) {
+secure_compare_startup(void) {
 	const void *opt = LOCAL_PREFIX(cpu_select)(secure_compare_list, sizeof(secure_compare_extension_t), secure_compare_test_impl);
 	if (opt) {
 		secure_compare_opt = (const secure_compare_extension_t *)opt;
@@ -144,10 +144,10 @@ secure_compare_init(void) {
 static int
 secure_compare8_bootup(const unsigned char *x, const unsigned char *y) {
 	int ret = 1;
-	if (secure_compare_init() == 0) {
+	if (secure_compare_startup() == 0) {
 		ret = secure_compare_opt->secure_compare8(x, y);
 	} else {
-		fprintf(stderr, "secure_zero failed to initialize\n");
+		fprintf(stderr, "secure_compare failed to startup\n");
 		exit(1);
 	}
 	return ret;
@@ -156,10 +156,10 @@ secure_compare8_bootup(const unsigned char *x, const unsigned char *y) {
 static int
 secure_compare16_bootup(const unsigned char *x, const unsigned char *y) {
 	int ret = 1;
-	if (secure_compare_init() == 0) {
+	if (secure_compare_startup() == 0) {
 		ret = secure_compare_opt->secure_compare16(x, y);
 	} else {
-		fprintf(stderr, "secure_zero failed to initialize\n");
+		fprintf(stderr, "secure_compare failed to startup\n");
 		exit(1);
 	}
 	return ret;
@@ -168,10 +168,10 @@ secure_compare16_bootup(const unsigned char *x, const unsigned char *y) {
 static int
 secure_compare32_bootup(const unsigned char *x, const unsigned char *y) {
 	int ret = 1;
-	if (secure_compare_init() == 0) {
+	if (secure_compare_startup() == 0) {
 		ret = secure_compare_opt->secure_compare32(x, y);
 	} else {
-		fprintf(stderr, "secure_zero failed to initialize\n");
+		fprintf(stderr, "secure_compare failed to startup\n");
 		exit(1);
 	}
 	return ret;

@@ -12,7 +12,7 @@ extern "C" {
 #endif
 
 LIB_PUBLIC unsigned char example(const unsigned char *arr, size_t count);
-LIB_PUBLIC int example_init(void);
+LIB_PUBLIC int example_startup(void);
 
 #if defined(UTILITIES)
 void example_fuzz(void);
