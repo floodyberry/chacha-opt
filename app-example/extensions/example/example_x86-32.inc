@@ -1,8 +1,6 @@
 SECTION_TEXT
 
-GLOBAL example_x86
-HIDDEN example_x86
-FN example_x86
+GLOBAL_HIDDEN_FN
 	movl 4(%esp), %edx
 	movl 8(%esp), %ecx
 	xorl %eax, %eax

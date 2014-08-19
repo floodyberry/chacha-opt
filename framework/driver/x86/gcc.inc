@@ -218,6 +218,30 @@
 #endif
 .endm
 
+.macro GLOBAL_HIDDEN_FN name
+#if defined(HAVE_SLASHMACRO)
+	GLOBAL \name
+	HIDDEN \name
+	FN \name
+#elif defined(HAVE_DOLLARMACRO)
+	GLOBAL $0
+	HIDDEN $0
+	FN $0
+#endif
+.endm
+
+.macro GLOBAL_HIDDEN_FN_EXT name, args, xmmused
+#if defined(HAVE_SLASHMACRO)
+	GLOBAL \name
+	HIDDEN \name
+	FN_EXT \name, \args, \xmmused
+#elif defined(HAVE_DOLLARMACRO)
+	GLOBAL $0
+	HIDDEN $0
+	FN_EXT $0, $1, $2
+#endif
+.endm
+
 /* pic support */
 .macro LOAD_VAR_PIC var, reg
 #if (IS_X86_32)

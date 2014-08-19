@@ -1,8 +1,6 @@
 SECTION_TEXT
 
-GLOBAL secure_compare8_x86
-HIDDEN secure_compare8_x86
-FN_EXT secure_compare8_x86, 2, 0
+GLOBAL_HIDDEN_FN_EXT secure_compare8_x86, 2, 0
 movq 0(%rsi), %rax
 movq $-1, %rcx
 xorq 0(%rdi), %rax
@@ -10,9 +8,7 @@ cmovnz %rcx, %rax
 ret
 FN_END secure_compare8_x86
 
-GLOBAL secure_compare16_x86
-HIDDEN secure_compare16_x86
-FN_EXT secure_compare16_x86, 2, 0
+GLOBAL_HIDDEN_FN_EXT secure_compare16_x86, 2, 0
 movq 0(%rsi), %rax
 movq 8(%rsi), %rcx
 movq $-1, %rdx
@@ -23,9 +19,7 @@ cmovnz %rdx, %rax
 ret
 FN_END secure_compare16_x86
 
-GLOBAL secure_compare32_x86
-HIDDEN secure_compare32_x86
-FN_EXT secure_compare32_x86, 2, 0
+GLOBAL_HIDDEN_FN_EXT secure_compare32_x86, 2, 0
 movq 0(%rsi), %rax
 movq 8(%rsi), %rdx
 movq 16(%rsi), %rcx

@@ -1,8 +1,6 @@
 SECTION_TEXT
 
-GLOBAL example_sse2
-HIDDEN example_sse2
-FN example_sse2
+GLOBAL_HIDDEN_FN example_sse2
 	movl 4(%esp), %edx
 	movl 8(%esp), %ecx
 	xorl %eax, %eax

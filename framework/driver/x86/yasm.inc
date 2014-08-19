@@ -225,6 +225,20 @@
 	HIDDEN PROJECT_NAME %+ _ %+ %1
 %endmacro
 
+; name
+%macro GLOBAL_HIDDEN_FN 1
+	GLOBAL %1
+	HIDDEN %1
+	FN %1
+%endmacro
+
+; name, args, xmmused
+%macro GLOBAL_HIDDEN_FN_EXT 3
+	GLOBAL %1
+	HIDDEN %1
+	FN_EXT %1, %2, %3
+%endmacro
+
 
 ; pic support: LOAD_VAR_PIC var, reg
 %macro LOAD_VAR_PIC 2

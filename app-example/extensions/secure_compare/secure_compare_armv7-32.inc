@@ -2,9 +2,7 @@
 
 SECTION_TEXT
 
-GLOBAL secure_compare32_armv7
-HIDDEN secure_compare32_armv7
-FN secure_compare32_armv7
+GLOBAL_HIDDEN_FN secure_compare32_armv7
 stmfd sp!, {r4-r10, lr}
 ldr r2, [r0, #0]
 ldr r4, [r0, #4]
@@ -44,9 +42,7 @@ andeq r0, #0
 ldmfd sp!, {r4-r10, pc}
 FN_END secure_compare32_armv7
 
-GLOBAL secure_compare16_armv7
-HIDDEN secure_compare16_armv7
-FN secure_compare16_armv7
+GLOBAL_HIDDEN_FN secure_compare16_armv7
 stmfd sp!, {r4-r10, lr}
 ldr r2, [r0, #0]
 ldr r4, [r0, #4]
@@ -71,9 +67,7 @@ ldmfd sp!, {r4-r10, pc}
 FN_END secure_compare16_armv7
 
 
-GLOBAL secure_compare8_armv7
-HIDDEN secure_compare8_armv7
-FN secure_compare8_armv7
+GLOBAL_HIDDEN_FN secure_compare8_armv7
 stmfd sp!, {r4-r5, lr}
 ldr r2, [r0, #0]
 ldr r4, [r0, #4]

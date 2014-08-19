@@ -123,6 +123,18 @@
 #endif
 .endm
 
+.macro GLOBAL_HIDDEN_FN name
+#if defined(HAVE_SLASHMACRO)
+	GLOBAL \name
+	HIDDEN \name
+	FN \name
+#elif defined(HAVE_DOLLARMACRO)
+	GLOBAL $0
+	HIDDEN $0
+	FN $0
+#endif
+.endm
+
 /* pic support */
 .macro LOAD_VAR_PIC var, reg
 #if (IS_ARM32)

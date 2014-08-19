@@ -1,8 +1,6 @@
 SECTION_TEXT
 
-GLOBAL example_avx
-HIDDEN example_avx
-FN example_avx
+GLOBAL_HIDDEN_FN example_avx
 	xorl %eax, %eax
 
 	andq %rsi, %rsi

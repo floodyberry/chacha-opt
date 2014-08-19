@@ -2,9 +2,7 @@
 
 SECTION_TEXT
 
-GLOBAL example_neon
-HIDDEN example_neon
-FN example_neon
+GLOBAL_HIDDEN_FN example_neon
 stmfd sp!, {r4, lr}
 
 eor r2, r2
