@@ -17,6 +17,7 @@ x86 is fully supported, and the first pass at ARM support is now in!
 * Fuzzing / benchmarking support is in [framework/](framework/).
 * Sample [app-example/main.c](app-example/main.c) provided showing use of cpuid and calling the example extension.
 * Platforms supported are x86, ARM.
+* The `framework` branch contains only the files needed to create a new library. Pull from `framework` instead of `master` to update your libraries using asm-opt!
 
 # HOW IT WORKS #
 
