@@ -18,3 +18,7 @@
 
 # configure must be LF
 configure text eol=lf
+
+# project files must be LF
+project.def text eol=lf
+project.ver text eol=lf
