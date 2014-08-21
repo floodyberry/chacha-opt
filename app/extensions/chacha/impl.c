@@ -434,8 +434,8 @@ chacha_test_impl(const unsigned char *input_buffer) {
 	/*
 		key [32,33,34,..63], iv [128,129,130,131,132,133,134,135]
 	*/
-	for (i = 0; i < sizeof(key); i++) key.b[i] = i + 32;
-	for (i = 0; i < sizeof(iv); i++) iv.b[i] = i + 128;
+	for (i = 0; i < sizeof(key); i++) key.b[i] = (unsigned char)(i + 32);
+	for (i = 0; i < sizeof(iv); i++) iv.b[i] = (unsigned char)(i + 128);
 
 	in_aligned = input_buffer;
 	in_unaligned = (input_buffer) ? (input_buffer + 1) : NULL;
@@ -470,8 +470,8 @@ chacha_test_impl(const unsigned char *input_buffer) {
 		hchacha
 		key [192,193,194,..223], iv [16,17,18,..31]
 	*/
-	for (i = 0; i < sizeof(h_key); i++) h_key[i] = i + 192;
-	for (i = 0; i < sizeof(h_iv); i++) h_iv[i] = i + 16;
+	for (i = 0; i < sizeof(h_key); i++) h_key[i] = (unsigned char)(i + 192);
+	for (i = 0; i < sizeof(h_iv); i++) h_iv[i] = (unsigned char)(i + 16);
 
 	memset(final_hchacha, 0, sizeof(final_hchacha));
 	hchacha(h_key, h_iv, final_hchacha, chacha_test_rounds);
@@ -481,9 +481,9 @@ chacha_test_impl(const unsigned char *input_buffer) {
 		one-shot
 		key [192,193,194,..223], iv [16,17,18,..31]
 	*/
-	for (i = 0; i < sizeof(key); i++) key.b[i] = i + 192;
-	for (i = 0; i < sizeof(iv); i++) iv.b[i] = i + 16;
-	for (i = 0; i < sizeof(x_iv); i++) x_iv.b[i] = i + 16;
+	for (i = 0; i < sizeof(key); i++) key.b[i] = (unsigned char)(i + 192);
+	for (i = 0; i < sizeof(iv); i++) iv.b[i] = (unsigned char)(i + 16);
+	for (i = 0; i < sizeof(x_iv); i++) x_iv.b[i] = (unsigned char)(i + 16);
 
 	memset(out, 0, CHACHA_TEST_LEN);
 	chacha(&key, &iv, input_buffer, out, CHACHA_TEST_LEN, chacha_test_rounds);
