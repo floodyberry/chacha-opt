@@ -629,6 +629,8 @@ chacha_fuzz(void) {
 static unsigned char *bench_arr = NULL;
 static const chacha_key bench_key = {{1}};
 static const chacha_iv bench_iv = {{2}};
+static const unsigned char hbench_key[32] = {1};
+static const unsigned char hbench_iv[16] = {2};
 static size_t bench_len = 0;
 static size_t bench_rounds = 8;
 
@@ -638,12 +640,19 @@ chacha_bench_impl(const void *impl) {
 	chacha_impl->chacha(&bench_key, &bench_iv, bench_arr, bench_arr, bench_len, bench_rounds);
 }
 
+static void
+hchacha_bench_impl(const void *impl) {
+	const chacha_impl_t *chacha_impl = (const chacha_impl_t *)impl;
+	chacha_impl->hchacha(hbench_key, hbench_iv, bench_arr, bench_rounds);
+}
+
 void
 chacha_bench(void) {
 	static const size_t rounds[] = {8, 12, 20, 0};
-	static const size_t lengths[] = {8, 64, 256, 4096, 0};
+	static const size_t lengths[] = {1, 64, 576, 8192, 0};
 	size_t i, j;
 	bench_arr = bench_get_buffer();
+	printf("ChaCha\n");
 	for (i = 0; rounds[i]; i++) {
 		bench_rounds = rounds[i];
 		printf("\n---- %u rounds ----\n", (unsigned int)bench_rounds);
@@ -652,6 +661,13 @@ chacha_bench(void) {
 			memset(bench_arr, 0xc5, bench_len);
 			bench(chacha_list, sizeof(chacha_impl_t), chacha_test_full_impl, chacha_bench_impl, bench_len, "byte");
 		}
+	}
+
+	printf("HChaCha\n");
+	for (i = 0; rounds[i]; i++) {
+		bench_rounds = rounds[i];
+		printf("\n---- %u rounds ----\n", (unsigned int)bench_rounds);
+		bench(chacha_list, sizeof(chacha_impl_t), chacha_test_full_impl, hchacha_bench_impl, 1, "call");
 	}
 }
 
