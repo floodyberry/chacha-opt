@@ -1,119 +1,85 @@
 # ABOUT #
 
-These are specially optimized block functions for [ChaCha](http://cr.yp.to/chacha.html), 
-a stream cipher with a 256 bit key and a 64 bit nonce.
+This is an optimized library for [ChaCha](http://cr.yp.to/chacha.html), a stream cipher with a 256 bit key and a 64 bit nonce.
 
-HChaCha is also implemented, which is used to build XChaCha, a variant which extends the 
-nonce from 64 bits to 192 bits. See [Extending the Salsa20 nonce](http://cr.yp.to/snuffle/xsalsa-20110204.pdf). 
+HChaCha is also implemented, which is used to build XChaCha, a variant which extends the nonce from 64 bits to 192 bits. See [Extending the Salsa20 nonce](http://cr.yp.to/snuffle/xsalsa-20110204.pdf).
+
+The most optimized version for the underlying CPU, *that passes internal tests*, is selected at runtime. 
 
 All assembler is PIC safe.
 
-When calling the one-shot versions `chacha_impl`, `xchacha_impl`, `chacha`, and `xchacha`, input/output are 
-assumed to be word aligned. Incremental support has no alignment requirements, but will obviously slow down if
-non word-aligned pointers are passed.
-
 If you encrypt anything without using a MAC (HMAC, Poly1305, etc), you will be found, and made fun of.
+
+# INITIALIZING #
+
+The library can be initialized, i.e. the most optimized implementation that passes internal tests will be automatically selected, in two ways, **neither of which are thread safe**:
+
+1. `int chacha_startup(void);` explicitly initializes the library, and returns a non-zero value if no suitable implementation is found that passes internal tests
+
+2. Do nothing and use the library like normal. It will auto-initialize itself when needed, and hard exit if no suitibale implementation is found.
 
 # CALLING #
 
-## ChaCha ##
+Common assumptions:
 
-`void chacha_blocks_impl(chacha_blocks_state *state, const uint8_t *in, uint8_t *out, size_t bytes);`
+* `chacha_key`, `chacha_iv`, and `chacha_iv24` variables can be accessed through their `b` member, which is an array of unsigned bytes.
 
-**state** is a word aligned pointer to a struct in the form of
+* `rounds` is an even number 2 or greater.
 
-    chacha_blocks_state {
-        uint8_t s[48];
-        size_t rounds;
-    }
+* If `in` is `NULL`, the output will be stored to `out` (useful for things like random number generation or generating intermediate keys).
 
-where **s** is words 4-15 of the ChaCha state in little endian, and **rounds** is an even number >= 2. 
-Little endian systems are free to treat **s** as `uint32_t s[12]`.
+## ONE SHOT ##
 
-**in** is a pointer to the input data which is XOR'd against the resulting ChaCha stream. If **in** is 
-`NULL`, the ChaCha stream will be written directly to **out**.
+`in` and `out` are assumed to be word aligned. Incremental support has no alignment requirements, but will obviously slow down if non word-aligned pointers are passed.
 
-**out** is a pointer where the data will be written to. It may be the same as **in** if you want 
-to process data in place.
+`void chacha(const chacha_key *key, const chacha_iv *iv, const uint8_t *in, uint8_t *out, size_t inlen, size_t rounds);`
 
-**bytes** is the number of bytes to process. It is not required to be a multiple of the ChaCha block 
-size (64 bytes), but the internal block counter will be incremented by ((bytes + 63) / 64), so it should only 
-be a non-multiple of 64 if there is no more data to process.
-
-`void chacha_impl(const chacha_key *key, const chacha_iv *iv, const uint8_t *in, uint8_t *out, size_t inlen, size_t rounds);`
+`void xchacha(const chacha_key *key, const chacha_iv24 *iv, const uint8_t *in, uint8_t *out, size_t inlen, size_t rounds);`
 
 Encrypts `inlen` bytes from `in` to `out, using `key`, `iv`, and `rounds`.
 
-## HChaCha ##
+## INCREMENTAL ##
 
-`void hchacha_impl(const uint8_t key[32], const uint8_t iv[16], uint8_t out[32], size_t rounds);`
-
-**key** is a pointer to 32 unsigned bytes. 
-
-**iv** is a pointer to 16 unsigned bytes. 
-
-**out** is a pointer where the 32 byte output of HChaCha(key, iv, rounds) will be stored.
-
-**rounds** is the number of rounds to use and must be >= 2.
-
-`void xchacha_impl(const chacha_key *key, const chacha_iv24 *iv, const uint8_t *in, uint8_t *out, size_t inlen, size_t rounds);`
-
-Encrypts `inlen` bytes from `in` to `out, using `key`, `iv`, and `rounds` using XChacha/rounds.
-
-## chacha.c ##
-
-[chacha.c](chacha.c) and [chacha.h](chacha.h) is a ChaCha implementation which handles all the high level functions 
-(incremental state, input alignment, validity testing) and calls out to `chacha_blocks_impl` and `hchacha_impl`. 
-Compiling with `-DCHACHA_IMPL=ver` replaces `chacha_blocks_impl` with `chacha_blocks_ver`, `hchacha_impl` with `hchacha_ver`, etc.,
-which allows testing of specific functions. This will change when I get cpu-dispatching included.
-
-### Functions ###
+Incremental `in` and `out` buffers are *not* required to be word aligned. Unaligned buffers will require copying to aligned buffers however, which will obviously incur a speed penalty.
 
 `void chacha_init(chacha_state *S, const chacha_key *key, const chacha_iv *iv, size_t rounds);`
+
+`void xchacha_init(chacha_state *S, const chacha_key *key, const chacha_iv24 *iv, size_t rounds);`
 
 Initialize the chacha_state with `key` and `iv`, and `rounds`, and sets the internal block counter to 0.
 
 `size_t chacha_update(chacha_state *S, const uint8_t *in, uint8_t *out, size_t inlen);`
 
-Generates/crypts up to `inlen + 63` bytes depending on how many bytes are in the internal buffer, and returns the number
-of encrypted bytes written to `out`.
+`size_t xchacha_update(chacha_state *S, const uint8_t *in, uint8_t *out, size_t inlen);`
 
-`uint64_t chacha_get_counter(chacha_state *S);`
-
-Returns the value of the internal block counter, which is the number of bytes processed / 64.
-
-`void chacha_set_counter(chacha_state *S, uint64_t counter);`
-
-Sets the value of the internal block counter.
+Generates/xors up to `inlen + 63` bytes depending on how many bytes are in the internal buffer, and returns the number of encrypted bytes written to `out`.
 
 `size_t chacha_final(chacha_state *S, uint8_t *out);`
 
+`size_t xchacha_final(chacha_state *S, uint8_t *out);`
+
 Generates/crypts any leftover data in the state to `out`, returns the number of bytes written.
 
-`void chacha(const chacha_key *key, const chacha_iv *iv, const uint8_t *in, uint8_t *out, size_t inlen, size_t rounds);`
+# HChaCha #
 
-Encrypts `inlen` bytes from `in` to `out, using `key`, `iv`, and `rounds`.
+`void hchacha(const uint8_t key[32], const uint8_t iv[16], uint8_t out[32], size_t rounds);`
 
-`void xchacha(const chacha_key *key, const chacha_iv24 *iv, const uint8_t *in, uint8_t *out, size_t inlen, size_t rounds);`
+Computes HChaCha in to `out`, using `key`, `iv`, and `rounds`.
 
-Encrypts `inlen` bytes from `in` to `out, using `key`, `iv`, and `rounds` using XChacha/rounds.
+# Examples #
 
-### Examples ###
-
-#### Encrypting a buffer, single call: 
+## ENCRYPTING WITH ONE CALL ##
 
     const size_t rounds = 20;
-    chacha_key key = {..};
-    chacha_iv iv = {..};
+    chacha_key key = {{..}};
+    chacha_iv iv = {{..}};
     uint8_t in[100] = {..}, out[100];
     
     chacha(&key, &iv, in, out, 100, rounds);
 
-#### Encrypting Incrementally
+## ENCRYPTING INCREMENTALLY ##
 
-Encrypting incrementally, i.e. with multiple calls to collect/write data. Note 
-that passing in data to be encrypted will not always result in data being written out. The 
-implementation collects data until there is at least 1 block (64 bytes) of data available.
+Encrypting incrementally, i.e. with multiple calls to collect/write data. Note that passing in data to be encrypted will not always result in data being written out. The implementation collects data until there is at least 1 block (64 bytes) of data available.
 
     const size_t rounds = 20;
     chacha_state S;
@@ -131,71 +97,84 @@ implementation collects data until there is at least 1 block (64 bytes) of data 
     }
     bytes_written = chacha_final(&S, out_pointer);
 
-#### XChaCha
-
-XChaCha is called exactly like ChaCha, except `xchacha` and `xchacha_init` are called instead,
-and the iv is `chacha_iv24` (192 bits) instead of `chacha_iv` (64 bits). 
-
-`chacha_key`, `chacha_iv`, and `chacha_iv24` may be accessed directly through `.b[i]`, e.g. `key.b[0] = 0xff;`.
-
 # VERSIONS #
-
-~~XOP~~, and any other architecture, is not included yet because I do not have access to any of those machines 
-to test with.
 
 x86-64, SSE2-32, and SSE3-32 versions are minorly modified from DJB's public domain implementations.
 
 ## Reference ##
 
-* Generic: [chacha\_blocks\_ref](chacha_blocks_ref.c)
+* Generic: [chacha\_ref](app/extensions/chacha/chacha_ref.inc)
 
 ## x86 (32 bit) ##
 
-* 386 compatible: [chacha\_blocks\_x86](chacha_blocks_x86-32.S)
-* SSE2: [chacha\_blocks\_sse2](chacha_blocks_sse2-32.S)
-* SSSE3: [chacha\_blocks\_ssse3](chacha_blocks_ssse3-32.S)
-* AVX: [chacha\_blocks\_avx](chacha_blocks_avx-32.S)
-* XOP: [chacha\_blocks\_xop](chacha_blocks_xop-32.S)
-* AVX2: [chacha\_blocks\_avx2](chacha_blocks_avx2-32.S)
+* 386 compatible: [chacha\_x86](app/extensions/chacha/chacha_x86-32.inc)
+* SSE2: [chacha\_sse2](app/extensions/chacha/chacha_sse2-32.inc)
+* SSSE3: [chacha\_ssse3](app/extensions/chacha/chacha_ssse3-32.inc)
+* AVX: [chacha\_avx](app/extensions/chacha/chacha_avx-32.inc)
+* XOP: [chacha\_xop](app/extensions/chacha/chacha_xop-32.inc)
+* AVX2: [chacha\_avx2](app/extensions/chacha/chacha_avx2-32.inc)
 
 ## x86-64 ##
 
-* x86-64 compatible: [chacha\_blocks\_x86](chacha_blocks_x86-64.S)
-* SSE2: [chacha\_blocks\_sse2](chacha_blocks_sse2-64.S)
-* SSSE3: [chacha\_blocks\_ssse3](chacha_blocks_ssse3-64.S)
-* AVX: [chacha\_blocks\_avx](chacha_blocks_avx-64.S)
-* XOP: [chacha\_blocks\_xop](chacha_blocks_xop-64.S)
-* AVX2: [chacha\_blocks\_avx2](chacha_blocks_avx2-64.S)
+* x86-64 compatible: [chacha\_x86](app/extensions/chacha/chacha_x86-64.inc)
+* SSE2: [chacha\_sse2](app/extensions/chacha/chacha_sse2-64.inc)
+* SSSE3: [chacha\_ssse3](app/extensions/chacha/chacha_ssse3-64.inc)
+* AVX: [chacha\_avx](app/extensions/chacha/chacha_avx-64.inc)
+* XOP: [chacha\_xop](app/extensions/chacha/chacha_xop-64.inc)
+* AVX2: [chacha\_avx2](app/extensions/chacha/chacha_avx2-64.inc)
 
 x86-64 will almost always be slower than SSE2, but on some older AMDs it may be faster
 
-# TESTING #
+# BUILDING #
 
-Run `./test.sh [ref,x86,sse2,ssse3,avx,xop,avx2] [32,64]` to test that the specified version
-is producing the correct results. Features tested:
+See [asm-opt#configuring](https://github.com/floodyberry/asm-opt#configuring) for full configure options.
 
-## Implementation specific
+If you would like to use Yasm with a gcc-compatible compiler, pass `--yasm` to configure.
+
+The Visual Studio projects are generated assuming Yasm is available. You will need to have [Yasm.exe](http://yasm.tortall.net/Download.html) somewhere in your path to build them.
+
+## STATIC LIBRARY ##
+
+    ./configure
+    make lib
+
+and `make install-lib` OR copy `bin/chacha.lib` and `app/include/chacha.h` to your desired location.
+
+## SHARED LIBRARY ##
+
+    ./configure --pic
+    make shared
+    make install-shared
+
+## UTILITIES / TESTING ##
+
+    ./configure
+    make util
+    bin/chacha-util [bench|fuzz]
+
+### BENCHMARK / TESTING ###
+
+Benchmarking will implicitly test every available version. If any fail, it will exit with an error indicating which versions did not pass. Features tested include:
 
 * Partial block generation
 * Single block generation
 * Multi block generation
 * Counter handling when the 32-bit low half overflows to the upper half
 * Streaming and XOR modes
-
-## chacha.c API
-
 * Incremental encryption
 * Input/Output alignment
 
+### FUZZING ###
+
+Fuzzing tests every available implementation for the current CPU against the reference implementation. Features tested are:
+
+* HChaCha output
+* One-shot ChaCha
+* Incremental ChaCha with potentially unaligned output 
+
 # BENCHMARKS #
 
-Run `./bench-x86.sh [ref,x86,sse2,ssse3,avx,xop,avx2] [32,64]` to bench the specified version. 
-The benchmark will not run if the version does not pass the validity tests.
-
-When storing the ChaCha stream directly in to the output buffer instead of XOR'ing it with the input 
-(i.e. setting **in** to NULL), performance will be 0.01-0.05 cycles/byte faster.
-
-XChaCha/r has the same performance as ChaCha/r plus the cost of one HChaCha/r call.
+As I have not updated any benchmarks yet, raw cycle counts should have ~10-20 cycles added from the overhead of targets not being hardcoded.
 
 ## [E5200](http://ark.intel.com/products/37212/) ##
 
