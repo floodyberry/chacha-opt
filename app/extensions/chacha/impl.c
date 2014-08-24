@@ -230,10 +230,10 @@ chacha_set_test_counter(chacha_state *S) {
 	state->s[33] = 0xff;
 	state->s[34] = 0xff;
 	state->s[35] = 0xff;
-	state->s[36] = 0xff;
-	state->s[37] = 0xff;
-	state->s[38] = 0xff;
-	state->s[39] = 0xff;
+	state->s[36] = 0;
+	state->s[37] = 0;
+	state->s[38] = 0;
+	state->s[39] = 0;
 }
 
 /* finalize, write out any leftover data */
@@ -351,7 +351,7 @@ chacha_test_oneblock(chacha_key *key, chacha_iv *iv, const unsigned char *in, un
 	chacha_state st;
 	size_t i;
 	unsigned char *p;
-	int res = 1;
+	int res = 0;
 
 	for (i = 1; i <= CHACHA_BLOCKBYTES; i++) {
 		memset(out, 0, i);
@@ -359,7 +359,7 @@ chacha_test_oneblock(chacha_key *key, chacha_iv *iv, const unsigned char *in, un
 		chacha_test_init_state(&st, key, iv);
 		p += chacha_update(&st, in, p, i);
 		chacha_final(&st, p);
-		res &= (memcmp(expected_chacha_first, out, i) == 0) ? 1 : 0;
+		res |= memcmp(expected_chacha_first, out, i);
 	}
 	return res;
 }
@@ -388,7 +388,7 @@ chacha_test_multiblock(chacha_key *key, chacha_iv *iv, const unsigned char *in, 
 	p += chacha_update(&st, in, p, CHACHA_TEST_LEN);
 	chacha_final(&st, p);
 	chacha_test_compact_array(final, out, CHACHA_TEST_LEN);
-	return (memcmp(expected_chacha, final, sizeof(expected_chacha)) == 0) ? 1 : 0;
+	return memcmp(expected_chacha, final, sizeof(expected_chacha));
 }
 
 
@@ -400,7 +400,7 @@ chacha_test_multiblock_incremental(chacha_key *key, chacha_iv *iv, const unsigne
 	unsigned char final[CHACHA_BLOCKBYTES];
 	size_t i, inc;
 	unsigned char *p;
-	int res = 1;
+	int res = 0;
 
 	for (inc = 1; inc < CHACHA_TEST_LEN; inc += 61) {
 		p = out;
@@ -410,7 +410,7 @@ chacha_test_multiblock_incremental(chacha_key *key, chacha_iv *iv, const unsigne
 			p += chacha_update(&st, (in) ? (in + i) : NULL, p, ((i + inc) > CHACHA_TEST_LEN) ? (CHACHA_TEST_LEN - i) : inc);
 		chacha_final(&st, p);
 		chacha_test_compact_array(final, out, CHACHA_TEST_LEN);
-		res &= (memcmp(expected_chacha, final, sizeof(expected_chacha)) == 0) ? 1 : 0;
+		res |= memcmp(expected_chacha, final, sizeof(expected_chacha));
 	}
 
 	return res;
@@ -429,7 +429,7 @@ chacha_test_impl(const unsigned char *input_buffer) {
 	const unsigned char *in_aligned, *in_unaligned;
 	unsigned char *out_aligned, *out_unaligned;
 	size_t i;
-	int res = 1;
+	int res = 0;
 
 	/*
 		key [32,33,34,..63], iv [128,129,130,131,132,133,134,135]
@@ -443,27 +443,27 @@ chacha_test_impl(const unsigned char *input_buffer) {
 	out_unaligned = out + 1;
 
 	/* single block */
-	res &= chacha_test_oneblock(&key, &iv,   in_aligned,   out_aligned);
-	res &= chacha_test_oneblock(&key, &iv,   in_aligned, out_unaligned);
+	res |= chacha_test_oneblock(&key, &iv,   in_aligned,   out_aligned);
+	res |= chacha_test_oneblock(&key, &iv,   in_aligned, out_unaligned);
 	if (input_buffer) {
-		res &= chacha_test_oneblock(&key, &iv, in_unaligned,   out_aligned);
-		res &= chacha_test_oneblock(&key, &iv, in_unaligned, out_unaligned);
+		res |= chacha_test_oneblock(&key, &iv, in_unaligned,   out_aligned);
+		res |= chacha_test_oneblock(&key, &iv, in_unaligned, out_unaligned);
 	}
 
 	/* multi */
-	res &= chacha_test_multiblock(&key, &iv,   in_aligned,   out_aligned);
-	res &= chacha_test_multiblock(&key, &iv,   in_aligned, out_unaligned);
+	res |= chacha_test_multiblock(&key, &iv,   in_aligned,   out_aligned);
+	res |= chacha_test_multiblock(&key, &iv,   in_aligned, out_unaligned);
 	if (input_buffer) {
-		res &= chacha_test_multiblock(&key, &iv, in_unaligned,   out_aligned);
-		res &= chacha_test_multiblock(&key, &iv, in_unaligned, out_unaligned);
+		res |= chacha_test_multiblock(&key, &iv, in_unaligned,   out_aligned);
+		res |= chacha_test_multiblock(&key, &iv, in_unaligned, out_unaligned);
 	}
 
 	/* incremental */
-	res &= chacha_test_multiblock_incremental(&key, &iv,   in_aligned,   out_aligned);
-	res &= chacha_test_multiblock_incremental(&key, &iv,   in_aligned, out_unaligned);
+	res |= chacha_test_multiblock_incremental(&key, &iv,   in_aligned,   out_aligned);
+	res |= chacha_test_multiblock_incremental(&key, &iv,   in_aligned, out_unaligned);
 	if (input_buffer) {
-		res &= chacha_test_multiblock_incremental(&key, &iv, in_unaligned,   out_aligned);
-		res &= chacha_test_multiblock_incremental(&key, &iv, in_unaligned, out_unaligned);
+		res |= chacha_test_multiblock_incremental(&key, &iv, in_unaligned,   out_aligned);
+		res |= chacha_test_multiblock_incremental(&key, &iv, in_unaligned, out_unaligned);
 	}
 
 	/*
@@ -475,7 +475,7 @@ chacha_test_impl(const unsigned char *input_buffer) {
 
 	memset(final_hchacha, 0, sizeof(final_hchacha));
 	hchacha(h_key, h_iv, final_hchacha, chacha_test_rounds);
-	res &= (memcmp(expected_hchacha, final_hchacha, sizeof(expected_hchacha)) == 0) ? 1 : 0;
+	res |= memcmp(expected_hchacha, final_hchacha, sizeof(expected_hchacha));
 
 	/*
 		one-shot
@@ -488,12 +488,12 @@ chacha_test_impl(const unsigned char *input_buffer) {
 	memset(out, 0, CHACHA_TEST_LEN);
 	chacha(&key, &iv, input_buffer, out, CHACHA_TEST_LEN, chacha_test_rounds);
 	chacha_test_compact_array(final, out, CHACHA_TEST_LEN);
-	res &= (memcmp(expected_chacha_oneshot, final, sizeof(expected_chacha_oneshot)) == 0) ? 1 : 0;
+	res |= memcmp(expected_chacha_oneshot, final, sizeof(expected_chacha_oneshot));
 
 	memset(out, 0, CHACHA_TEST_LEN);
 	xchacha(&key, &x_iv, input_buffer, out, CHACHA_TEST_LEN, chacha_test_rounds);
 	chacha_test_compact_array(final, out, CHACHA_TEST_LEN);
-	res &= (memcmp(expected_xchacha_oneshot, final, sizeof(expected_xchacha_oneshot)) == 0) ? 1 : 0;
+	res |= memcmp(expected_xchacha_oneshot, final, sizeof(expected_xchacha_oneshot));
 
 	return res;
 }
@@ -502,10 +502,10 @@ static int
 chacha_test_full_impl(const void *impl) {
 	/* unaligned generation is tested, so buffer must have max+1 bytes */
 	unsigned char zero_buffer[CHACHA_TEST_LEN+1] = {0};
-	int res = 1;
+	int res = 0;
 	chacha_opt = (chacha_impl_t *)impl;
-	res &= chacha_test_impl(zero_buffer); /* xors stream of random bytes with zero_buffer */
-	res &= chacha_test_impl(NULL); /* writes stream of random bytes directly */
+	res |= chacha_test_impl(zero_buffer); /* xors stream of random bytes with zero_buffer */
+	res |= chacha_test_impl(NULL); /* writes stream of random bytes directly */
 	return res;
 }
 
@@ -652,6 +652,7 @@ chacha_bench(void) {
 	static const size_t lengths[] = {1, 64, 576, 8192, 0};
 	size_t i, j;
 	bench_arr = bench_get_buffer();
+
 	printf("ChaCha\n");
 	for (i = 0; rounds[i]; i++) {
 		bench_rounds = rounds[i];
