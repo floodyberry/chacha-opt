@@ -153,7 +153,7 @@ static unsigned long
 cpuid_specific_impl(void) {
 	cpuid_flags_t flags = {0, 0, 0, 0, 0, 0, 0};
 	int skip_to_next_line = 0;
-	int num_old_bytes = 0;
+	int incomplete_bytes = 0;
 
 	char line[CPUINFO_LINE_LENGTH];
 	int fd;
@@ -164,17 +164,21 @@ cpuid_specific_impl(void) {
 
 	for (;;) {
 		int cur_line_pos = 0;
-		int bytes = read(fd, line + num_old_bytes, CPUINFO_LINE_LENGTH - num_old_bytes);
-		if (bytes <= 0) {
-			if ((bytes < 0) && (errno == EINTR))
+		int bytes_read = read(fd, line + incomplete_bytes, CPUINFO_LINE_LENGTH - incomplete_bytes);
+		int bytes_left;
+		int cur_line_end;
+
+		if (bytes_read <= 0) {
+			if ((bytes_read < 0) && (errno == EINTR))
 				continue;
 			goto cpuid_specific_impl_done;
 		}
 
-		bytes += num_old_bytes;
-		num_old_bytes = 0;
-		while (bytes) {
-			int line_length = cpuid_line_length(line, cur_line_pos, bytes);
+		bytes_left = bytes_read + incomplete_bytes;
+		cur_line_end = bytes_left;
+		incomplete_bytes = 0;
+		while (bytes_left) {
+			int line_length = cpuid_line_length(line, cur_line_pos, cur_line_end);
 
 			/* if the line extends past the buffer.. */
 			if (line_length < 0) {
@@ -184,8 +188,8 @@ cpuid_specific_impl(void) {
 				} else {
 					/* otherwise copy it to the front */
 					memmove(line, line + cur_line_pos, CPUINFO_LINE_LENGTH - cur_line_pos);
-					num_old_bytes = CPUINFO_LINE_LENGTH - cur_line_pos;
-					line[num_old_bytes] = 0;
+					incomplete_bytes = bytes_left;
+					line[incomplete_bytes] = 0;
 					cur_line_pos = 0;
 				}
 
@@ -200,11 +204,7 @@ cpuid_specific_impl(void) {
 				skip_to_next_line = 0;
 
 			cur_line_pos += line_length + 1;
-			bytes -= line_length + 1;
-
-			if (cur_line_pos == CPUINFO_LINE_LENGTH) {
-				cur_line_pos = 0;
-			}
+			bytes_left -= line_length + 1;
 		}
 	}
 
