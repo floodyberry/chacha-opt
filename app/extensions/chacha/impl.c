@@ -74,6 +74,18 @@ typedef struct chacha_impl_t {
 	#define CHACHA_X86 CHACHA_IMPL(CPUID_X86, "x86", x86)
 #endif
 
+#if defined(ARCH_ARM)
+	#if defined(HAVE_ARMv6)
+		CHACHA_DECLARE(armv6)
+		#define CHACHA_ARMv6 CHACHA_IMPL(CPUID_ARMv6, "armv6", armv6)
+	#endif
+
+	#if defined(HAVE_NEON)
+		CHACHA_DECLARE(neon)
+		#define CHACHA_NEON CHACHA_IMPL(CPUID_NEON, "neon", neon)
+	#endif
+#endif
+
 /* the "always runs" version */
 #define CHACHA_GENERIC CHACHA_IMPL(CPUID_GENERIC, "generic", ref)
 #include "chacha/chacha_ref.inc"
@@ -101,7 +113,12 @@ static const chacha_impl_t chacha_list[] = {
 	#endif
 
 	/* arm */
-
+	#if defined(CHACHA_NEON)
+		CHACHA_NEON,
+	#endif
+	#if defined(CHACHA_ARMv6)
+		CHACHA_ARMv6,
+	#endif
 
 	CHACHA_GENERIC
 };

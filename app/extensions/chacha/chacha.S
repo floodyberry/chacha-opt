@@ -20,3 +20,11 @@ INCLUDE_IF_SSSE3_32BIT "chacha/chacha_ssse3-32.inc"
 INCLUDE_IF_SSE2_32BIT "chacha/chacha_sse2-32.inc"
 INCLUDE_IF_X86_32BIT "chacha/chacha_x86-32.inc"
 
+#if defined(HAVE_ARMv6)
+#include "chacha/chacha_armv6-32.inc"
+#endif
+
+#if (defined(CPU_32BITS) && defined(HAVE_NEON))
+#include "chacha/chacha_neon-32.inc"
+#endif
+
