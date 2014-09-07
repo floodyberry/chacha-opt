@@ -383,7 +383,7 @@ fuzz(const void *impls, size_t impl_size, const fuzz_variable_t *input_variables
 					break;
 
 				case FUZZ_ARRAY:
-					expected_bytes_out += input_variables[i].size;
+					expected_bytes_out += output_variables[i].size;
 					break;
 
 				case FUZZ_RANDOM_LENGTH_ARRAY0:
