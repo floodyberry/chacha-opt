@@ -125,6 +125,11 @@ x86-64, SSE2-32, and SSE3-32 versions are minorly modified from DJB's public dom
 
 x86-64 will almost always be slower than SSE2, but on some older AMDs it may be faster
 
+## ARM ##
+
+* ARMv6 [chacha\_armv6](app/extensions/chacha/chacha_armv6-32.inc)
+* NEON [chacha\_neon](app/extensions/chacha/chacha_neon-32.inc)
+
 # BUILDING #
 
 See [asm-opt#configuring](https://github.com/floodyberry/asm-opt#configuring) for full configure options.
@@ -290,6 +295,32 @@ and depending on clock speed (3.1ghz vs 4.0ghz), OpenSSL gives between 0.73cpb -
 </tbody>
 </table>
 
+
+## ZedBoard (Cortex-A9) ##
+
+I don't have access to the cycle counter yet, so cycles are computed by taking the microseconds times the clock speed (666mhz) divided by 1 million. For comparison, on long messages, OpenSSL 1.0.0e gives 52.3 cpb for aes-128-cbc (woof), and djb's armneon6 Salsa20/20 implementation gives 8.2 cpb.
+
+### ChaCha ###
+
+<table>
+<thead><tr><th>Impl.</th><th>1 byte</th><th>8</th><th>12</th><th>20</th><th>576 bytes</th><th>8</th><th>12</th><th>20</th><th>8192 bytes</th><th>8</th><th>12</th><th>20</th></tr></thead>
+<tbody>
+<tr> <td>NEON-32    </td> <td></td><td> 460</td><td> 573</td><td> 814</td> <td></td><td>  3.53</td><td>  4.73</td><td>  7.13</td> <td></td><td>  3.06</td><td>  4.26</td><td>  6.47</td> </tr>
+<tr> <td>ARMv6-32   </td> <td></td><td> 437</td><td> 565</td><td> 793</td> <td></td><td>  5.33</td><td>  7.07</td><td> 10.87</td> <td></td><td>  5.07</td><td>  6.93</td><td> 10.73</td> </tr>
+</tbody>
+</table>
+
+### HChaCha ###
+
+NEON shares the same implementation as ARMv6 as NEON latencies are too high for a single block.
+
+<table>
+<thead><tr><th>Impl.</th><th>8</th><th>12</th><th>20</th></tr></thead>
+<tbody>
+<tr> <td>NEON-32   </td> <td> 294</td><td> 446</td><td> 658</td> </tr>
+<tr> <td>ARMv6-32  </td> <td> 294</td><td> 446</td><td> 658</td> </tr>
+</tbody>
+</table>
 
 # LICENSE #
 
