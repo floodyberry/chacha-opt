@@ -276,8 +276,8 @@ STATICLIB=".lib"
 [ -e $appdir/$inputprojectname ] || fatal_error "Unable to find $appdir/$inputprojectname!"
 [ -e $appdir/$inputprojectver ] || fatal_error "Unable to find $appdir/$inputprojectver!"
 
-PROJECTNAME=`tr -d '\n' <$appdir/$inputprojectname 2>$outputlog | tr '[:upper:]' '[:lower:]'`
-PROJECTNAMEUPPER=`tr -d '\n' <$appdir/$inputprojectname 2>$outputlog | tr '[:lower:]' '[:upper:]'`
+PROJECTNAME=`tr -d '[:cntrl:]' <$appdir/$inputprojectname 2>$outputlog | tr '[:upper:]' '[:lower:]'`
+PROJECTNAMEUPPER=`tr -d '[:cntrl:]' <$appdir/$inputprojectname 2>$outputlog | tr '[:lower:]' '[:upper:]'`
 PROJECTVERMAJOR=`cut -d . -f 1 $appdir/$inputprojectver` 2>$outputlog
 
 if [ x"$PROJECTNAME" = "x" ]; then
