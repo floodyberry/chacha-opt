@@ -562,7 +562,7 @@ fi
 if [ "$debug" = "yes" ]; then
     CFLAGS="$CFLAGS -g"
 else
-    CFLAGS="$CFLAGS -O3"
+    CFLAGS="$CFLAGS -O2"
 fi
 
 if [ "$strict" = "yes" ]; then
