@@ -261,9 +261,10 @@ SOFLAGS="${SOFLAGS:-}"
 SONAME=""
 SOSUFFIX=""
 SOIMPORT=""
+LDFLAGS="${LDFLAGS:-}"
 AS="$CC"
 ASFLAGS=""
-ASFLAGSTEST="-x assembler -c -m32"
+ASFLAGSTEST="-x assembler -c"
 HAVEAS="${HAVEAS:-yes}"
 HAVESHARED="no"
 DEPMM="-MMD"
@@ -276,8 +277,8 @@ STATICLIB=".lib"
 [ -e $appdir/$inputprojectname ] || fatal_error "Unable to find $appdir/$inputprojectname!"
 [ -e $appdir/$inputprojectver ] || fatal_error "Unable to find $appdir/$inputprojectver!"
 
-PROJECTNAME=`tr -d '\n' <$appdir/$inputprojectname 2>$outputlog | tr '[:upper:]' '[:lower:]'`
-PROJECTNAMEUPPER=`tr -d '\n' <$appdir/$inputprojectname 2>$outputlog | tr '[:lower:]' '[:upper:]'`
+PROJECTNAME=`tr -d '[:cntrl:]' <$appdir/$inputprojectname 2>$outputlog | tr '[:upper:]' '[:lower:]'`
+PROJECTNAMEUPPER=`tr -d '[:cntrl:]' <$appdir/$inputprojectname 2>$outputlog | tr '[:lower:]' '[:upper:]'`
 PROJECTVERMAJOR=`cut -d . -f 1 $appdir/$inputprojectver` 2>$outputlog
 
 if [ x"$PROJECTNAME" = "x" ]; then
@@ -324,7 +325,8 @@ fi
 
 # assembler detection
 foundas="no"
-if [ "$HAVEAS" = "yes" ] && try_asm "xorl %eax, %eax"; then
+if [ "$HAVEAS" = "yes" ] && try_asm "xorb %al, %al"; then
+    ASFLAGSTEST="$ASFLAGSTEST -m32"
     echo "#define ARCH_X86" >> $outputheader
     ARCH="x86"
 
@@ -364,6 +366,7 @@ if [ "$HAVEAS" = "yes" ] && try_asm "xorl %eax, %eax"; then
     fi
 
     CFLAGS="$CFLAGS -m$OBITS"
+    LDFLAGS="$LDFLAGS -m$OBITS"
     if [ "$AS" = "yasm" ]; then
         case "$OFORMAT" in
             "elf" | "win" | "macho" ) ASFLAGS="-r nasm -p gas -f $OFORMAT$OBITS"
@@ -562,7 +565,7 @@ fi
 if [ "$debug" = "yes" ]; then
     CFLAGS="$CFLAGS -g"
 else
-    CFLAGS="$CFLAGS -O3"
+    CFLAGS="$CFLAGS -O2"
 fi
 
 if [ "$strict" = "yes" ]; then
@@ -629,6 +632,7 @@ SONAME=$SONAME
 SOIMPORT=$SOIMPORT
 SOSUFFIX=$SOSUFFIX
 SOFLAGS=$SOFLAGS
+LDFLAGS=$LDFLAGS
 exec_prefix=$exec_prefix
 bindir=$bindir
 libdir=$libdir

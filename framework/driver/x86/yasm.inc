@@ -1,9 +1,9 @@
 %ifndef BASE_YASM
 %define BASE_YASM
 
-; minimum stable AVX version it looks like
-%if (__YASM_VERSION_ID__ < 00080000h) ; 0.8.0
-	%error Requires Yasm 0.8.0 or higher
+; 1.1.0 and earlier incorrectly parsed movsw/movzw in gas mode: https://github.com/yasm/yasm/commit/2678cb3c3a42b3870a209ed8de38c1a16449695a
+%if (__YASM_VERSION_ID__ < 01020000h) ; 1.2.0
+	%error Requires Yasm 1.2.0 or higher
 %endif
 
 %define HAVE_XOP 0
