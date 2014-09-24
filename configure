@@ -261,9 +261,10 @@ SOFLAGS="${SOFLAGS:-}"
 SONAME=""
 SOSUFFIX=""
 SOIMPORT=""
+LDFLAGS="${LDFLAGS:-}"
 AS="$CC"
 ASFLAGS=""
-ASFLAGSTEST="-x assembler -c -m32"
+ASFLAGSTEST="-x assembler -c"
 HAVEAS="${HAVEAS:-yes}"
 HAVESHARED="no"
 DEPMM="-MMD"
@@ -324,7 +325,8 @@ fi
 
 # assembler detection
 foundas="no"
-if [ "$HAVEAS" = "yes" ] && try_asm "xorl %eax, %eax"; then
+if [ "$HAVEAS" = "yes" ] && try_asm "xorb %al, %al"; then
+    ASFLAGSTEST="$ASFLAGSTEST -m32"
     echo "#define ARCH_X86" >> $outputheader
     ARCH="x86"
 
@@ -364,6 +366,7 @@ if [ "$HAVEAS" = "yes" ] && try_asm "xorl %eax, %eax"; then
     fi
 
     CFLAGS="$CFLAGS -m$OBITS"
+    LDFLAGS="$LDFLAGS -m$OBITS"
     if [ "$AS" = "yasm" ]; then
         case "$OFORMAT" in
             "elf" | "win" | "macho" ) ASFLAGS="-r nasm -p gas -f $OFORMAT$OBITS"
@@ -629,6 +632,7 @@ SONAME=$SONAME
 SOIMPORT=$SOIMPORT
 SOSUFFIX=$SOSUFFIX
 SOFLAGS=$SOFLAGS
+LDFLAGS=$LDFLAGS
 exec_prefix=$exec_prefix
 bindir=$bindir
 libdir=$libdir
