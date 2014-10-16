@@ -1114,5 +1114,5 @@ popl %ebp
 ret
 FN_END xchacha_sse2
 
-INCLUDE_VAR_FILE "chacha_constants_x86.inc", chacha_constants
+INCLUDE_VAR_FILE "chacha/chacha_constants_x86.inc", chacha_constants
 
