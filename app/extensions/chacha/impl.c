@@ -366,7 +366,7 @@ chacha_test_init_state(chacha_state *st, chacha_key *key, chacha_iv *iv) {
 static int
 chacha_test_oneblock(chacha_key *key, chacha_iv *iv, const unsigned char *in, unsigned char *out) {
 	chacha_state st;
-	size_t i;
+	size_t i, j;
 	unsigned char *p;
 	int res = 0;
 
@@ -376,20 +376,30 @@ chacha_test_oneblock(chacha_key *key, chacha_iv *iv, const unsigned char *in, un
 		chacha_test_init_state(&st, key, iv);
 		p += chacha_update(&st, in, p, i);
 		chacha_final(&st, p);
+		/* undo input buffer if needed */
+		if (in) {
+			for (j = 0; j < i; j++)
+				out[j] ^= in[j];
+		}
 		res |= memcmp(expected_chacha_first, out, i);
 	}
 	return res;
 }
 
-/* xor all the blocks together in to one block */
+/* xor all the blocks together in to one block, xor'ing the blocks with input if needed */
 static void
-chacha_test_compact_array(unsigned char *dst, const unsigned char *src, size_t srclen) {
+chacha_test_compact_array(unsigned char *dst, const unsigned char *src, size_t srclen, const unsigned char *in) {
 	size_t blocks = srclen / CHACHA_BLOCKBYTES;
 	size_t i, j;
 	memset(dst, 0, CHACHA_BLOCKBYTES);
 	for (i = 0; i < blocks; i++) {
-		for (j = 0; j < CHACHA_BLOCKBYTES; j++)
-			dst[j] ^= src[(i * CHACHA_BLOCKBYTES) + j];
+		if (in) {
+			for (j = 0; j < CHACHA_BLOCKBYTES; j++)
+				dst[j] ^= src[(i * CHACHA_BLOCKBYTES) + j] ^ in[(i * CHACHA_BLOCKBYTES) + j];
+		} else {
+			for (j = 0; j < CHACHA_BLOCKBYTES; j++)
+				dst[j] ^= src[(i * CHACHA_BLOCKBYTES) + j];
+		}
 	}
 }
 
@@ -404,7 +414,7 @@ chacha_test_multiblock(chacha_key *key, chacha_iv *iv, const unsigned char *in, 
 	chacha_test_init_state(&st, key, iv);
 	p += chacha_update(&st, in, p, CHACHA_TEST_LEN);
 	chacha_final(&st, p);
-	chacha_test_compact_array(final, out, CHACHA_TEST_LEN);
+	chacha_test_compact_array(final, out, CHACHA_TEST_LEN, in);
 	return memcmp(expected_chacha, final, sizeof(expected_chacha));
 }
 
@@ -426,7 +436,7 @@ chacha_test_multiblock_incremental(chacha_key *key, chacha_iv *iv, const unsigne
 		for(i = 0; i <= CHACHA_TEST_LEN; i += inc)
 			p += chacha_update(&st, (in) ? (in + i) : NULL, p, ((i + inc) > CHACHA_TEST_LEN) ? (CHACHA_TEST_LEN - i) : inc);
 		chacha_final(&st, p);
-		chacha_test_compact_array(final, out, CHACHA_TEST_LEN);
+		chacha_test_compact_array(final, out, CHACHA_TEST_LEN, in);
 		res |= memcmp(expected_chacha, final, sizeof(expected_chacha));
 	}
 
@@ -435,16 +445,14 @@ chacha_test_multiblock_incremental(chacha_key *key, chacha_iv *iv, const unsigne
 
 /* input_buffer is either NULL, or a buffer with at least (CHACHA_TEST_LEN+1) bytes which is initialized to {0} */
 static int
-chacha_test_impl(const unsigned char *input_buffer) {
+chacha_test_impl(const unsigned char *input_buffer, unsigned char *output_buffer) {
 	chacha_key key;
 	chacha_iv iv;
 	chacha_iv24 x_iv;
 	unsigned char h_key[32];
 	unsigned char h_iv[16];
-	unsigned char out[CHACHA_TEST_LEN+sizeof(size_t)], final_hchacha[32];
 	unsigned char final[CHACHA_BLOCKBYTES];
-	const unsigned char *in_aligned, *in_unaligned;
-	unsigned char *out_aligned, *out_unaligned;
+	unsigned char final_hchacha[32];
 	size_t i;
 	int res = 0;
 
@@ -454,34 +462,15 @@ chacha_test_impl(const unsigned char *input_buffer) {
 	for (i = 0; i < sizeof(key); i++) key.b[i] = (unsigned char)(i + 32);
 	for (i = 0; i < sizeof(iv); i++) iv.b[i] = (unsigned char)(i + 128);
 
-	in_aligned = input_buffer;
-	in_unaligned = (input_buffer) ? (input_buffer + 1) : NULL;
-	out_aligned = out;
-	out_unaligned = out + 1;
 
 	/* single block */
-	res |= chacha_test_oneblock(&key, &iv,   in_aligned,   out_aligned);
-	res |= chacha_test_oneblock(&key, &iv,   in_aligned, out_unaligned);
-	if (input_buffer) {
-		res |= chacha_test_oneblock(&key, &iv, in_unaligned,   out_aligned);
-		res |= chacha_test_oneblock(&key, &iv, in_unaligned, out_unaligned);
-	}
+	res |= chacha_test_oneblock(&key, &iv, input_buffer, output_buffer);
 
-	/* multi */
-	res |= chacha_test_multiblock(&key, &iv,   in_aligned,   out_aligned);
-	res |= chacha_test_multiblock(&key, &iv,   in_aligned, out_unaligned);
-	if (input_buffer) {
-		res |= chacha_test_multiblock(&key, &iv, in_unaligned,   out_aligned);
-		res |= chacha_test_multiblock(&key, &iv, in_unaligned, out_unaligned);
-	}
+	/* multi block */
+	res |= chacha_test_multiblock(&key, &iv, input_buffer, output_buffer);
 
 	/* incremental */
-	res |= chacha_test_multiblock_incremental(&key, &iv,   in_aligned,   out_aligned);
-	res |= chacha_test_multiblock_incremental(&key, &iv,   in_aligned, out_unaligned);
-	if (input_buffer) {
-		res |= chacha_test_multiblock_incremental(&key, &iv, in_unaligned,   out_aligned);
-		res |= chacha_test_multiblock_incremental(&key, &iv, in_unaligned, out_unaligned);
-	}
+	res |= chacha_test_multiblock_incremental(&key, &iv, input_buffer, output_buffer);
 
 	/*
 		hchacha
@@ -495,34 +484,66 @@ chacha_test_impl(const unsigned char *input_buffer) {
 	res |= memcmp(expected_hchacha, final_hchacha, sizeof(expected_hchacha));
 
 	/*
-		one-shot
+		one-shot, buffers must be aligned
 		key [192,193,194,..223], iv [16,17,18,..31]
 	*/
-	for (i = 0; i < sizeof(key); i++) key.b[i] = (unsigned char)(i + 192);
-	for (i = 0; i < sizeof(iv); i++) iv.b[i] = (unsigned char)(i + 16);
-	for (i = 0; i < sizeof(x_iv); i++) x_iv.b[i] = (unsigned char)(i + 16);
 
-	memset(out, 0, CHACHA_TEST_LEN);
-	chacha(&key, &iv, input_buffer, out, CHACHA_TEST_LEN, chacha_test_rounds);
-	chacha_test_compact_array(final, out, CHACHA_TEST_LEN);
-	res |= memcmp(expected_chacha_oneshot, final, sizeof(expected_chacha_oneshot));
+	if (chacha_is_aligned(input_buffer) && chacha_is_aligned(output_buffer)) {
+		for (i = 0; i < sizeof(key); i++) key.b[i] = (unsigned char)(i + 192);
+		for (i = 0; i < sizeof(iv); i++) iv.b[i] = (unsigned char)(i + 16);
+		for (i = 0; i < sizeof(x_iv); i++) x_iv.b[i] = (unsigned char)(i + 16);
 
-	memset(out, 0, CHACHA_TEST_LEN);
-	xchacha(&key, &x_iv, input_buffer, out, CHACHA_TEST_LEN, chacha_test_rounds);
-	chacha_test_compact_array(final, out, CHACHA_TEST_LEN);
-	res |= memcmp(expected_xchacha_oneshot, final, sizeof(expected_xchacha_oneshot));
+		memset(output_buffer, 0, CHACHA_TEST_LEN);
+		chacha(&key, &iv, input_buffer, output_buffer, CHACHA_TEST_LEN, chacha_test_rounds);
+		chacha_test_compact_array(final, output_buffer, CHACHA_TEST_LEN, input_buffer);
+		res |= memcmp(expected_chacha_oneshot, final, sizeof(expected_chacha_oneshot));
+
+		memset(output_buffer, 0, CHACHA_TEST_LEN);
+		xchacha(&key, &x_iv, input_buffer, output_buffer, CHACHA_TEST_LEN, chacha_test_rounds);
+		chacha_test_compact_array(final, output_buffer, CHACHA_TEST_LEN, input_buffer);
+		res |= memcmp(expected_xchacha_oneshot, final, sizeof(expected_xchacha_oneshot));
+	}
 
 	return res;
 }
 
+/* somethign random and non-block-repeating to make sure the implementation is actually xor'ing the input data */
+static void
+chacha_make_test_data(unsigned char *buffer) {
+	size_t i, h;
+
+	h = 0;
+	for (i = 0; i < CHACHA_TEST_LEN; i++) {
+		h += h + i + 0x55;
+		h ^= (h >> 3);
+		buffer[i] = (unsigned char)h;
+	}
+}
+
 static int
 chacha_test_full_impl(const void *impl) {
-	/* unaligned generation is tested, so buffer must have max+1 bytes */
-	unsigned char zero_buffer[CHACHA_TEST_LEN+1] = {0};
+	unsigned char buffer[2][CHACHA_TEST_LEN + (sizeof(size_t) * 2)];
+	unsigned char *in = buffer[0], *out = buffer[1];
 	int res = 0;
+
 	chacha_opt = (chacha_impl_t *)impl;
-	res |= chacha_test_impl(zero_buffer); /* xors stream of random bytes with zero_buffer */
-	res |= chacha_test_impl(NULL); /* writes stream of random bytes directly */
+
+	/* make sure the buffers are actually word aligned */
+	while (!chacha_is_aligned(in)) in++;
+	while (!chacha_is_aligned(out)) out++;
+
+	/* test against aligned input buffer, aligned/unaligned output buffers */
+	chacha_make_test_data(in);
+	res |= chacha_test_impl(in, out);
+	res |= chacha_test_impl(NULL, out);
+	res |= chacha_test_impl(in, out + 1);
+	res |= chacha_test_impl(NULL, out + 1);
+
+	/* unaligned bufferput buffer, aligned/unaligned output buffers */
+	chacha_make_test_data(in + 1);
+	res |= chacha_test_impl(in + 1, out);
+	res |= chacha_test_impl(in + 1, out + 1);
+
 	return res;
 }
 
