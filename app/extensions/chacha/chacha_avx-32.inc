@@ -78,7 +78,14 @@ vmovdqu %xmm1, 448(%esp)
 vmovdqu %xmm2, 464(%esp)
 jmp chacha_blocks_avx_4
 .p2align 6,,63
-nop;nop;nop;nop;nop;nop;nop;nop;
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
 chacha_blocks_avx_4:
 movl %edx, %ebx
 movl %ecx, %edi

@@ -55,8 +55,10 @@ movdqa %xmm0, 352(%rsp)
 movdqa %xmm1, 368(%rsp)
 jmp chacha_blocks_ssse3_atleast256
 .p2align 6,,63
-# align to 4 mod 64
-nop;nop;nop;nop;
+nop
+nop
+nop
+nop
 chacha_blocks_ssse3_atleast256:
 movq 48(%rsp), %rax
 leaq 1(%rax), %r8
