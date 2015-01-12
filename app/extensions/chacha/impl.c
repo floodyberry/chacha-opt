@@ -8,7 +8,7 @@ enum chacha_constants {
 	CHACHA_BLOCKBYTES = 64,
 };
 
-typedef struct chacha_state_internal_t {
+CHACHA_ALIGN(64) typedef struct chacha_state_internal_t {
 	unsigned char s[48];
 	size_t rounds;
 	size_t leftover;
