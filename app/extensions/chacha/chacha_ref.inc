@@ -40,6 +40,7 @@ chacha_blocks_ref(chacha_state_internal *state, const unsigned char *in, unsigne
 	chacha_int32 t;
 	unsigned char *ctarget = out, tmp[64];
 	size_t i, r;
+	volatile chacha_int32 *cl;
 
 	if (!bytes) return;
 
@@ -172,11 +173,15 @@ chacha_blocks_ref(chacha_state_internal *state, const unsigned char *in, unsigne
 			/* store the counter back to the state */
 			U32TO8(state->s + 32, j[8]);
 			U32TO8(state->s + 36, j[9]);
-			return;
+			goto cleanup;
 		}
 		bytes -= 64;
 		out += 64;
 	}
+
+cleanup:
+	/* clean j as it contains sensitive info */
+	for(i = 0, cl = &j[0]; i < 16; i++, cl++) *cl = 0;
 }
 
 static void
