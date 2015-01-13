@@ -7,11 +7,19 @@
 	#define LIB_PUBLIC
 #endif
 
+#ifndef CHACHA_ALIGN
+# if defined(_MSC_VER)
+#  define CHACHA_ALIGN(x) __declspec(align(x))
+# else
+#  define CHACHA_ALIGN(x) __attribute__((aligned(x)))
+# endif
+#endif
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
-typedef struct chacha_state_t {
+CHACHA_ALIGN(64) typedef struct chacha_state_t {
 	unsigned char opaque[128];
 } chacha_state;
 
