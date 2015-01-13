@@ -257,6 +257,9 @@ chacha_set_test_counter(chacha_state *S) {
 LIB_PUBLIC size_t
 chacha_final(chacha_state *S, unsigned char *out) {
 	chacha_state_internal *state = (chacha_state_internal *)S;
+	size_t ret, i;
+	volatile unsigned char *cl;
+
 	if (state->leftover) {
 		if (chacha_is_aligned(out)) {
 			chacha_opt->chacha_blocks(state, state->buffer, out, state->leftover);
@@ -265,8 +268,11 @@ chacha_final(chacha_state *S, unsigned char *out) {
 			memcpy(out, state->buffer, state->leftover);
 		}
 	}
-	memset(S, 0, sizeof(chacha_state));
-	return state->leftover;
+	ret = state->leftover;
+	cl = (volatile unsigned char *)S;
+	for(i = 0; i < sizeof(*state); i ++) cl[i] = '\0';
+
+	return ret;
 }
 
 /* one-shot, input/output assumed to be word aligned */
