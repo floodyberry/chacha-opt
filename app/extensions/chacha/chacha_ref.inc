@@ -172,11 +172,14 @@ chacha_blocks_ref(chacha_state_internal *state, const unsigned char *in, unsigne
 			/* store the counter back to the state */
 			U32TO8(state->s + 32, j[8]);
 			U32TO8(state->s + 36, j[9]);
-			return;
+			goto cleanup;
 		}
 		bytes -= 64;
 		out += 64;
 	}
+
+cleanup:
+	secure_memset(j, 0, sizeof(j));
 }
 
 static void
