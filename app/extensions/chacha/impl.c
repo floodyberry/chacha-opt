@@ -15,6 +15,7 @@ typedef struct chacha_state_internal_t {
 	unsigned char buffer[CHACHA_BLOCKBYTES];
 } chacha_state_internal;
 
+static void * (* volatile secure_memset)(void *, int, size_t) = memset;
 
 typedef struct chacha_impl_t {
 	unsigned long cpu_flags;
@@ -257,16 +258,17 @@ chacha_set_test_counter(chacha_state *S) {
 LIB_PUBLIC size_t
 chacha_final(chacha_state *S, unsigned char *out) {
 	chacha_state_internal *state = (chacha_state_internal *)S;
-	if (state->leftover) {
+	size_t leftover = state->leftover;
+	if (leftover) {
 		if (chacha_is_aligned(out)) {
-			chacha_opt->chacha_blocks(state, state->buffer, out, state->leftover);
+			chacha_opt->chacha_blocks(state, state->buffer, out, leftover);
 		} else {
-			chacha_opt->chacha_blocks(state, state->buffer, state->buffer, state->leftover);
-			memcpy(out, state->buffer, state->leftover);
+			chacha_opt->chacha_blocks(state, state->buffer, state->buffer, leftover);
+			memcpy(out, state->buffer, leftover);
 		}
 	}
-	memset(S, 0, sizeof(chacha_state));
-	return state->leftover;
+	secure_memset(S, 0, sizeof(chacha_state));
+	return leftover;
 }
 
 /* one-shot, input/output assumed to be word aligned */
@@ -385,7 +387,7 @@ chacha_test_oneblock(chacha_key *key, chacha_iv *iv, const unsigned char *in, un
 		p = out;
 		chacha_test_init_state(st, key, iv);
 		p += chacha_update(st, in, p, i);
-		chacha_final(st, p);
+		res |= (chacha_final(st, p) != (i & (CHACHA_BLOCKBYTES - 1))) ? 1 : 0;
 		/* undo input buffer if needed */
 		if (in) {
 			for (j = 0; j < i; j++)
@@ -420,13 +422,15 @@ chacha_test_multiblock(chacha_key *key, chacha_iv *iv, const unsigned char *in, 
 	chacha_state *st = chacha_test_misalign_state(buffer);
 	unsigned char final[CHACHA_BLOCKBYTES];
 	unsigned char *p = out;
+	int res = 0;
 
 	memset(out, 0, CHACHA_TEST_LEN);
 	chacha_test_init_state(st, key, iv);
 	p += chacha_update(st, in, p, CHACHA_TEST_LEN);
-	chacha_final(st, p);
+	res |= (chacha_final(st, p) != (CHACHA_TEST_LEN & (CHACHA_BLOCKBYTES - 1))) ? 1 : 0;
 	chacha_test_compact_array(final, out, CHACHA_TEST_LEN, in);
-	return memcmp(expected_chacha, final, sizeof(expected_chacha));
+	res |= memcmp(expected_chacha, final, sizeof(expected_chacha));
+	return res;
 }
 
 
@@ -447,7 +451,7 @@ chacha_test_multiblock_incremental(chacha_key *key, chacha_iv *iv, const unsigne
 		chacha_test_init_state(st, key, iv);
 		for(i = 0; i <= CHACHA_TEST_LEN; i += inc)
 			p += chacha_update(st, (in) ? (in + i) : NULL, p, ((i + inc) > CHACHA_TEST_LEN) ? (CHACHA_TEST_LEN - i) : inc);
-		chacha_final(st, p);
+		res |= (chacha_final(st, p) != (CHACHA_TEST_LEN & (CHACHA_BLOCKBYTES - 1))) ? 1 : 0;
 		chacha_test_compact_array(final, out, CHACHA_TEST_LEN, in);
 		res |= memcmp(expected_chacha, final, sizeof(expected_chacha));
 	}
