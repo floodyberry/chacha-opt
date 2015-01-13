@@ -14,9 +14,9 @@ LOAD_VAR_PIC chacha_constants, %rax
 vmovdqa 0(%rax), %xmm8
 vmovdqa 16(%rax), %xmm6
 vmovdqa 32(%rax), %xmm7
-vmovdqa 0(%rdi), %xmm9
-vmovdqa 16(%rdi), %xmm10
-vmovdqa 32(%rdi), %xmm11
+vmovdqu 0(%rdi), %xmm9
+vmovdqu 16(%rdi), %xmm10
+vmovdqu 32(%rdi), %xmm11
 movq 48(%rdi), %rax
 movq $1, %r9
 vmovdqa %xmm8, 0(%rsp)
@@ -887,7 +887,7 @@ movb %al, (%r9, %rcx)
 incq %rcx
 jnz chacha_blocks_avx2_copyoutput
 chacha_blocks_avx2_done:
-vmovdqa %xmm11, 32(%rdi)
+vmovdqu %xmm11, 32(%rdi)
 movq %rbp, %rsp
 popq %r14
 popq %r13

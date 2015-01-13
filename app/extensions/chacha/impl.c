@@ -362,10 +362,20 @@ chacha_test_init_state(chacha_state *st, chacha_key *key, chacha_iv *iv) {
 	chacha_set_test_counter(st);
 }
 
+/* return a chacha_state * aligned to (sizeof(size_t) - 1) mod 64 */
+static chacha_state *
+chacha_test_misalign_state(void *p) {
+	unsigned char *st = (unsigned char *)p;
+	while (((size_t)st & 63) != (sizeof(size_t) - 1))
+		st++;
+	return (chacha_state *)p;
+}
+
 /* test 1..64 byte generation, will use slow single-block codepath, also partial block generation. out must have at least 64 bytes of space */
 static int
 chacha_test_oneblock(chacha_key *key, chacha_iv *iv, const unsigned char *in, unsigned char *out) {
-	chacha_state st;
+	unsigned char buffer[sizeof(chacha_state) + 63];
+	chacha_state *st = chacha_test_misalign_state(buffer);
 	size_t i, j;
 	unsigned char *p;
 	int res = 0;
@@ -373,9 +383,9 @@ chacha_test_oneblock(chacha_key *key, chacha_iv *iv, const unsigned char *in, un
 	for (i = 1; i <= CHACHA_BLOCKBYTES; i++) {
 		memset(out, 0, i);
 		p = out;
-		chacha_test_init_state(&st, key, iv);
-		p += chacha_update(&st, in, p, i);
-		chacha_final(&st, p);
+		chacha_test_init_state(st, key, iv);
+		p += chacha_update(st, in, p, i);
+		chacha_final(st, p);
 		/* undo input buffer if needed */
 		if (in) {
 			for (j = 0; j < i; j++)
@@ -406,14 +416,15 @@ chacha_test_compact_array(unsigned char *dst, const unsigned char *src, size_t s
 /* test CHACHA_TEST_LEN byte generation, will trigger efficient multi-block codepath. out must have at least CHACHA_TEST_LEN bytes of space */
 static int
 chacha_test_multiblock(chacha_key *key, chacha_iv *iv, const unsigned char *in, unsigned char *out) {
-	chacha_state st;
+	unsigned char buffer[sizeof(chacha_state) + 63];
+	chacha_state *st = chacha_test_misalign_state(buffer);
 	unsigned char final[CHACHA_BLOCKBYTES];
 	unsigned char *p = out;
 
 	memset(out, 0, CHACHA_TEST_LEN);
-	chacha_test_init_state(&st, key, iv);
-	p += chacha_update(&st, in, p, CHACHA_TEST_LEN);
-	chacha_final(&st, p);
+	chacha_test_init_state(st, key, iv);
+	p += chacha_update(st, in, p, CHACHA_TEST_LEN);
+	chacha_final(st, p);
 	chacha_test_compact_array(final, out, CHACHA_TEST_LEN, in);
 	return memcmp(expected_chacha, final, sizeof(expected_chacha));
 }
@@ -423,7 +434,8 @@ chacha_test_multiblock(chacha_key *key, chacha_iv *iv, const unsigned char *in, 
 /* incremental, test CHACHA_TEST_LEN byte generation, will trigger single/multi-block codepath. out must have at least CHACHA_TEST_LEN bytes of space */
 static int
 chacha_test_multiblock_incremental(chacha_key *key, chacha_iv *iv, const unsigned char *in, unsigned char *out) {
-	chacha_state st;
+	unsigned char buffer[sizeof(chacha_state) + 63];
+	chacha_state *st = chacha_test_misalign_state(buffer);
 	unsigned char final[CHACHA_BLOCKBYTES];
 	size_t i, inc;
 	unsigned char *p;
@@ -432,10 +444,10 @@ chacha_test_multiblock_incremental(chacha_key *key, chacha_iv *iv, const unsigne
 	for (inc = 1; inc < CHACHA_TEST_LEN; inc += 61) {
 		p = out;
 		memset(out, 0, CHACHA_TEST_LEN);
-		chacha_test_init_state(&st, key, iv);
+		chacha_test_init_state(st, key, iv);
 		for(i = 0; i <= CHACHA_TEST_LEN; i += inc)
-			p += chacha_update(&st, (in) ? (in + i) : NULL, p, ((i + inc) > CHACHA_TEST_LEN) ? (CHACHA_TEST_LEN - i) : inc);
-		chacha_final(&st, p);
+			p += chacha_update(st, (in) ? (in + i) : NULL, p, ((i + inc) > CHACHA_TEST_LEN) ? (CHACHA_TEST_LEN - i) : inc);
+		chacha_final(st, p);
 		chacha_test_compact_array(final, out, CHACHA_TEST_LEN, in);
 		res |= memcmp(expected_chacha, final, sizeof(expected_chacha));
 	}
