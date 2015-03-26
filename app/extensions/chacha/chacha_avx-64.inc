@@ -14,6 +14,7 @@ vmovdqa 32(%rax), %xmm7
 vmovdqu 0(%rdi), %xmm9
 vmovdqu 16(%rdi), %xmm10
 vmovdqu 32(%rdi), %xmm11
+movq 32(%rdi), %rbx
 movq 48(%rdi), %rax
 movq $1, %r9
 vmovdqa %xmm8, 0(%rsp)
@@ -23,8 +24,11 @@ vmovdqa %xmm11, 48(%rsp)
 vmovdqa %xmm6, 80(%rsp)
 vmovdqa %xmm7, 96(%rsp)
 movq %rax, 64(%rsp)
-cmpq $256, %rcx
-jb chacha_blocks_avx_below256
+cmp $128, %rcx
+jb chacha_blocks_avx_below128_fixup
+cmp $256, %rcx
+jb chacha_blocks_avx_atleast128
+chacha_blocks_avx_atleast256_fixup:
 vpshufd $0x00, %xmm8, %xmm0
 vpshufd $0x55, %xmm8, %xmm1
 vpshufd $0xaa, %xmm8, %xmm2
@@ -61,11 +65,10 @@ nop
 nop
 nop
 chacha_blocks_avx_atleast256:
-movq 48(%rsp), %rax
-leaq 1(%rax), %r8
-leaq 2(%rax), %r9
-leaq 3(%rax), %r10
-leaq 4(%rax), %rbx
+movq %rbx, %rax
+leaq 1(%rbx), %r8
+leaq 2(%rbx), %r9
+leaq 3(%rbx), %r10
 movl %eax, 320(%rsp)
 movl %r8d, 4+320(%rsp)
 movl %r9d, 8+320(%rsp)
@@ -74,11 +77,11 @@ shrq $32, %rax
 shrq $32, %r8
 shrq $32, %r9
 shrq $32, %r10
+addq $4, %rbx
 movl %eax, 336(%rsp)
 movl %r8d, 4+336(%rsp)
 movl %r9d, 8+336(%rsp)
 movl %r10d, 12+336(%rsp)
-movq %rbx, 48(%rsp)
 movq 64(%rsp), %rax
 vmovdqa 128(%rsp), %xmm0
 vmovdqa 144(%rsp), %xmm1
@@ -331,7 +334,7 @@ vmovdqu %xmm5, 176(%rdx)
 vmovdqu %xmm6, 224(%rdx)
 vmovdqu %xmm7, 240(%rdx)
 addq $256, %rsi
-jmp chacha_blocks_avx_mainloop_cont
+jmp chacha_blocks_avx_mainloop1_cont
 chacha_blocks_avx_noinput1:
 vmovdqu %xmm0, 0(%rdx)
 vmovdqu %xmm1, 16(%rdx)
@@ -373,11 +376,12 @@ vmovdqu %xmm4, 160(%rdx)
 vmovdqu %xmm5, 176(%rdx)
 vmovdqu %xmm6, 224(%rdx)
 vmovdqu %xmm7, 240(%rdx)
-chacha_blocks_avx_mainloop_cont:
+chacha_blocks_avx_mainloop1_cont:
 addq $256, %rdx
 subq $256, %rcx
 cmp $256, %rcx
 jae chacha_blocks_avx_atleast256
+movq %rbx, 48(%rsp)
 vmovdqa 80(%rsp), %xmm6
 vmovdqa 96(%rsp), %xmm7
 vmovdqa 0(%rsp), %xmm8
@@ -385,15 +389,154 @@ vmovdqa 16(%rsp), %xmm9
 vmovdqa 32(%rsp), %xmm10
 vmovdqa 48(%rsp), %xmm11
 movq $1, %r9
-chacha_blocks_avx_below256:
-vmovq %r9, %xmm5
+cmp $128, %rcx
+jb chacha_blocks_avx_below128_fixup
+chacha_blocks_avx_atleast128:
+vmovd %r9, %xmm5
+vmovdqa %xmm8, %xmm0
+vmovdqa %xmm9, %xmm1
+vmovdqa %xmm10, %xmm2
+vmovdqa %xmm11, %xmm3
+vpaddq %xmm5, %xmm11, %xmm11
+vmovdqa %xmm8, 384(%rsp)
+vmovdqa %xmm9, 400(%rsp)
+vmovdqa %xmm10, 416(%rsp)
+vmovdqa %xmm3, 432(%rsp)
+vmovdqa %xmm11, 448(%rsp)
+movq 64(%rsp), %rax
+chacha_blocks_avx_mainloop2:
+vpaddd %xmm0, %xmm1, %xmm0
+vpaddd %xmm8, %xmm9, %xmm8
+vpxor %xmm3, %xmm0, %xmm3
+vpxor %xmm11, %xmm8, %xmm11
+vpshufb %xmm6, %xmm3, %xmm3
+vpshufb %xmm6, %xmm11, %xmm11
+vpaddd %xmm2, %xmm3, %xmm2
+vpaddd %xmm10, %xmm11, %xmm10
+vpxor %xmm1, %xmm2, %xmm1
+vpxor %xmm9, %xmm10, %xmm9
+vpslld $ 12, %xmm1, %xmm4
+vpsrld $20, %xmm1, %xmm1
+vpxor %xmm1, %xmm4, %xmm1
+vpslld $ 12, %xmm9, %xmm5
+vpsrld $20, %xmm9, %xmm9
+vpxor %xmm9, %xmm5, %xmm9
+vpaddd %xmm0, %xmm1, %xmm0
+vpaddd %xmm8, %xmm9, %xmm8
+vpxor %xmm3, %xmm0, %xmm3
+vpxor %xmm11, %xmm8, %xmm11
+vpshufb %xmm7, %xmm3, %xmm3
+vpshufb %xmm7, %xmm11, %xmm11
+vpshufd $0x93, %xmm0, %xmm0
+vpshufd $0x93, %xmm8, %xmm8
+vpaddd %xmm2, %xmm3, %xmm2
+vpaddd %xmm10, %xmm11, %xmm10
+vpshufd $0x4e, %xmm3, %xmm3
+vpshufd $0x4e, %xmm11, %xmm11
+vpxor %xmm1, %xmm2, %xmm1
+vpxor %xmm9, %xmm10, %xmm9
+vpshufd $0x39, %xmm2, %xmm2
+vpshufd $0x39, %xmm10, %xmm10
+vpslld $ 7, %xmm1, %xmm4
+vpsrld $25, %xmm1, %xmm1
+vpxor %xmm1, %xmm4, %xmm1
+vpslld $ 7, %xmm9, %xmm5
+vpsrld $25, %xmm9, %xmm9
+vpxor %xmm9, %xmm5, %xmm9
+vpaddd %xmm0, %xmm1, %xmm0
+vpaddd %xmm8, %xmm9, %xmm8
+vpxor %xmm3, %xmm0, %xmm3
+vpxor %xmm11, %xmm8, %xmm11
+vpshufb %xmm6, %xmm3, %xmm3
+vpshufb %xmm6, %xmm11, %xmm11
+vpaddd %xmm2, %xmm3, %xmm2
+vpaddd %xmm10, %xmm11, %xmm10
+vpxor %xmm1, %xmm2, %xmm1
+vpxor %xmm9, %xmm10, %xmm9
+vpslld $ 12, %xmm1, %xmm4
+vpsrld $20, %xmm1, %xmm1
+vpxor %xmm1, %xmm4, %xmm1
+vpslld $ 12, %xmm9, %xmm5
+vpsrld $20, %xmm9, %xmm9
+vpxor %xmm9, %xmm5, %xmm9
+vpaddd %xmm0, %xmm1, %xmm0
+vpaddd %xmm8, %xmm9, %xmm8
+vpxor %xmm3, %xmm0, %xmm3
+vpxor %xmm11, %xmm8, %xmm11
+vpshufb %xmm7, %xmm3, %xmm3
+vpshufb %xmm7, %xmm11, %xmm11
+vpshufd $0x39, %xmm0, %xmm0
+vpshufd $0x39, %xmm8, %xmm8
+vpaddd %xmm2, %xmm3, %xmm2
+vpaddd %xmm10, %xmm11, %xmm10
+vpshufd $0x4e, %xmm3, %xmm3
+vpshufd $0x4e, %xmm11, %xmm11
+vpxor %xmm1, %xmm2, %xmm1
+vpxor %xmm9, %xmm10, %xmm9
+vpshufd $0x93, %xmm2, %xmm2
+vpshufd $0x93, %xmm10, %xmm10
+vpslld $ 7, %xmm1, %xmm4
+vpsrld $25, %xmm1, %xmm1
+vpxor %xmm1, %xmm4, %xmm1
+vpslld $ 7, %xmm9, %xmm5
+vpsrld $25, %xmm9, %xmm9
+vpxor %xmm9, %xmm5, %xmm9
+subq $2, %rax
+jnz chacha_blocks_avx_mainloop2
+vmovdqa 384(%rsp), %xmm12
+vmovdqa 400(%rsp), %xmm13
+vmovdqa 416(%rsp), %xmm14
+vmovdqa 432(%rsp), %xmm15
+vmovdqa 448(%rsp), %xmm5
+vpaddd %xmm12, %xmm0, %xmm0
+vpaddd %xmm13, %xmm1, %xmm1
+vpaddd %xmm14, %xmm2, %xmm2
+vpaddd %xmm15, %xmm3, %xmm3
+vpaddd %xmm12, %xmm8, %xmm8
+vpaddd %xmm13, %xmm9, %xmm9
+vpaddd %xmm14, %xmm10, %xmm10
+vpaddd %xmm5, %xmm11, %xmm11
+andq %rsi, %rsi
+jz chacha_blocks_avx_noinput2
+vpxor 0(%rsi), %xmm0, %xmm0
+vpxor 16(%rsi), %xmm1, %xmm1
+vpxor 32(%rsi), %xmm2, %xmm2
+vpxor 48(%rsi), %xmm3, %xmm3
+vpxor 64(%rsi), %xmm8, %xmm8
+vpxor 80(%rsi), %xmm9, %xmm9
+vpxor 96(%rsi), %xmm10, %xmm10
+vpxor 112(%rsi), %xmm11, %xmm11
+addq $128, %rsi
+chacha_blocks_avx_noinput2:
+addq $2, %rbx
+vmovdqu %xmm0, 0(%rdx)
+vmovdqu %xmm1, 16(%rdx)
+vmovdqu %xmm2, 32(%rdx)
+vmovdqu %xmm3, 48(%rdx)
+vmovdqu %xmm8, 64(%rdx)
+vmovdqu %xmm9, 80(%rdx)
+vmovdqu %xmm10, 96(%rdx)
+vmovdqu %xmm11, 112(%rdx)
+addq $128, %rdx
+subq $128, %rcx
+movq %rbx, 48(%rsp)
+vmovdqa 80(%rsp), %xmm6
+vmovdqa 96(%rsp), %xmm7
+vmovdqa 0(%rsp), %xmm8
+vmovdqa 16(%rsp), %xmm9
+vmovdqa 32(%rsp), %xmm10
+vmovdqa 48(%rsp), %xmm11
+chacha_blocks_avx_below128_fixup:
+movq $1, %r9
+vmovd %r9, %xmm5
+chacha_blocks_avx_below128:
 andq %rcx, %rcx
 jz chacha_blocks_avx_done
 cmpq $64, %rcx
 jae chacha_blocks_avx_above63
 movq %rdx, %r9
 andq %rsi, %rsi
-jz chacha_blocks_avx_noinput2
+jz chacha_blocks_avx_noinput3
 movq %rcx, %r10
 movq %rsp, %rdx
 addq %r10, %rsi
@@ -405,7 +548,7 @@ movb %al, (%rdx, %r10)
 incq %r10
 jnz chacha_blocks_avx_copyinput
 movq %rsp, %rsi
-chacha_blocks_avx_noinput2:
+chacha_blocks_avx_noinput3:
 movq %rsp, %rdx
 chacha_blocks_avx_above63:
 vmovdqa %xmm8, %xmm0
@@ -413,7 +556,7 @@ vmovdqa %xmm9, %xmm1
 vmovdqa %xmm10, %xmm2
 vmovdqa %xmm11, %xmm3
 movq 64(%rsp), %rax
-chacha_blocks_avx_mainloop2:
+chacha_blocks_avx_mainloop3:
 vpaddd %xmm0, %xmm1, %xmm0
 vpxor %xmm3, %xmm0, %xmm3
 vpshufb %xmm6, %xmm3, %xmm3
@@ -453,30 +596,31 @@ vpslld $7, %xmm1, %xmm4
 vpsrld $25, %xmm1, %xmm1
 vpxor %xmm1, %xmm4, %xmm1
 subq $2, %rax
-jnz chacha_blocks_avx_mainloop2
+jnz chacha_blocks_avx_mainloop3
 vpaddd %xmm0, %xmm8, %xmm0
 vpaddd %xmm1, %xmm9, %xmm1
 vpaddd %xmm2, %xmm10, %xmm2
 vpaddd %xmm3, %xmm11, %xmm3
 andq %rsi, %rsi
-jz chacha_blocks_avx_noinput3
+jz chacha_blocks_avx_noinput4
 vpxor 0(%rsi), %xmm0, %xmm0
 vpxor 16(%rsi), %xmm1, %xmm1
 vpxor 32(%rsi), %xmm2, %xmm2
 vpxor 48(%rsi), %xmm3, %xmm3
 addq $64, %rsi
-chacha_blocks_avx_noinput3:
+chacha_blocks_avx_noinput4:
 vmovdqu %xmm0, 0(%rdx)
 vmovdqu %xmm1, 16(%rdx)
 vmovdqu %xmm2, 32(%rdx)
 vmovdqu %xmm3, 48(%rdx)
 vpaddq %xmm11, %xmm5, %xmm11
+addq $1, %rbx
 cmpq $64, %rcx
-jbe chacha_blocks_avx_mainloop2_finishup
+jbe chacha_blocks_avx_mainloop3_finishup
 addq $64, %rdx
 subq $64, %rcx
-jmp chacha_blocks_avx_below256
-chacha_blocks_avx_mainloop2_finishup:
+jmp chacha_blocks_avx_below128
+chacha_blocks_avx_mainloop3_finishup:
 cmpq $64, %rcx
 je chacha_blocks_avx_done
 addq %rcx, %r9
@@ -488,7 +632,7 @@ movb %al, (%r9, %rcx)
 incq %rcx
 jnz chacha_blocks_avx_copyoutput
 chacha_blocks_avx_done:
-vmovdqu %xmm11, 32(%rdi)
+movq %rbx, 32(%rdi)
 movq %rbp, %rsp
 popq %rbp
 popq %rbx
