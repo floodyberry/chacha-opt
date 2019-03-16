@@ -821,27 +821,27 @@ FN_END hchacha_neon
 .ltorg
 
 GLOBAL_HIDDEN_FN chacha_neon
-stmfd sp!, {r4-r7, lr}
+stmfd sp!, {r4-r8, lr}
 mov r12, sp
 sub sp, sp, #64
 and sp, sp, #0xffffff80
+mov r8, sp
 ldmia r0!, {r4-r7}
-stmia sp!, {r4-r7}
+stmia r8!, {r4-r7}
 ldmia r0!, {r4-r7}
-stmia sp!, {r4-r7}
+stmia r8!, {r4-r7}
 eor r4, r4, r4
 eor r5, r5, r5
 mov r7, r12
-stmia sp!, {r4-r5}
+stmia r8!, {r4-r5}
 ldmia r1!, {r4-r5}
-stmia sp!, {r4-r5}
-ldr r4, [r7, #24]
-str r4, [sp]
-sub sp, sp, #48
+stmia r8!, {r4-r5}
+ldr r4, [r7, #28]
+str r4, [r8]
 mov r0, sp
 mov r1, r2
 mov r2, r3
-ldr r3, [r7, #20]
+ldr r3, [r7, #24]
 bl chacha_blocks_neon_local
 eor r0, r0, r0
 eor r1, r1, r1
@@ -851,13 +851,13 @@ stmia sp!, {r0-r3}
 stmia sp!, {r0-r3}
 stmia sp!, {r0-r3}
 mov sp, r7
-ldmfd sp!, {r4-r7, lr}
+ldmfd sp!, {r4-r8, lr}
 bx lr
 FN_END chacha_neon
 
 
 GLOBAL_HIDDEN_FN xchacha_neon
-stmfd sp!, {r4-r6, lr}
+stmfd sp!, {r4-r8, lr}
 mov r7, sp
 sub sp, sp, #64
 and sp, sp, #0xffffff80
@@ -865,21 +865,20 @@ mov r4, r2
 mov r5, r3
 add r6, r1, #16
 mov r2, sp
-ldr r3, [r7, #20]
+ldr r3, [r7, #28]
 bl hchacha_neon_local
 eor r0, r0, r0
 eor r1, r1, r1
-add sp, sp, #32
-stmia sp!, {r0-r1}
+add r8, sp, #32
+stmia r8!, {r0-r1}
 ldm r6, {r0-r1}
-stmia sp!, {r0-r1}
-ldr r2, [r7, #20]
-str r2, [sp]
-sub sp, sp, #48
+stmia r8!, {r0-r1}
+ldr r2, [r7, #28]
+str r2, [r8]
 mov r0, sp
 mov r1, r4
 mov r2, r5
-ldr r3, [r7, #16]
+ldr r3, [r7, #24]
 bl chacha_blocks_neon_local
 eor r0, r0, r0
 eor r1, r1, r1
@@ -889,7 +888,7 @@ stmia sp!, {r0-r3}
 stmia sp!, {r0-r3}
 stmia sp!, {r0-r3}
 mov sp, r7
-ldmfd sp!, {r4-r6, lr}
+ldmfd sp!, {r4-r8, lr}
 bx lr
 FN_END xchacha_neon
 
