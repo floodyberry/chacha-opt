@@ -344,7 +344,7 @@ movq $1, %r9
 cmp $128, %rcx
 jb chacha_blocks_xop_below128_fixup
 chacha_blocks_xop_atleast128:
-vmovd %r9, %xmm5
+vmovq %r9, %xmm5
 vmovdqa %xmm8, %xmm0
 vmovdqa %xmm9, %xmm1
 vmovdqa %xmm10, %xmm2
@@ -462,7 +462,7 @@ vmovdqa 32(%rsp), %xmm10
 vmovdqa 48(%rsp), %xmm11
 movq $1, %r9
 chacha_blocks_xop_below128_fixup:
-vmovd %r9, %xmm5
+vmovq %r9, %xmm5
 chacha_blocks_xop_below128:
 andq %rcx, %rcx
 jz chacha_blocks_xop_done
