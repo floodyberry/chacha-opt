@@ -438,8 +438,8 @@ chacha_blocks_avx2_atleast256:
 movq $1, %r9
 movq $2, %r10
 vpxor %ymm13, %ymm13, %ymm13
-vmovd %r9, %xmm14
-vmovd %r10, %xmm15
+vmovq %r9, %xmm14
+vmovq %r10, %xmm15
 vinserti128 $1, %xmm14, %ymm13, %ymm4
 vinserti128 $1, %xmm15, %ymm15, %ymm5
 vmovdqa %ymm8, %ymm0
@@ -586,7 +586,7 @@ jb chacha_blocks_avx2_below128_fixup
 chacha_blocks_avx2_atleast128:
 movq $1, %r9
 vpxor %ymm13, %ymm13, %ymm13
-vmovd %r9, %xmm14
+vmovq %r9, %xmm14
 vinserti128 $1, %xmm14, %ymm13, %ymm13
 vpaddq %ymm13, %ymm11, %ymm11
 vmovdqa %ymm8, %ymm0
@@ -657,14 +657,14 @@ vmovdqu %ymm13, 32(%rdx)
 vmovdqu %ymm14, 64(%rdx)
 vmovdqu %ymm15, 96(%rdx)
 movq $2, %r9
-vmovd %r9, %xmm4
+vmovq %r9, %xmm4
 addq $128, %rdx
 vpaddq %xmm4, %xmm11, %xmm11
 subq $128, %rcx
 movq %r14, 48(%rsp)
 chacha_blocks_avx2_below128_fixup:
 movq $1, %r9
-vmovd %r9, %xmm5
+vmovq %r9, %xmm5
 chacha_blocks_avx2_below128:
 andq %rcx, %rcx
 jz chacha_blocks_avx2_done
